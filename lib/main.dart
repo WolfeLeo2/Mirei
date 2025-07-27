@@ -16,13 +16,14 @@ class MireiApp extends StatelessWidget {
       title: 'Mirei',
       theme: ThemeData.light().copyWith(
         primaryColor: const Color(0xFFa9a0ff),
-        textTheme: GoogleFonts.interTextTheme(Theme.of(context).textTheme),
+        textTheme: GoogleFonts.manropeTextTheme(),
         colorScheme: ColorScheme.fromSwatch().copyWith(
           primary: const Color(0xFFa9a0ff),
           secondary: const Color(0xFF1a237e),
         ),
       ),
       home: const HomeScreen(),
+      
     );
   }
 }
