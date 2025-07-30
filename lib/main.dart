@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart'; // For custom fonts
-import 'screens/home_screen.dart';
+import 'screens/main_navigation.dart';
 
 void main() {
   runApp(const MireiApp());
@@ -22,8 +22,7 @@ class MireiApp extends StatelessWidget {
           secondary: const Color(0xFF1a237e),
         ),
       ),
-      home: const HomeScreen(),
-      
+      home: const MainNavigation(),
     );
   }
 }
