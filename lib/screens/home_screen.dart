@@ -6,7 +6,7 @@ import 'package:mirei/components/horizontal_card_list.dart';
 import 'package:mirei/models/session_info.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();

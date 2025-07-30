@@ -4,7 +4,7 @@ import 'package:mirei/models/session_info.dart';
 class MainCard extends StatelessWidget {
   final SessionInfo session;
   final VoidCallback? onPlay;
-  const MainCard({Key? key, required this.session, this.onPlay}) : super(key: key);
+  const MainCard({super.key, required this.session, this.onPlay});
 
   @override
   Widget build(BuildContext context) {

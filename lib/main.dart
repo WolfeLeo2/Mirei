@@ -7,7 +7,7 @@ void main() {
 }
 
 class MireiApp extends StatelessWidget {
-  const MireiApp({Key? key}) : super(key: key);
+  const MireiApp({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
-import 'package:mirei/my_flutter_app_icons.dart';
 import 'package:icons_plus/icons_plus.dart';
 
 class NavBar extends StatelessWidget {
@@ -8,10 +7,10 @@ class NavBar extends StatelessWidget {
   final ValueChanged<int> onTap;
 
   const NavBar({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

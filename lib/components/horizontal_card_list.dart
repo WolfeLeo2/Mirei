@@ -4,7 +4,7 @@ import 'package:mirei/components/media_player_card.dart';
 
 class HorizontalCardList extends StatelessWidget {
   final String assetPath;
-  const HorizontalCardList({Key? key, required this.assetPath}) : super(key: key);
+  const HorizontalCardList({super.key, required this.assetPath});
 
   @override
   Widget build(BuildContext context) {

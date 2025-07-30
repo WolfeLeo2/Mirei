@@ -8,12 +8,12 @@ class EmotionCard extends StatelessWidget {
   final String imagePath;
 
   const EmotionCard({
-    Key? key,
+    super.key,
     required this.gradient,
     required this.title,
     required this.subtitle,
     this.imagePath = '',
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -4,10 +4,9 @@ import 'package:flutter_floating_bottom_bar/flutter_floating_bottom_bar.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'home_screen.dart';
 import 'journal2.dart';
-import 'progress.dart';
 
 class MainNavigation extends StatefulWidget {
-  const MainNavigation({Key? key}) : super(key: key);
+  const MainNavigation({super.key});
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();
@@ -177,7 +176,7 @@ class _MainNavigationState extends State<MainNavigation>
 
 // Content-only version of HomeScreen (without its own navigation)
 class HomeScreenContent extends StatefulWidget {
-  const HomeScreenContent({Key? key}) : super(key: key);
+  const HomeScreenContent({super.key});
 
   @override
   State<HomeScreenContent> createState() => _HomeScreenContentState();
@@ -193,7 +192,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
 // Content-only version of Journal2Screen (without its own navigation)
 class Journal2ScreenContent extends StatefulWidget {
-  const Journal2ScreenContent({Key? key}) : super(key: key);
+  const Journal2ScreenContent({super.key});
 
   @override
   State<Journal2ScreenContent> createState() => _Journal2ScreenContentState();
@@ -209,7 +208,7 @@ class _Journal2ScreenContentState extends State<Journal2ScreenContent> {
 
 // Placeholder screens
 class CalendarScreen extends StatelessWidget {
-  const CalendarScreen({Key? key}) : super(key: key);
+  const CalendarScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -228,7 +227,7 @@ class CalendarScreen extends StatelessWidget {
 }
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

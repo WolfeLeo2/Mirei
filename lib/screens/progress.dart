@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
 
 class ProgressScreen extends StatelessWidget {
-  const ProgressScreen({Key? key}) : super(key: key);
+  const ProgressScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -221,7 +220,7 @@ class ProgressScreen extends StatelessWidget {
     double size,
     PatternType pattern,
   ) {
-    return Container(
+    return SizedBox(
       width: size,
       height: size,
       child: CustomPaint(

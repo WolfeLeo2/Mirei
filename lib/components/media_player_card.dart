@@ -8,7 +8,7 @@ import 'dart:io';
 
 class MediaPlayerCard extends StatefulWidget {
   final String assetPath;
-  const MediaPlayerCard({Key? key, required this.assetPath}) : super(key: key);
+  const MediaPlayerCard({super.key, required this.assetPath});
 
   @override
   State<MediaPlayerCard> createState() => _MediaPlayerCardState();

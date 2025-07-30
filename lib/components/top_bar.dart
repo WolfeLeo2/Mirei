@@ -6,7 +6,7 @@ import 'package:mirei/models/session_info.dart';
 
 class TopBar extends StatelessWidget {
   final SessionInfo session;
-  const TopBar({Key? key, required this.session}) : super(key: key);
+  const TopBar({super.key, required this.session});
 
   @override
   Widget build(BuildContext context) {

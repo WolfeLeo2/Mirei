@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class JournalHomeScreen extends StatefulWidget {
-  const JournalHomeScreen({Key? key}) : super(key: key);
+  const JournalHomeScreen({super.key});
 
   @override
   _JournalHomeScreenState createState() => _JournalHomeScreenState();

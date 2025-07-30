@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:math';
 import 'progress.dart';
 
 class Journal2Screen extends StatefulWidget {
-  const Journal2Screen({Key? key}) : super(key: key);
+  const Journal2Screen({super.key});
 
   @override
   _Journal2ScreenState createState() => _Journal2ScreenState();
@@ -64,7 +63,7 @@ class _Journal2ScreenState extends State<Journal2Screen> {
                               ),
                             ],
                           ),
-                          Container(
+                          SizedBox(
                             width: 24,
                             height: 24,
                             child: Column(
