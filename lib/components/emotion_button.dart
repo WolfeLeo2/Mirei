@@ -6,6 +6,7 @@ class EmotionButton extends StatelessWidget {
   final String svgPath;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback? onDoubleTap;
 
   const EmotionButton({
     super.key,
@@ -13,12 +14,14 @@ class EmotionButton extends StatelessWidget {
     required this.svgPath,
     required this.isSelected,
     required this.onTap,
+    this.onDoubleTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      onDoubleTap: onDoubleTap,
       child: Container(
         margin: const EdgeInsets.only(right: 12),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),

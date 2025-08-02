@@ -16,19 +16,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final session = getSessionInfo();
-    String bgImage;
-    switch (session.time) {
-      case 'Morning':
-        bgImage = 'assets/images/bg-morning.jpg';
-        break;
-      case 'Afternoon':
-        bgImage = 'assets/images/bg-afternoon.jpg';
-        break;
-      case 'Evening':
-      default:
-        bgImage = 'assets/images/bg-evening.jpg';
-        break;
-    }
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(

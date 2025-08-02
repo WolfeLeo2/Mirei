@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mirei/components/activity_icon.dart';
 import 'package:mirei/components/emotion_button.dart';
 import 'package:mirei/models/user.dart';
+import '../models/mood_entry.dart';
+import '../utils/database_helper.dart';
 import 'progress.dart';
 import 'journal_list.dart';
 
@@ -16,11 +18,66 @@ class MoodTrackerScreen extends StatefulWidget {
 
 class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
   int selectedEmotionIndex = 1;
+  final List<String> emotions = [
+    'Angelic', 'Sorry', 'Excited', 'Embarrassed', 'Happy', 
+    'Romantic', 'Neutral', 'Sad', 'Silly'
+  ];
+  
   final User _user = User(
     name: 'User',
     email: 'user@example.com',
     avatarUrl: 'https://i.pravatar.cc/150?img=12',
   );
+
+  Future<void> _saveMoodSelection(String mood) async {
+    try {
+      // Create a mood entry
+      final moodEntry = MoodEntry(
+        mood: mood,
+        createdAt: DateTime.now(),
+        note: null, // Could add note functionality later
+      );
+
+      // Save to database
+      await DatabaseHelper().insertMoodEntry(moodEntry);
+
+      // Show confirmation
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Mood "$mood" saved successfully!',
+              style: TextStyle(
+                fontFamily: GoogleFonts.inter().fontFamily,
+                color: Colors.white,
+              ),
+            ),
+            backgroundColor: const Color(0xFF115e5a),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error saving mood: $e',
+              style: TextStyle(
+                fontFamily: GoogleFonts.inter().fontFamily,
+                color: Colors.white,
+              ),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -149,54 +206,63 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
                         svgPath: 'assets/icons/angelic.svg',
                         isSelected: selectedEmotionIndex == 0,
                         onTap: () => setState(() => selectedEmotionIndex = 0),
+                        onDoubleTap: () => _saveMoodSelection('Angelic'),
                       ),
                       EmotionButton(
                         emotion: 'Sorry',
                         svgPath: 'assets/icons/disappointed.svg',
                         isSelected: selectedEmotionIndex == 1,
                         onTap: () => setState(() => selectedEmotionIndex = 1),
+                        onDoubleTap: () => _saveMoodSelection('Sorry'),
                       ),
                       EmotionButton(
                         emotion: 'Excited',
                         svgPath: 'assets/icons/excited.svg',
                         isSelected: selectedEmotionIndex == 2,
                         onTap: () => setState(() => selectedEmotionIndex = 2),
+                        onDoubleTap: () => _saveMoodSelection('Excited'),
                       ),
                       EmotionButton(
                         emotion: 'Embarrassed',
                         svgPath: 'assets/icons/embarrassed.svg',
                         isSelected: selectedEmotionIndex == 3,
                         onTap: () => setState(() => selectedEmotionIndex = 3),
+                        onDoubleTap: () => _saveMoodSelection('Embarrassed'),
                       ),
                       EmotionButton(
                         emotion: 'Happy',
                         svgPath: 'assets/icons/Happy.svg',
                         isSelected: selectedEmotionIndex == 4,
                         onTap: () => setState(() => selectedEmotionIndex = 4),
+                        onDoubleTap: () => _saveMoodSelection('Happy'),
                       ),
                       EmotionButton(
-                        emotion: 'Romatic',
+                        emotion: 'Romantic',
                         svgPath: 'assets/icons/loving.svg',
                         isSelected: selectedEmotionIndex == 5,
                         onTap: () => setState(() => selectedEmotionIndex = 5),
+                        onDoubleTap: () => _saveMoodSelection('Romantic'),
                       ),
                       EmotionButton(
                         emotion: 'Neutral',
                         svgPath: 'assets/icons/neutral.svg',
                         isSelected: selectedEmotionIndex == 6,
                         onTap: () => setState(() => selectedEmotionIndex = 6),
+                        onDoubleTap: () => _saveMoodSelection('Neutral'),
                       ),
                       EmotionButton(
                         emotion: 'Sad',
                         svgPath: 'assets/icons/sad.svg',
                         isSelected: selectedEmotionIndex == 7,
                         onTap: () => setState(() => selectedEmotionIndex = 7),
+                        onDoubleTap: () => _saveMoodSelection('Sad'),
                       ),
                       EmotionButton(
                         emotion: 'Silly',
                         svgPath: 'assets/icons/silly.svg',
                         isSelected: selectedEmotionIndex == 8,
                         onTap: () => setState(() => selectedEmotionIndex = 8),
+                        onDoubleTap: () => _saveMoodSelection('Silly'),
                       ),
                     ],
                   ),
