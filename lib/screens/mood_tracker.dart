@@ -5,15 +5,16 @@ import 'package:mirei/components/activity_icon.dart';
 import 'package:mirei/components/emotion_button.dart';
 import 'package:mirei/models/user.dart';
 import 'progress.dart';
+import 'journal_list.dart';
 
-class Journal2Screen extends StatefulWidget {
-  const Journal2Screen({super.key});
+class MoodTrackerScreen extends StatefulWidget {
+  const MoodTrackerScreen({super.key});
 
   @override
-  _Journal2ScreenState createState() => _Journal2ScreenState();
+  _MoodTrackerScreenState createState() => _MoodTrackerScreenState();
 }
 
-class _Journal2ScreenState extends State<Journal2Screen> {
+class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
   int selectedEmotionIndex = 1;
   final User _user = User(
     name: 'User',
@@ -322,12 +323,23 @@ class _Journal2ScreenState extends State<Journal2Screen> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceEvenly,
                                   children: [
-                                    const ActivityIcon(
-                                      label: 'Sharing',
-                                      backgroundColor: Color(0XFFc6e99f),
-                                      svgIcon: 'assets/icons/message.svg',
-                                      svgShape: 'assets/icons/octagon.svg',
-                                      shapeSize: 120,
+                                    GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const JournalListScreen(),
+                                          ),
+                                        );
+                                      },
+                                      child: const ActivityIcon(
+                                        label: 'My Journal',
+                                        backgroundColor: Color(0XFFc6e99f),
+                                        svgIcon: 'assets/icons/message.svg',
+                                        svgShape: 'assets/icons/octagon.svg',
+                                        shapeSize: 120,
+                                      ),
                                     ),
                                     GestureDetector(
                                       onTap: () {

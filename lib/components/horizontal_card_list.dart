@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mirei/components/emotion_card.dart';
-import 'package:mirei/components/media/media_player_card.dart';
-import 'package:mirei/components/media/album_card.dart';
 
 class HorizontalCardList extends StatelessWidget {
-  final String assetPath;
-  const HorizontalCardList({super.key, required this.assetPath});
+  const HorizontalCardList({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +32,16 @@ class HorizontalCardList extends StatelessWidget {
             subtitle: 'Boogey Woogey',
             imagePath: 'assets/images/image2.jpg',
           ),
-          MediaPlayerCard(assetPath: assetPath),
+          EmotionCard(
+            title: 'Focus Mode',
+            subtitle: 'Enhanced concentration',
+            imagePath: 'assets/images/gradient.png',
+            gradient: const LinearGradient(
+              colors: [Color(0xFF6366f1), Color(0xFF8b5cf6)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
           EmotionCard(
             title: 'Relaxing',
             subtitle: 'A soothing atmosphere for rest',
@@ -46,7 +52,6 @@ class HorizontalCardList extends StatelessWidget {
               end: Alignment.bottomRight,
             ),
           ),
-          AlbumCard(),
         ],
       ),
     );

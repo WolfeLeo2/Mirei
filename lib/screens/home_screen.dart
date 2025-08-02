@@ -13,9 +13,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final String assetPath =
-      'assets/images/too_bad.mp3'; // Use your actual asset path
-
   @override
   Widget build(BuildContext context) {
     final session = getSessionInfo();
@@ -34,7 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage(
               'assets/images/gradient-2.png',
@@ -53,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 30),
               SectionHeader(),
               const SizedBox(height: 20),
-              HorizontalCardList(assetPath: assetPath),
+              const HorizontalCardList(),
               const SizedBox(height: 100), // Space for the bottom nav bar
             ],
           ),
