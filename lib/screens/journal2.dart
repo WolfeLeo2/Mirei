@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mirei/components/activity_icon.dart';
+import 'package:mirei/components/emotion_button.dart';
+import 'package:mirei/models/user.dart';
 import 'progress.dart';
 
 class Journal2Screen extends StatefulWidget {
@@ -12,6 +15,11 @@ class Journal2Screen extends StatefulWidget {
 
 class _Journal2ScreenState extends State<Journal2Screen> {
   int selectedEmotionIndex = 1;
+  final User _user = User(
+    name: 'User',
+    email: 'user@example.com',
+    avatarUrl: 'https://i.pravatar.cc/150?img=12',
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -30,19 +38,17 @@ class _Journal2ScreenState extends State<Journal2Screen> {
                         children: [
                           Row(
                             children: [
-                              const CircleAvatar(
+                              CircleAvatar(
                                 radius: 28,
-                                backgroundImage: NetworkImage(
-                                  'https://i.pravatar.cc/150?img=12',
-                                ),
+                                backgroundImage: NetworkImage(_user.avatarUrl),
                               ),
                               const SizedBox(width: 16),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Alexandra',
-                                    style: TextStyle(
+                                    _user.name,
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 20,
                                       fontWeight: FontWeight.w600,
@@ -51,7 +57,7 @@ class _Journal2ScreenState extends State<Journal2Screen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'alexndr@gmail.com',
+                                    _user.email,
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.7),
                                       fontSize: 14,
@@ -137,10 +143,60 @@ class _Journal2ScreenState extends State<Journal2Screen> {
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Row(
                     children: [
-                      _buildEmotionButton('Sorry', '😔', 0),
-                      _buildEmotionButton('Excited', '😊', 1),
-                      _buildEmotionButton('Happy', '😊', 2),
-                      _buildEmotionButton('Worry', '😟', 3),
+                      EmotionButton(
+                        emotion: 'Angelic',
+                        svgPath: 'assets/icons/angelic.svg',
+                        isSelected: selectedEmotionIndex == 0,
+                        onTap: () => setState(() => selectedEmotionIndex = 0),
+                      ),
+                      EmotionButton(
+                        emotion: 'Sorry',
+                        svgPath: 'assets/icons/disappointed.svg',
+                        isSelected: selectedEmotionIndex == 1,
+                        onTap: () => setState(() => selectedEmotionIndex = 1),
+                      ),
+                      EmotionButton(
+                        emotion: 'Excited',
+                        svgPath: 'assets/icons/excited.svg',
+                        isSelected: selectedEmotionIndex == 2,
+                        onTap: () => setState(() => selectedEmotionIndex = 2),
+                      ),
+                      EmotionButton(
+                        emotion: 'Embarrassed',
+                        svgPath: 'assets/icons/embarrassed.svg',
+                        isSelected: selectedEmotionIndex == 3,
+                        onTap: () => setState(() => selectedEmotionIndex = 3),
+                      ),
+                      EmotionButton(
+                        emotion: 'Happy',
+                        svgPath: 'assets/icons/Happy.svg',
+                        isSelected: selectedEmotionIndex == 4,
+                        onTap: () => setState(() => selectedEmotionIndex = 4),
+                      ),
+                      EmotionButton(
+                        emotion: 'Romatic',
+                        svgPath: 'assets/icons/loving.svg',
+                        isSelected: selectedEmotionIndex == 5,
+                        onTap: () => setState(() => selectedEmotionIndex = 5),
+                      ),
+                      EmotionButton(
+                        emotion: 'Neutral',
+                        svgPath: 'assets/icons/neutral.svg',
+                        isSelected: selectedEmotionIndex == 6,
+                        onTap: () => setState(() => selectedEmotionIndex = 6),
+                      ),
+                      EmotionButton(
+                        emotion: 'Sad',
+                        svgPath: 'assets/icons/sad.svg',
+                        isSelected: selectedEmotionIndex == 7,
+                        onTap: () => setState(() => selectedEmotionIndex = 7),
+                      ),
+                      EmotionButton(
+                        emotion: 'Silly',
+                        svgPath: 'assets/icons/silly.svg',
+                        isSelected: selectedEmotionIndex == 8,
+                        onTap: () => setState(() => selectedEmotionIndex = 8),
+                      ),
                     ],
                   ),
                 ),
@@ -266,11 +322,12 @@ class _Journal2ScreenState extends State<Journal2Screen> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceEvenly,
                                   children: [
-                                    _buildActivityIcon(
-                                      'Sharing',
-                                      const Color(0XFFc6e99f),
-                                      'assets/icons/message.svg', // Replace with your actual SVG icon path
-                                      'assets/icons/octagon.svg', // Replace with your actual SVG shape path
+                                    const ActivityIcon(
+                                      label: 'Sharing',
+                                      backgroundColor: Color(0XFFc6e99f),
+                                      svgIcon: 'assets/icons/message.svg',
+                                      svgShape: 'assets/icons/octagon.svg',
+                                      shapeSize: 120,
                                     ),
                                     GestureDetector(
                                       onTap: () {
@@ -282,18 +339,18 @@ class _Journal2ScreenState extends State<Journal2Screen> {
                                           ),
                                         );
                                       },
-                                      child: _buildActivityIcon(
-                                        'My Progress',
-                                        const Color(0xFFECE9A5),
-                                        'assets/icons/pie-chart.svg', // Replace with your actual SVG icon path
-                                        'assets/icons/b-circle.svg', // Replace with your actual SVG shape path
+                                      child: const ActivityIcon(
+                                        label: 'My Progress',
+                                        backgroundColor: Color(0xFFECE9A5),
+                                        svgIcon: 'assets/icons/pie-chart.svg',
+                                        svgShape: 'assets/icons/b-circle.svg',
                                       ),
                                     ),
-                                    _buildActivityIcon(
-                                      'Self-Serenity',
-                                      const Color(0xFFC1DFDF),
-                                      'assets/icons/message.svg', // Replace with your actual SVG icon path
-                                      'assets/icons/heptagon.svg', // Replace with your actual SVG shape path
+                                    const ActivityIcon(
+                                      label: 'Self-Serenity',
+                                      backgroundColor: Color(0xFFC1DFDF),
+                                      svgIcon: 'assets/icons/meditation.svg',
+                                      svgShape: 'assets/icons/heptagon.svg',
                                     ),
                                   ],
                                 ),
@@ -309,91 +366,6 @@ class _Journal2ScreenState extends State<Journal2Screen> {
               ),
             ],
       ),
-    );
-  }
-
-  Widget _buildEmotionButton(String emotion, String emoji, int index) {
-    final isSelected = selectedEmotionIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedEmotionIndex = index;
-        });
-      },
-      child: Container(
-        margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : const Color(0xFF1a6b67),
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 20)),
-            const SizedBox(width: 8),
-            Text(
-              emotion,
-              style: TextStyle(
-                color: isSelected ? const Color(0xFF115e5a) : Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                fontFamily: '.SF Pro Text',
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActivityIcon(
-    String label,
-    Color backgroundColor,
-    String svgIcon,
-    String svgShape, {
-    double size = 100,
-    Color? iconColor, // Optional: custom icon color
-    Color? shapeColor, // Optional: custom shape color
-  }) {
-    return Column(
-      children: [
-        Container(
-          width: size,
-          height: size,
-          margin: const EdgeInsets.only(left: 0, right: 17),
-          color: Colors.transparent, // Let SVG shape show through
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              SvgPicture.asset(
-                svgShape,
-                width: size,
-                height: size,
-                color: shapeColor ?? backgroundColor, // shape color
-              ),
-              SvgPicture.asset(
-                svgIcon,
-                width: size * 0.4,
-                height: size * 0.4,
-                color: iconColor ?? Colors.black,
-                fit: BoxFit.contain,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.black54,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            fontFamily: GoogleFonts.inter().fontFamily,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
     );
   }
 

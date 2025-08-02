@@ -37,7 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           image: DecorationImage(
             image: AssetImage(
-              'assets/images/bg-afternoon.jpg',
+              'assets/images/gradient-2.png',
             ), //changed to evening image. Looks better
             fit: BoxFit.cover,
             opacity: 0.8,

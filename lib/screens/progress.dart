@@ -41,7 +41,7 @@ class ProgressScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'February',
+                        'August',
                         style: TextStyle(
                           color: Colors.black87,
                           fontSize: 18,
@@ -73,10 +73,11 @@ class ProgressScreen extends StatelessWidget {
               ),
             ),
 
-            // Main content
+            // Main content with top padding
+            const SizedBox(height: 40),
+            // Progress circles section (edge-to-edge)
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+              child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -114,8 +115,9 @@ class ProgressScreen extends StatelessWidget {
 
                     const SizedBox(height: 40),
 
-                    // Progress circles
-                    Expanded(
+                    // Progress circles - Removed Expanded and used a SizedBox with fixed height
+                    SizedBox(
+                      height: 500, // Adjust this height as needed
                       child: Stack(
                         children: [
                           // Happy - Large green circle (top left, askew)

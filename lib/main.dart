@@ -1,28 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart'; // For custom fonts
-import 'screens/main_navigation.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mirei/bloc/emotion_bloc.dart';
+import 'package:mirei/bloc/youtube_music_bloc.dart';
+import 'package:mirei/screens/main_navigation.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() {
-  runApp(const MireiApp());
+  runApp(const MyApp());
 }
 
-class MireiApp extends StatelessWidget {
-  const MireiApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Mirei',
-      theme: ThemeData.light().copyWith(
-        primaryColor: const Color(0xFFa9a0ff),
-        textTheme: GoogleFonts.manropeTextTheme(),
-        colorScheme: ColorScheme.fromSwatch().copyWith(
-          primary: const Color(0xFFa9a0ff),
-          secondary: const Color(0xFF1a237e),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => EmotionBloc()),
+        BlocProvider(create: (context) => YouTubeMusicBloc()),
+      ],
+      child: MaterialApp(
+        title: 'Mirei',
+        theme: ThemeData(
+          textTheme: GoogleFonts.interTextTheme(),
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          useMaterial3: true,
         ),
+        home: const MainNavigation(),
       ),
-      home: const MainNavigation(),
     );
   }
 }

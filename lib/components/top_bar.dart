@@ -40,9 +40,9 @@ class TopBar extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          session.greeting,
-                          style: TextStyle(
-                            color: const Color(0xFF1a237e),
+                          '${session.greeting}',
+                          style: const TextStyle(
+                            color: Color(0xFF1a237e),
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
