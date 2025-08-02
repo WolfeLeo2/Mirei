@@ -8,7 +8,7 @@ import 'package:mirei/bloc/emotion_bloc.dart';
 import 'package:mirei/features/media_player/presentation/screens/media_player_screen.dart';
 import 'package:mirei/components/media/mini_player.dart';
 import 'home_screen.dart';
-import 'journal2.dart';
+import 'mood_tracker.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
