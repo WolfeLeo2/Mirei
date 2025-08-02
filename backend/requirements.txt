@@ -1,4 +1,0 @@
-fastapi
-uvicorn
-ytmusicapi
-python-dotenv

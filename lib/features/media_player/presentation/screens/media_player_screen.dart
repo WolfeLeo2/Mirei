@@ -27,16 +27,16 @@ class _MediaPlayerView extends StatelessWidget {
       builder: (context, mode) {
         return Scaffold(
           body: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
                 colors: [
-                  Color(0xFF1e3a8a), // Navy blue
-                  Color(0xFF1e40af), // Medium blue
-                  Color.fromARGB(255, 7, 3, 54),
+                  Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                  Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.3),
+                  Theme.of(context).colorScheme.tertiaryContainer.withOpacity(0.3),
                 ],
-                stops: [0.0, 0.5, 1.0],
+                stops: const [0.0, 0.5, 1.0],
               ),
             ),
             child: Stack(
@@ -95,6 +95,41 @@ class _MediaPlayerView extends StatelessWidget {
                           ),
                         ),
                       ),
+                      
+                      // Service Selection Cards
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _buildServiceCard(
+                                  context,
+                                  title: 'Mirei',
+                                  subtitle: 'Local Music',
+                                  icon: Icons.library_music,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  isSelected: mode == MediaPlayerMode.library,
+                                  onTap: () => context.read<MediaPlayerBloc>().setMode(MediaPlayerMode.library),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildServiceCard(
+                                  context,
+                                  title: 'YouTube',
+                                  subtitle: 'Music & Videos',
+                                  icon: Icons.play_circle_outline,
+                                  color: Colors.red,
+                                  isSelected: mode == MediaPlayerMode.streaming,
+                                  onTap: () => context.read<MediaPlayerBloc>().setMode(MediaPlayerMode.streaming),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      
                       mode == MediaPlayerMode.library
                           ? const LibraryView()
                           : const StreamingView(),
@@ -112,26 +147,81 @@ class _MediaPlayerView extends StatelessWidget {
                   right:
                       MediaQuery.of(context).size.width *
                       0.02, // 2% margin from right
-                  child: MiniPlayer(
-                    currentTrack: 'Girls',
-                    currentArtist: 'Unknown Artist',
-                    isPlaying: false,
-                    onPlayPause: () {
-                      // Handle play/pause
-                    },
-                    onNext: () {
-                      // Handle next track
-                    },
-                    onTap: () {
-                      // Handle tap to open full player
-                    },
-                  ),
+                  child: const MiniPlayer(),
                 ),
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildServiceCard(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? color.withOpacity(0.2)
+              : Theme.of(context).colorScheme.surface.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected 
+                ? color.withOpacity(0.5)
+                : Colors.white.withOpacity(0.1),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  icon,
+                  color: isSelected ? color : Colors.white70,
+                  size: 24,
+                ),
+                const Spacer(),
+                if (isSelected)
+                  Icon(
+                    Icons.check_circle,
+                    color: color,
+                    size: 20,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

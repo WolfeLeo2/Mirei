@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/youtube_music_bloc.dart';
+import '../../bloc/music_player_bloc.dart';
 import '../../models/youtube_music_models.dart';
 import '../../utils/duration_extensions.dart';
 import '../../services/youtube_music_auth_helper.dart';
@@ -16,9 +17,8 @@ class _QuickAccessSectionState extends State<QuickAccessSection> {
   @override
   void initState() {
     super.initState();
-    // Load YouTube Music quick picks
-    // Note: Using public search since authentication is not available yet
-    context.read<YouTubeMusicBloc>().add(const SearchYouTubeMusicSongs('popular music', limit: 10));
+    // Load some popular songs instead of liked songs since we don't have authentication
+    context.read<YouTubeMusicBloc>().add(const SearchYouTubeMusicSongs('popular songs', limit: 10));
   }
 
   @override
@@ -43,7 +43,9 @@ class _QuickAccessSectionState extends State<QuickAccessSection> {
             if (state is YouTubeMusicLoading) {
               return _buildLoadingState();
             } else if (state is YouTubeMusicSongsLoaded) {
-              return _buildQuickPicksList(state.songs);
+              return _buildQuickAccessContent(state.songs);
+            } else if (state is YouTubeMusicSearchResultsLoaded) {
+              return _buildQuickAccessContent(state.searchResult.songs);
             } else if (state is YouTubeMusicError) {
               return _buildErrorState(state.message);
             } else {
@@ -58,6 +60,19 @@ class _QuickAccessSectionState extends State<QuickAccessSection> {
   Widget _buildLoadingState() {
     return Column(
       children: List.generate(4, (index) => _buildShimmerSongItem()),
+    );
+  }
+
+  Widget _buildQuickAccessContent(List<YouTubeSong> songs) {
+    if (songs.isEmpty) {
+      return _buildFallbackContent();
+    }
+
+    return Column(
+      children: songs
+          .take(4)
+          .map((song) => _buildYouTubeSongItem(song))
+          .toList(),
     );
   }
 
@@ -135,7 +150,8 @@ class _QuickAccessSectionState extends State<QuickAccessSection> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
       child: InkWell(
         onTap: () {
-          // Handle song play - get streaming URL
+          // Play the song
+          context.read<MusicPlayerBloc>().add(PlaySong(song));
         },
         child: Row(
           children: [
@@ -310,6 +326,7 @@ class _QuickAccessSectionState extends State<QuickAccessSection> {
             ),
             onTap: () {
               Navigator.pop(context);
+              context.read<MusicPlayerBloc>().add(PlaySong(song));
             },
           ),
           ListTile(
@@ -320,7 +337,7 @@ class _QuickAccessSectionState extends State<QuickAccessSection> {
             ),
             onTap: () {
               Navigator.pop(context);
-              // Handle add to queue
+              context.read<MusicPlayerBloc>().add(AddToQueue(song));
             },
           ),
           ListTile(

@@ -10,4 +10,8 @@ class MediaPlayerBloc extends Cubit<MediaPlayerMode> {
         ? MediaPlayerMode.streaming 
         : MediaPlayerMode.library);
   }
+
+  void setMode(MediaPlayerMode mode) {
+    emit(mode);
+  }
 }

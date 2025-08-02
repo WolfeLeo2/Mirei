@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/youtube_music_bloc.dart';
+import '../bloc/music_player_bloc.dart';
 import '../models/youtube_music_models.dart';
 import '../utils/duration_extensions.dart';
 
@@ -142,15 +143,19 @@ class _YouTubeMusicSearchState extends State<YouTubeMusicSearch> {
                   song.duration!.formatted,
                   style: TextStyle(color: Colors.grey[500], fontSize: 12),
                 ),
+              const SizedBox(width: 8),
+              // Play button
+              IconButton(
+                icon: const Icon(Icons.play_arrow, color: Colors.white, size: 20),
+                onPressed: () => _playSong(song),
+              ),
               IconButton(
                 icon: Icon(Icons.more_vert, color: Colors.grey[400], size: 20),
                 onPressed: () => _showSongOptions(song),
               ),
             ],
           ),
-          onTap: () {
-            // TODO: Implement play song
-          },
+          onTap: () => _playSong(song),
         );
       },
     );
@@ -214,6 +219,10 @@ class _YouTubeMusicSearchState extends State<YouTubeMusicSearch> {
     );
   }
 
+  void _playSong(YouTubeSong song) {
+    context.read<MusicPlayerBloc>().add(PlaySong(song));
+  }
+
   void _showSongOptions(YouTubeSong song) {
     showModalBottomSheet(
       context: context,
@@ -241,7 +250,7 @@ class _YouTubeMusicSearchState extends State<YouTubeMusicSearch> {
             ),
             onTap: () {
               Navigator.pop(context);
-              // TODO: Implement play song
+              _playSong(song);
             },
           ),
           ListTile(
@@ -252,7 +261,7 @@ class _YouTubeMusicSearchState extends State<YouTubeMusicSearch> {
             ),
             onTap: () {
               Navigator.pop(context);
-              // Handle add to queue
+              context.read<MusicPlayerBloc>().add(AddToQueue(song));
             },
           ),
           ListTile(

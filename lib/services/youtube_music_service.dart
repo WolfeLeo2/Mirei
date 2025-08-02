@@ -123,9 +123,6 @@ class YouTubeMusicService {
     }
   }
 
-  /// Check if service is authenticated for personal library access
-  bool get isAuthenticated => _isAuthenticated;
-
   /// Dispose resources
   void dispose() {
     // Clean up if needed

@@ -164,6 +164,37 @@ class YouTubeSong {
     );
   }
 
+  factory YouTubeSong.fromJson(Map<String, dynamic> json) {
+    final artistsData = json['artists'] as List<dynamic>? ?? [];
+    final artists = artistsData
+        .map((artist) => YouTubeArtist.fromJson(artist))
+        .toList();
+
+    final durationSeconds = json['duration'] as int?;
+    Duration? duration;
+    if (durationSeconds != null) {
+      duration = Duration(seconds: durationSeconds);
+    }
+
+    YouTubeAlbum? album;
+    if (json['album'] != null) {
+      album = YouTubeAlbum.fromJson(json['album']);
+    }
+
+    return YouTubeSong(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      artist: json['artist'] as String? ?? '',
+      artists: artists,
+      thumbnailUrl: json['thumbnailUrl'] as String? ?? '',
+      album: album,
+      duration: duration,
+    );
+  }
+
+  /// Convenience getter for video ID (used by InnerTube)
+  String get videoId => id;
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -201,6 +232,7 @@ class YouTubeAlbum {
   final String? artist;
   final List<YouTubeArtist> artists;
   final String? thumbnailUrl;
+  final String year;
 
   YouTubeAlbum({
     required this.id,
@@ -208,6 +240,7 @@ class YouTubeAlbum {
     this.artist,
     List<YouTubeArtist>? artists,
     this.thumbnailUrl,
+    this.year = '',
   }) : artists =
            artists ??
            (artist != null
@@ -232,6 +265,23 @@ class YouTubeAlbum {
       artist: artists.isNotEmpty ? artists.first.name : null,
       artists: artists,
       thumbnailUrl: thumbnailUrl.isEmpty ? null : thumbnailUrl,
+      year: json['year'] as String? ?? '',
+    );
+  }
+
+  factory YouTubeAlbum.fromJson(Map<String, dynamic> json) {
+    final artistsData = json['artists'] as List<dynamic>? ?? [];
+    final artists = artistsData
+        .map((artist) => YouTubeArtist.fromJson(artist))
+        .toList();
+
+    return YouTubeAlbum(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      artist: json['artist'] as String?,
+      artists: artists,
+      thumbnailUrl: json['thumbnailUrl'] as String?,
+      year: json['year'] as String? ?? '',
     );
   }
 
@@ -242,6 +292,7 @@ class YouTubeAlbum {
       'artist': artist,
       'artists': artists.map((a) => a.toJson()).toList(),
       'thumbnailUrl': thumbnailUrl,
+      'year': year,
     };
   }
 }
@@ -251,8 +302,14 @@ class YouTubeArtist {
   final String id;
   final String name;
   final String? thumbnailUrl;
+  final String subscriberCount;
 
-  YouTubeArtist({required this.id, required this.name, this.thumbnailUrl});
+  YouTubeArtist({
+    required this.id, 
+    required this.name, 
+    this.thumbnailUrl,
+    this.subscriberCount = '',
+  });
 
   /// Factory constructor for ytmusicapi_dart search results
   factory YouTubeArtist.fromYTMusicResult(Map<String, dynamic> json) {
@@ -265,6 +322,16 @@ class YouTubeArtist {
       id: json['browseId'] as String? ?? '',
       name: json['name'] as String? ?? '',
       thumbnailUrl: thumbnailUrl.isEmpty ? null : thumbnailUrl,
+      subscriberCount: json['subscribers'] as String? ?? '',
+    );
+  }
+
+  factory YouTubeArtist.fromJson(Map<String, dynamic> json) {
+    return YouTubeArtist(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      thumbnailUrl: json['thumbnailUrl'] as String?,
+      subscriberCount: json['subscriberCount'] as String? ?? '',
     );
   }
 
@@ -273,6 +340,7 @@ class YouTubeArtist {
       'id': id,
       'name': name,
       'thumbnailUrl': thumbnailUrl,
+      'subscriberCount': subscriberCount,
     };
   }
 }
@@ -285,6 +353,10 @@ class YouTubePlaylist {
   final int? trackCount;
   final String? thumbnailUrl;
   final String? author;
+  
+  // Alias getters for compatibility
+  String get title => name;
+  int? get videoCount => trackCount;
 
   YouTubePlaylist({
     required this.id,
@@ -312,6 +384,17 @@ class YouTubePlaylist {
                    (json['count'] is String ? int.tryParse(json['count'].replaceAll(RegExp(r'[^\d]'), '')) : null),
       thumbnailUrl: thumbnailUrl,
       author: json['author']?['name'] ?? json['author'],
+    );
+  }
+
+  factory YouTubePlaylist.fromJson(Map<String, dynamic> json) {
+    return YouTubePlaylist(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      description: json['description'] as String?,
+      trackCount: json['trackCount'] as int?,
+      thumbnailUrl: json['thumbnailUrl'] as String?,
+      author: json['author'] as String?,
     );
   }
 
