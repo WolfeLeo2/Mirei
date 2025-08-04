@@ -4,6 +4,7 @@ import 'package:flutter_floating_bottom_bar/flutter_floating_bottom_bar.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mirei/bloc/emotion_bloc.dart';
+import 'package:mirei/screens/media_screen.dart';
 import 'home_screen.dart';
 import 'mood_tracker.dart';
 
@@ -38,7 +39,7 @@ class _MainNavigationState extends State<MainNavigation>
       const HomeScreenContent(),
       const MoodTrackerScreenContent(),
       const CalendarScreen(),
-      const MediaPlayerScreenContent(),
+      const MediaScreenContent(),
     ];
 
     _tabController.addListener(() {
@@ -70,38 +71,18 @@ class _MainNavigationState extends State<MainNavigation>
               dividerColor: Colors.transparent,
               labelColor: colors[currentIndex],
               unselectedLabelColor: const Color.fromARGB(255, 77, 64, 64),
-            onTap: (index) {
+              onTap: (index) {
                 // Dispatch BLoC event when tab is tapped
-              context.read<EmotionBloc>().add(EmotionSelected(index));
-              _tabController.animateTo(index);
-            },
+                context.read<EmotionBloc>().add(EmotionSelected(index));
+                _tabController.animateTo(index);
+              },
               tabs: const [
-                Tab(
-                  icon: Icon(
-                    Icons.home_filled,
-                    size: 24,
-                  ),
-                ),
-                Tab(
-                  icon: Icon(
-                    FontAwesome.book_open_solid,
-                    size: 24,
-                  ),
-                ),
-                Tab(
-                  icon: Icon(
-                    Icons.calendar_today_outlined,
-                    size: 24,
-                  ),
-                ),
-                Tab(
-                  icon: Icon(
-                    FontAwesome.microphone_solid,
-                    size: 24,
-                  ),
-                ),
+                Tab(icon: Icon(Icons.home_filled, size: 24)),
+                Tab(icon: Icon(FontAwesome.book_open_solid, size: 24)),
+                Tab(icon: Icon(Icons.calendar_today_outlined, size: 24)),
+                Tab(icon: Icon(FontAwesome.microphone_solid, size: 24)),
               ],
-              ),
+            ),
             fit: StackFit.expand,
             icon: (width, height) => Center(
               child: IconButton(
@@ -135,7 +116,7 @@ class _MainNavigationState extends State<MainNavigation>
               dragStartBehavior: DragStartBehavior.down,
               physics: const BouncingScrollPhysics(),
               children: _screens,
-              ),
+            ),
           ),
         );
       },
@@ -163,12 +144,12 @@ class MoodTrackerScreenContent extends StatelessWidget {
   }
 }
 
-class MediaPlayerScreenContent extends StatelessWidget {
-  const MediaPlayerScreenContent({super.key});
-
+// Content-only version of MediaScreen (without its own navigation)
+class MediaScreenContent extends StatelessWidget {
+  const MediaScreenContent({super.key});
   @override
   Widget build(BuildContext context) {
-    return const MediaPlaceholderScreen();
+    return const MediaScreen();
   }
 }
 
@@ -184,25 +165,6 @@ class CalendarScreen extends StatelessWidget {
         child: Center(
           child: Text(
             'Calendar Screen',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class MediaPlaceholderScreen extends StatelessWidget {
-  const MediaPlaceholderScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.purple.shade100,
-      child: const SafeArea(
-        child: Center(
-          child: Text(
-            'Media Screen',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
         ),

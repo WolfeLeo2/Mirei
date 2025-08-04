@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mirei/components/activity_icon.dart';
@@ -8,6 +9,7 @@ import '../models/mood_entry.dart';
 import '../utils/database_helper.dart';
 import 'progress.dart';
 import 'journal_list.dart';
+import 'media_screen.dart';
 
 class MoodTrackerScreen extends StatefulWidget {
   const MoodTrackerScreen({super.key});
@@ -29,36 +31,91 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
     avatarUrl: 'https://i.pravatar.cc/150?img=12',
   );
 
+  @override
+  void initState() {
+    super.initState();
+    _loadTodaysMood();
+  }
+
+  Future<void> _loadTodaysMood() async {
+    try {
+      final todaysMood = await DatabaseHelper().getTodaysMoodEntry();
+      if (todaysMood != null) {
+        final moodIndex = emotions.indexOf(todaysMood.mood);
+        if (moodIndex != -1) {
+          setState(() {
+            selectedEmotionIndex = moodIndex;
+          });
+        }
+      }
+    } catch (e) {
+      // Handle error silently, use default selection
+      print('Error loading today\'s mood: $e');
+    }
+  }
+
   Future<void> _saveMoodSelection(String mood) async {
     try {
-      // Create a mood entry
-      final moodEntry = MoodEntry(
-        mood: mood,
-        createdAt: DateTime.now(),
-        note: null, // Could add note functionality later
-      );
-
-      // Save to database
-      await DatabaseHelper().insertMoodEntry(moodEntry);
-
-      // Show confirmation
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Mood "$mood" saved successfully!',
-              style: TextStyle(
-                fontFamily: GoogleFonts.inter().fontFamily,
-                color: Colors.white,
+      // Check if there's already a mood entry for today
+      final existingMoodEntry = await DatabaseHelper().getTodaysMoodEntry();
+      
+      if (existingMoodEntry != null) {
+        // Update existing mood entry
+        final updatedMoodEntry = MoodEntry(
+          id: existingMoodEntry.id,
+          mood: mood,
+          createdAt: existingMoodEntry.createdAt, // Keep original creation time
+          note: existingMoodEntry.note,
+        );
+        await DatabaseHelper().updateMoodEntry(updatedMoodEntry);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Mood updated to "$mood"!',
+                style: TextStyle(
+                  fontFamily: GoogleFonts.inter().fontFamily,
+                  color: Colors.white,
+                ),
+              ),
+              duration: const Duration(seconds: 1),
+              backgroundColor: const Color(0xFF115e5a),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
-            backgroundColor: const Color(0xFF115e5a),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+          );
+        }
+      } else {
+        // Create a new mood entry
+        final moodEntry = MoodEntry(
+          mood: mood,
+          createdAt: DateTime.now(),
+          note: null,
         );
+        await DatabaseHelper().insertMoodEntry(moodEntry);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Mood "$mood" saved successfully!',
+                style: TextStyle(
+                  fontFamily: GoogleFonts.inter().fontFamily,
+                  color: Colors.white,
+                ),
+              ),
+              duration: const Duration(seconds: 1),
+              backgroundColor: const Color(0xFF115e5a),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -77,6 +134,16 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
         );
       }
     }
+  }
+
+  void _onMoodSelected(int index, String mood) {
+    // Material 3 Expressive haptic feedback for selection
+    HapticFeedback.selectionClick();
+    setState(() {
+      selectedEmotionIndex = index;
+    });
+    // Save the mood immediately on selection
+    _saveMoodSelection(mood);
   }
 
   @override
@@ -181,7 +248,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Select your current emotion',
+                        'Select your current mood',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.7),
                           fontSize: 16,
@@ -205,64 +272,55 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
                         emotion: 'Angelic',
                         svgPath: 'assets/icons/angelic.svg',
                         isSelected: selectedEmotionIndex == 0,
-                        onTap: () => setState(() => selectedEmotionIndex = 0),
-                        onDoubleTap: () => _saveMoodSelection('Angelic'),
+                        onTap: () => _onMoodSelected(0, 'Angelic'),
                       ),
                       EmotionButton(
                         emotion: 'Sorry',
                         svgPath: 'assets/icons/disappointed.svg',
                         isSelected: selectedEmotionIndex == 1,
-                        onTap: () => setState(() => selectedEmotionIndex = 1),
-                        onDoubleTap: () => _saveMoodSelection('Sorry'),
+                        onTap: () => _onMoodSelected(1, 'Sorry'),
                       ),
                       EmotionButton(
                         emotion: 'Excited',
                         svgPath: 'assets/icons/excited.svg',
                         isSelected: selectedEmotionIndex == 2,
-                        onTap: () => setState(() => selectedEmotionIndex = 2),
-                        onDoubleTap: () => _saveMoodSelection('Excited'),
+                        onTap: () => _onMoodSelected(2, 'Excited'),
                       ),
                       EmotionButton(
                         emotion: 'Embarrassed',
                         svgPath: 'assets/icons/embarrassed.svg',
                         isSelected: selectedEmotionIndex == 3,
-                        onTap: () => setState(() => selectedEmotionIndex = 3),
-                        onDoubleTap: () => _saveMoodSelection('Embarrassed'),
+                        onTap: () => _onMoodSelected(3, 'Embarrassed'),
                       ),
                       EmotionButton(
                         emotion: 'Happy',
                         svgPath: 'assets/icons/Happy.svg',
                         isSelected: selectedEmotionIndex == 4,
-                        onTap: () => setState(() => selectedEmotionIndex = 4),
-                        onDoubleTap: () => _saveMoodSelection('Happy'),
+                        onTap: () => _onMoodSelected(4, 'Happy'),
                       ),
                       EmotionButton(
                         emotion: 'Romantic',
                         svgPath: 'assets/icons/loving.svg',
                         isSelected: selectedEmotionIndex == 5,
-                        onTap: () => setState(() => selectedEmotionIndex = 5),
-                        onDoubleTap: () => _saveMoodSelection('Romantic'),
+                        onTap: () => _onMoodSelected(5, 'Romantic'),
                       ),
                       EmotionButton(
                         emotion: 'Neutral',
                         svgPath: 'assets/icons/neutral.svg',
                         isSelected: selectedEmotionIndex == 6,
-                        onTap: () => setState(() => selectedEmotionIndex = 6),
-                        onDoubleTap: () => _saveMoodSelection('Neutral'),
+                        onTap: () => _onMoodSelected(6, 'Neutral'),
                       ),
                       EmotionButton(
                         emotion: 'Sad',
                         svgPath: 'assets/icons/sad.svg',
                         isSelected: selectedEmotionIndex == 7,
-                        onTap: () => setState(() => selectedEmotionIndex = 7),
-                        onDoubleTap: () => _saveMoodSelection('Sad'),
+                        onTap: () => _onMoodSelected(7, 'Sad'),
                       ),
                       EmotionButton(
                         emotion: 'Silly',
                         svgPath: 'assets/icons/silly.svg',
                         isSelected: selectedEmotionIndex == 8,
-                        onTap: () => setState(() => selectedEmotionIndex = 8),
-                        onDoubleTap: () => _saveMoodSelection('Silly'),
+                        onTap: () => _onMoodSelected(8, 'Silly'),
                       ),
                     ],
                   ),
@@ -424,11 +482,22 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
                                         svgShape: 'assets/icons/b-circle.svg',
                                       ),
                                     ),
-                                    const ActivityIcon(
-                                      label: 'Self-Serenity',
-                                      backgroundColor: Color(0xFFC1DFDF),
-                                      svgIcon: 'assets/icons/meditation.svg',
-                                      svgShape: 'assets/icons/heptagon.svg',
+                                    GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const MediaScreen(),
+                                          ),
+                                        );
+                                      },
+                                      child: const ActivityIcon(
+                                        label: 'Music & Media',
+                                        backgroundColor: Color(0xFFC1DFDF),
+                                        svgIcon: 'assets/icons/meditation.svg',
+                                        svgShape: 'assets/icons/heptagon.svg',
+                                      ),
                                     ),
                                   ],
                                 ),

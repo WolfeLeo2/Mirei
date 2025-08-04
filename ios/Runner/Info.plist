@@ -47,6 +47,13 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app needs access to microphone to record voice notes for your journal entries.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>This app needs access to local network for media streaming.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to your photo library to attach images to your journal entries.</string>
 	<key>NSCameraUsageDescription</key>

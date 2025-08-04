@@ -90,6 +90,36 @@ class DatabaseHelper {
     await db.delete('moods', where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<int> updateMoodEntry(MoodEntry moodEntry) async {
+    final db = await database;
+    return await db.update(
+      'moods',
+      moodEntry.toMap(),
+      where: 'id = ?',
+      whereArgs: [moodEntry.id],
+    );
+  }
+
+  Future<MoodEntry?> getTodaysMoodEntry() async {
+    final db = await database;
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    
+    final maps = await db.query(
+      'moods',
+      where: 'created_at >= ? AND created_at <= ?',
+      whereArgs: [startOfDay.millisecondsSinceEpoch, endOfDay.millisecondsSinceEpoch],
+      orderBy: 'created_at DESC',
+      limit: 1,
+    );
+    
+    if (maps.isNotEmpty) {
+      return MoodEntry.fromMap(maps.first);
+    }
+    return null;
+  }
+
   Future<List<JournalEntry>> getAllJournalEntries() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(

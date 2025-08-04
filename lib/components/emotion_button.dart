@@ -6,7 +6,6 @@ class EmotionButton extends StatelessWidget {
   final String svgPath;
   final bool isSelected;
   final VoidCallback onTap;
-  final VoidCallback? onDoubleTap;
 
   const EmotionButton({
     super.key,
@@ -14,15 +13,16 @@ class EmotionButton extends StatelessWidget {
     required this.svgPath,
     required this.isSelected,
     required this.onTap,
-    this.onDoubleTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      onDoubleTap: onDoubleTap,
-      child: Container(
+      behavior: HitTestBehavior.opaque, // Improves touch responsiveness
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeInOut,
         margin: const EdgeInsets.only(right: 12),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
         decoration: BoxDecoration(
@@ -34,21 +34,26 @@ class EmotionButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SvgPicture.asset(
-              svgPath,
-              height: 35,
-              fit: BoxFit.fill,
+            AnimatedScale(
+              scale: isSelected ? 1.1 : 1.0,
+              duration: const Duration(milliseconds: 150),
+              child: SvgPicture.asset(
+                svgPath,
+                height: 35,
+                fit: BoxFit.fill,
+              ),
             ),
             const SizedBox(width: 8),
-            Text(
-              emotion,
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 150),
               style: TextStyle(
                 color: isSelected ? const Color(0xFF115e5a) : Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+                fontSize: isSelected ? 17 : 16,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 fontFamily: '.SF Pro Text',
                 height: 1.2,
               ),
+              child: Text(emotion),
             ),
           ],
         ),
