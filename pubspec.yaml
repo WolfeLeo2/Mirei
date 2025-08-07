@@ -49,17 +49,28 @@ dependencies:
   flutter_sound: ^9.28.0
   icons_plus: ^5.0.0
   flutter_svg: ^2.2.0
-  sqflite: ^2.3.0
+  # sqflite: ^2.3.0  # Removed - migrating to Realm
   flutter_staggered_grid_view: ^0.7.0
   path: ^1.9.0
   intl: ^0.20.2
   audio_waveforms: ^1.1.0
   flutter_floating_bottom_bar: ^1.3.0
   flutter_bloc: ^8.1.3
-  http: ^1.1.0
   url_launcher: ^6.3.0
   equatable: ^2.0.5
   fl_chart: ^1.0.0
+  
+  # New dependencies for enhanced features
+  realm: ^20.1.1  # Realm database replacement for SQLite
+  dio: ^5.8.0+1  # Enhanced HTTP client with caching, pooling, interceptors
+  dio_cache_interceptor: ^3.5.0  # HTTP caching for audio streams
+  dio_cache_interceptor_hive_store: ^3.2.2  # Hive-based cache storage
+  hive: ^2.2.3  # Fast key-value database for caching
+  hive_flutter: ^1.1.0  # Flutter integration for Hive
+  connectivity_plus: ^6.0.5  # Network connectivity monitoring
+  cached_network_image: ^3.4.1  # Image caching
+  crypto: ^3.0.3  # For cache key generation
+  collection: ^1.18.0  # Additional collection utilities
 
 dev_dependencies:
   flutter_test:

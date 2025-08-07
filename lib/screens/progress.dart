@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../models/mood_entry.dart';
-import '../utils/database_helper.dart';
+import '../models/realm_models.dart';
+import '../utils/realm_database_helper.dart';
 import '../utils/emotion_colors.dart';
 
 class ProgressScreen extends StatefulWidget {
@@ -14,7 +14,7 @@ class ProgressScreen extends StatefulWidget {
 }
 
 class _ProgressScreenState extends State<ProgressScreen> {
-  List<MoodEntry> monthlyMoods = [];
+  List<MoodEntryRealm> monthlyMoods = [];
   Map<String, int> moodFrequency = {};
   String currentMonth = DateFormat('MMMM yyyy').format(DateTime.now());
   bool isLoading = true;
@@ -40,7 +40,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
         59,
       );
 
-      final dbHelper = DatabaseHelper();
+      final dbHelper = RealmDatabaseHelper();
       final moods = await dbHelper.getMoodEntriesForPeriod(
         startOfMonth,
         endOfMonth,

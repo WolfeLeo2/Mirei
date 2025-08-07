@@ -9,8 +9,9 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:just_audio/just_audio.dart';
-import '../models/journal_entry.dart';
-import '../utils/database_helper.dart';
+import 'package:realm/realm.dart';
+import '../models/realm_models.dart';
+import '../utils/realm_database_helper.dart';
 import 'journal_list.dart';
 
 class JournalWritingScreen extends StatefulWidget {
@@ -369,10 +370,10 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
 
     try {
       // Prepare audio recordings for saving
-      final List<AudioRecording> audioRecordings = _audioRecordings.map((
+      final List<AudioRecordingData> audioRecordings = _audioRecordings.map((
         audioData,
       ) {
-        return AudioRecording(
+        return AudioRecordingData(
           path: audioData['path'],
           duration: audioData['duration'],
           timestamp: audioData['timestamp'],
@@ -380,17 +381,18 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
       }).toList();
 
       // Create journal entry
-      final journalEntry = JournalEntry(
-        title: _titleController.text.trim(),
-        content: _contentController.text.trim(),
-        createdAt: DateTime.now(),
+      final journalEntry = JournalEntryRealm(
+        ObjectId(),
+        _titleController.text.trim(),
+        _contentController.text.trim(),
+        DateTime.now(),
         mood: widget.mood, // Pass mood from previous screen
-        imagePaths: _selectedImages.map((image) => image.path).toList(),
-        audioRecordings: audioRecordings,
+        imagePathsString: _selectedImages.map((image) => image.path).join('|'),
+        audioRecordingsString: audioRecordings.map((audio) => audio.toJson()).join('|'),
       );
 
       // Save to database
-      final dbHelper = DatabaseHelper();
+      final dbHelper = RealmDatabaseHelper();
       await dbHelper.insertJournalEntry(journalEntry);
 
       if (mounted) {

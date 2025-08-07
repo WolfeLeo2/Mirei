@@ -1,11 +1,11 @@
-import '../models/mood_entry.dart';
-import '../utils/database_helper.dart';
+import '../models/realm_models.dart';
+import '../utils/realm_database_helper.dart';
 
 class MoodAnalyticsService {
-  final DatabaseHelper _dbHelper = DatabaseHelper();
+  final RealmDatabaseHelper _dbHelper = RealmDatabaseHelper();
 
   /// Get mood entries for today
-  Future<List<MoodEntry>> getTodayMoods() async {
+  Future<List<MoodEntryRealm>> getTodayMoods() async {
     final now = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day);
     final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
@@ -14,7 +14,7 @@ class MoodAnalyticsService {
   }
 
   /// Get mood entries for the current week
-  Future<List<MoodEntry>> getWeekMoods() async {
+  Future<List<MoodEntryRealm>> getWeekMoods() async {
     final now = DateTime.now();
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
     final startOfWeekDay = DateTime(

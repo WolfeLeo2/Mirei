@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import '../models/journal_entry.dart';
-import '../utils/database_helper.dart';
-import 'mood_tracker.dart';
+import '../models/realm_models.dart';
+import '../utils/realm_database_helper.dart';
 import 'journal_writing.dart';
 import '../utils/emotion_colors.dart';
-import '../models/mood_entry.dart';
 
 class JournalListScreen extends StatefulWidget {
   const JournalListScreen({super.key});
@@ -17,8 +15,8 @@ class JournalListScreen extends StatefulWidget {
 }
 
 class _JournalListScreenState extends State<JournalListScreen> {
-  List<JournalEntry> journals = [];
-  Map<String, MoodEntry?> dailyMoods = {};
+  List<JournalEntryRealm> journals = [];
+  Map<String, MoodEntryRealm?> dailyMoods = {};
   bool isLoading = true;
 
   @override
@@ -29,11 +27,11 @@ class _JournalListScreenState extends State<JournalListScreen> {
 
   Future<void> _loadJournals() async {
     try {
-      final dbHelper = DatabaseHelper();
+      final dbHelper = RealmDatabaseHelper();
       final loadedJournals = await dbHelper.getAllJournalEntries();
       final moodEntries = await dbHelper.getAllMoodEntries();
 
-      final moodMap = <String, MoodEntry>{};
+      final moodMap = <String, MoodEntryRealm>{};
       for (var mood in moodEntries) {
         final dateKey = DateFormat('yyyy-MM-dd').format(mood.createdAt);
         // Store the first mood of the day
@@ -59,17 +57,6 @@ class _JournalListScreenState extends State<JournalListScreen> {
           ),
         );
       }
-    }
-  }
-
-  Future<void> _navigateToMoodTracker() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const MoodTrackerScreen()),
-    );
-
-    if (result == true) {
-      _loadJournals(); // Reload journals if something was saved
     }
   }
 
@@ -215,7 +202,7 @@ class _JournalListScreenState extends State<JournalListScreen> {
     );
   }
 
-  Widget _buildJournalCard(JournalEntry journal) {
+  Widget _buildJournalCard(JournalEntryRealm journal) {
     final dateKey = DateFormat('yyyy-MM-dd').format(journal.createdAt);
     final mood = dailyMoods[dateKey];
     final emotion = mood?.mood ?? 'Neutral';
@@ -304,7 +291,7 @@ class _JournalListScreenState extends State<JournalListScreen> {
     );
   }
 
-  Future<void> _deleteJournalEntry(JournalEntry entry) async {
+  Future<void> _deleteJournalEntry(JournalEntryRealm entry) async {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -345,8 +332,8 @@ class _JournalListScreenState extends State<JournalListScreen> {
 
     if (confirmed == true) {
       try {
-        final dbHelper = DatabaseHelper();
-        await dbHelper.deleteJournalEntry(entry.id!);
+        final dbHelper = RealmDatabaseHelper();
+        await dbHelper.deleteJournalEntry(entry.id);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -386,7 +373,7 @@ class _JournalListScreenState extends State<JournalListScreen> {
     }
   }
 
-  void _showJournalOptions(JournalEntry journal) {
+  void _showJournalOptions(JournalEntryRealm journal) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -441,7 +428,7 @@ class _JournalListScreenState extends State<JournalListScreen> {
     );
   }
 
-  void _viewJournalEntry(JournalEntry entry) {
+  void _viewJournalEntry(JournalEntryRealm entry) {
     // TODO: Navigate to journal detail view
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

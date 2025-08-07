@@ -36,9 +36,13 @@ class EmotionButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Transform.scale(
-                scale: isSelected ? 1.2 : 1.0,
-                child: SvgPicture.asset(svgPath, height: 35, fit: BoxFit.fill),
+              RepaintBoundary(
+                child: SvgPicture.asset(
+                  svgPath, 
+                  height: 35, 
+                  fit: BoxFit.fill,
+                  cacheColorFilter: true, // Cache the color filter
+                ),
               ),
               const SizedBox(width: 8),
               Text(
