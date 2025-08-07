@@ -21,7 +21,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
   final TextEditingController _contentController = TextEditingController();
   final FocusNode _titleFocusNode = FocusNode();
   final FocusNode _contentFocusNode = FocusNode();
-  
+
   final ImagePicker _picker = ImagePicker();
   FlutterSoundRecorder? _recorder;
   RecorderController? _recorderController;
@@ -51,7 +51,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
     // Check microphone permission
     final micStatus = await Permission.microphone.status;
     print('Microphone permission status: $micStatus');
-    
+
     // Check photo permission
     final photoStatus = await Permission.photos.status;
     print('Photo permission status: $photoStatus');
@@ -147,7 +147,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              
+
               // Title input
               Text(
                 'Title',
@@ -185,7 +185,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Content input
               Text(
                 'Your thoughts',
@@ -212,7 +212,8 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
                     fontFamily: GoogleFonts.inter().fontFamily,
                   ),
                   decoration: InputDecoration(
-                    hintText: 'What\'s on your mind? Write about your day, your feelings, your goals, or anything that comes to mind...',
+                    hintText:
+                        'What\'s on your mind? Write about your day, your feelings, your goals, or anything that comes to mind...',
                     hintStyle: TextStyle(
                       color: Colors.black38,
                       fontFamily: GoogleFonts.inter().fontFamily,
@@ -226,7 +227,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              
+
               // Media attachments section
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -286,8 +287,8 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: _isRecording 
-                                ? Colors.red 
+                            color: _isRecording
+                                ? Colors.red
                                 : const Color(0xFF115e5a),
                             borderRadius: BorderRadius.circular(20),
                           ),
@@ -318,12 +319,14 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // Media grid
               if (_selectedImages.isNotEmpty || _audioRecordings.isNotEmpty)
                 _buildMediaGrid(),
-              
-              const SizedBox(height: 100), // Extra space for comfortable scrolling
+
+              const SizedBox(
+                height: 100,
+              ), // Extra space for comfortable scrolling
             ],
           ),
         ),
@@ -332,15 +335,13 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
   }
 
   void _saveJournalEntry() {
-    if (_titleController.text.trim().isEmpty || 
+    if (_titleController.text.trim().isEmpty ||
         _contentController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             'Please fill in both title and content',
-            style: TextStyle(
-              fontFamily: GoogleFonts.inter().fontFamily,
-            ),
+            style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily),
           ),
           backgroundColor: const Color(0xFF115e5a),
           behavior: SnackBarBehavior.floating,
@@ -358,15 +359,11 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
       SnackBar(
         content: Text(
           'Journal entry saved successfully!',
-          style: TextStyle(
-            fontFamily: GoogleFonts.inter().fontFamily,
-          ),
+          style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily),
         ),
         backgroundColor: const Color(0xFF115e5a),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
 
@@ -378,16 +375,16 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
     try {
       // Check current microphone permission status
       PermissionStatus status = await Permission.microphone.status;
-      
+
       if (status.isDenied) {
         status = await Permission.microphone.request();
       }
-      
+
       if (status.isPermanentlyDenied) {
         _showPermissionDialog();
         return;
       }
-      
+
       if (!status.isGranted) {
         _showPermissionDeniedSnackBar();
         return;
@@ -398,29 +395,26 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
         await _initializeRecorder();
       }
 
-      // Start recording with a proper file path  
+      // Start recording with a proper file path
       final directory = await getTemporaryDirectory();
       final audioDir = Directory('${directory.path}/journal_audio');
       if (!audioDir.existsSync()) {
         audioDir.createSync(recursive: true);
       }
-      final path = '${audioDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.aac';
-      
-      await _recorder!.startRecorder(
-        toFile: path,
-        codec: Codec.aacADTS,
-      );
-      
+      final path =
+          '${audioDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.aac';
+
+      await _recorder!.startRecorder(toFile: path, codec: Codec.aacADTS);
+
       // Start waveform recording
       await _recorderController!.record(path: path);
-      
+
       setState(() {
         _isRecording = true;
       });
-      
+
       // Show persistent recording indicator
       _showPersistentRecordingSnackBar();
-      
     } catch (e) {
       print('Error starting recording: $e');
       _showErrorSnackBar('Error starting recording: $e');
@@ -429,7 +423,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
 
   void _showPersistentRecordingSnackBar() {
     if (!mounted) return;
-    
+
     _recordingSnackBar = ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -460,9 +454,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
         backgroundColor: const Color(0xFF115e5a),
         duration: const Duration(days: 1), // Persist until manually closed
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -470,18 +462,18 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
   Future<void> _stopRecording() async {
     try {
       if (_recorder == null || !_isRecording) return;
-      
+
       // Close the persistent SnackBar
       _recordingSnackBar?.close();
-      
+
       // Stop both recorders
       final path = await _recorder!.stopRecorder();
       final waveformPath = await _recorderController!.stop();
-      
+
       if (path != null && File(path).existsSync()) {
         // Calculate duration
         final duration = await _getAudioDuration(path);
-        
+
         setState(() {
           _audioRecordings.add({
             'path': path,
@@ -491,7 +483,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
           });
           _isRecording = false;
         });
-        
+
         // Show success message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -538,22 +530,22 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
     try {
       // Check photo library permission first
       PermissionStatus status = await Permission.photos.status;
-      
+
       if (status.isDenied) {
         status = await Permission.photos.request();
       }
-      
+
       if (status.isPermanentlyDenied) {
         _showPhotoPermissionDialog();
         return;
       }
-      
+
       final List<XFile> images = await _picker.pickMultiImage();
       if (images.isNotEmpty) {
         setState(() {
           _selectedImages.addAll(images);
         });
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -589,7 +581,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
     } catch (e) {
       print('Error deleting audio file: $e');
     }
-    
+
     setState(() {
       _audioRecordings.removeAt(index);
     });
@@ -605,7 +597,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
         ..._selectedImages.asMap().entries.map((entry) {
           final index = entry.key;
           final image = entry.value;
-          
+
           return StaggeredGridTile.count(
             crossAxisCellCount: 1,
             mainAxisCellCount: 1,
@@ -656,12 +648,12 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
             ),
           );
         }),
-        
+
         // Display audio recordings
         ..._audioRecordings.asMap().entries.map((entry) {
           final index = entry.key;
           final audioData = entry.value;
-          
+
           return StaggeredGridTile.count(
             crossAxisCellCount: 1,
             mainAxisCellCount: 1,
@@ -715,7 +707,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  
+
                   // Waveform visualization
                   Expanded(
                     child: Container(
@@ -725,19 +717,20 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Center(
-                        child: audioData['waveformData'] != null && 
-                               (audioData['waveformData'] as List).isNotEmpty
-                          ? _buildWaveform(audioData['waveformData'])
-                          : const Icon(
-                              Icons.graphic_eq,
-                              color: Color(0xFF115e5a),
-                              size: 24,
-                            ),
+                        child:
+                            audioData['waveformData'] != null &&
+                                (audioData['waveformData'] as List).isNotEmpty
+                            ? _buildWaveform(audioData['waveformData'])
+                            : const Icon(
+                                Icons.graphic_eq,
+                                color: Color(0xFF115e5a),
+                                size: 24,
+                              ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  
+
                   // Duration
                   Center(
                     child: Text(
@@ -761,11 +754,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
 
   Widget _buildWaveform(List<double> waveformData) {
     if (waveformData.isEmpty) {
-      return const Icon(
-        Icons.graphic_eq,
-        color: Color(0xFF115e5a),
-        size: 24,
-      );
+      return const Icon(Icons.graphic_eq, color: Color(0xFF115e5a), size: 24);
     }
 
     return CustomPaint(
@@ -787,7 +776,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
 
   void _showPermissionDialog() {
     if (!mounted) return;
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -801,9 +790,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
           ),
           content: Text(
             'To record voice notes, please grant microphone permission in your device settings.',
-            style: TextStyle(
-              fontFamily: GoogleFonts.inter().fontFamily,
-            ),
+            style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily),
           ),
           actions: [
             TextButton(
@@ -838,10 +825,12 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
 
   void _showPermissionDeniedSnackBar() {
     if (!mounted) return;
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Microphone permission is required for voice notes'),
+        content: const Text(
+          'Microphone permission is required for voice notes',
+        ),
         backgroundColor: Colors.red,
         action: SnackBarAction(
           label: 'Settings',
@@ -854,18 +843,15 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
 
   void _showErrorSnackBar(String message) {
     if (!mounted) return;
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
   void _showPhotoPermissionDialog() {
     if (!mounted) return;
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -879,9 +865,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
           ),
           content: Text(
             'To add photos to your journal, please grant photo library permission in your device settings.',
-            style: TextStyle(
-              fontFamily: GoogleFonts.inter().fontFamily,
-            ),
+            style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily),
           ),
           actions: [
             TextButton(
@@ -920,10 +904,7 @@ class WaveformPainter extends CustomPainter {
   final List<double> waveformData;
   final Color color;
 
-  WaveformPainter({
-    required this.waveformData,
-    required this.color,
-  });
+  WaveformPainter({required this.waveformData, required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {

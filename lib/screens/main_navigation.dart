@@ -70,17 +70,17 @@ class _MainNavigationState extends State<MainNavigation>
               indicatorColor: colors[currentIndex],
               dividerColor: Colors.transparent,
               labelColor: colors[currentIndex],
-              unselectedLabelColor: const Color.fromARGB(255, 77, 64, 64),
+              unselectedLabelColor: const Color.fromARGB(255, 21, 55, 26),
               onTap: (index) {
                 // Dispatch BLoC event when tab is tapped
                 context.read<EmotionBloc>().add(EmotionSelected(index));
                 _tabController.animateTo(index);
               },
               tabs: const [
-                Tab(icon: Icon(Icons.home_filled, size: 24)),
-                Tab(icon: Icon(FontAwesome.book_open_solid, size: 24)),
-                Tab(icon: Icon(Icons.calendar_today_outlined, size: 24)),
-                Tab(icon: Icon(FontAwesome.microphone_solid, size: 24)),
+                Tab(icon: Icon(FontAwesome.house_chimney_solid, size: 24)),
+                Tab(icon: Icon(FontAwesome.book_journal_whills_solid, size: 24)),
+                Tab(icon: Icon(FontAwesome.spa_solid, size: 24)),
+                Tab(icon: Icon(FontAwesome.radio_solid, size: 24)),
               ],
             ),
             fit: StackFit.expand,
@@ -115,7 +115,9 @@ class _MainNavigationState extends State<MainNavigation>
               controller: _tabController,
               dragStartBehavior: DragStartBehavior.down,
               physics: const BouncingScrollPhysics(),
-              children: _screens,
+              children: _screens
+                  .map((screen) => RepaintBoundary(child: screen))
+                  .toList(),
             ),
           ),
         );
@@ -125,46 +127,88 @@ class _MainNavigationState extends State<MainNavigation>
 }
 
 // Content-only version of HomeScreen (without its own navigation)
-class HomeScreenContent extends StatelessWidget {
+class HomeScreenContent extends StatefulWidget {
   const HomeScreenContent({super.key});
 
   @override
+  State<HomeScreenContent> createState() => _HomeScreenContentState();
+}
+
+class _HomeScreenContentState extends State<HomeScreenContent>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     return const HomeScreen();
   }
 }
 
 // Content-only version of MoodTrackerScreen (without its own navigation)
-class MoodTrackerScreenContent extends StatelessWidget {
+class MoodTrackerScreenContent extends StatefulWidget {
   const MoodTrackerScreenContent({super.key});
 
   @override
+  State<MoodTrackerScreenContent> createState() =>
+      _MoodTrackerScreenContentState();
+}
+
+class _MoodTrackerScreenContentState extends State<MoodTrackerScreenContent>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     return const MoodTrackerScreen();
   }
 }
 
 // Content-only version of MediaScreen (without its own navigation)
-class MediaScreenContent extends StatelessWidget {
+class MediaScreenContent extends StatefulWidget {
   const MediaScreenContent({super.key});
+
+  @override
+  State<MediaScreenContent> createState() => _MediaScreenContentState();
+}
+
+class _MediaScreenContentState extends State<MediaScreenContent>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return const MediaScreen();
   }
 }
 
 // Placeholder screens
-class CalendarScreen extends StatelessWidget {
+class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
 
   @override
+  State<CalendarScreen> createState() => _CalendarScreenState();
+}
+
+class _CalendarScreenState extends State<CalendarScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Container(
-      color: Colors.blue.shade100,
+      color: Theme.of(context).colorScheme.primaryContainer,
       child: const SafeArea(
         child: Center(
           child: Text(
-            'Calendar Screen',
+            'Meditation Screen',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
         ),

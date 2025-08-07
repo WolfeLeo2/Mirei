@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:mirei/models/session_info.dart';
@@ -10,50 +9,56 @@ class TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(60.0, 20.0, 20.0, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(50.0),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.25),
-                      borderRadius: BorderRadius.circular(50.0),
-                      border: Border.all(color: Colors.white.withOpacity(0.4)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.wb_sunny_outlined,
-                          color: const Color(0xFF1a237e),
-                          size: 20,
+    return RepaintBoundary(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(60.0, 20.0, 20.0, 0),
+        child: Row(
+          children: [
+            Expanded(
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(
+                      0.3,
+                    ), // Increased opacity, removed BackdropFilter
+                    borderRadius: BorderRadius.circular(50.0),
+                    border: Border.all(color: Colors.white.withOpacity(0.4)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(
+                          0.05,
+                        ), // Reduced opacity
+                        blurRadius: 8, // Reduced blur
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.wb_sunny_outlined,
+                        color: const Color(0xFF1a237e),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${session.greeting}',
+                        style: const TextStyle(
+                          color: Color(0xFF1a237e),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${session.greeting}',
-                          style: const TextStyle(
-                            color: Color(0xFF1a237e),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-          ),
           const SizedBox(width: 8),
           PullDownButton(
             itemBuilder: (context) => [
@@ -100,7 +105,9 @@ class TopBar extends StatelessWidget {
               ),
             ),
           ),
-        ],
+      ]
+      ),
+        
       ),
     );
   }

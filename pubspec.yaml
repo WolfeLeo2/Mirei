@@ -112,6 +112,7 @@ flutter:
     - assets/images/gradient.png
     - assets/icons/Stress.svg
     - assets/images/lofi.png
+    - assets/images/color.jpg
 
     
   # assets:

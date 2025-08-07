@@ -21,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage(
-              'assets/images/gradient-2.png',
+              'assets/images/color.jpg',
             ), //changed to evening image. Looks better
             fit: BoxFit.cover,
             opacity: 0.8,
@@ -30,14 +30,15 @@ class _HomeScreenState extends State<HomeScreen> {
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.symmetric(vertical: 10),
+            physics: const BouncingScrollPhysics(), // Better scroll feel
             children: [
-              TopBar(session: session),
+              RepaintBoundary(child: TopBar(session: session)),
               const SizedBox(height: 20),
-              MainCard(session: session),
+              RepaintBoundary(child: MainCard(session: session)),
               const SizedBox(height: 30),
-              SectionHeader(),
+              RepaintBoundary(child: SectionHeader()),
               const SizedBox(height: 20),
-              const HorizontalCardList(),
+              RepaintBoundary(child: const HorizontalCardList()),
               const SizedBox(height: 100), // Space for the bottom nav bar
             ],
           ),

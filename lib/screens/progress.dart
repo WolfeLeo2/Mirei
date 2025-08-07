@@ -356,9 +356,9 @@ class _ProgressScreenState extends State<ProgressScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.04), // Reduced from 0.08
+            blurRadius: 10, // Reduced from 15
+            offset: const Offset(0, 4), // Reduced offset
           ),
         ],
       ),

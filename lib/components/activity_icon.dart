@@ -28,44 +28,46 @@ class ActivityIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final actualShapeSize = shapeSize ?? size;
 
-    return Column(
-      children: [
-        Container(
-          width: size,
-          height: size,
-          margin: const EdgeInsets.only(left: 10, right: 5),
-          color: Colors.transparent,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              SvgPicture.asset(
-                svgShape,
-                width: actualShapeSize,
-                height: actualShapeSize,
-                color: shapeColor ?? backgroundColor,
-              ),
-              SvgPicture.asset(
-                svgIcon,
-                width: size * 0.4,
-                height: size * 0.4,
-                color: iconColor ?? Colors.black,
-                fit: BoxFit.contain,
-              ),
-            ],
+    return RepaintBoundary(
+      child: Column(
+        children: [
+          Container(
+            width: size,
+            height: size,
+            margin: const EdgeInsets.only(left: 10, right: 5),
+            color: Colors.transparent,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SvgPicture.asset(
+                  svgShape,
+                  width: actualShapeSize,
+                  height: actualShapeSize,
+                  color: shapeColor ?? backgroundColor,
+                ),
+                SvgPicture.asset(
+                  svgIcon,
+                  width: size * 0.4,
+                  height: size * 0.4,
+                  color: iconColor ?? Colors.black,
+                  fit: BoxFit.contain,
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.black54,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            fontFamily: GoogleFonts.inter().fontFamily,
+          const SizedBox(height: 12),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.black54,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              fontFamily: GoogleFonts.inter().fontFamily,
+            ),
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

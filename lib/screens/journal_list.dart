@@ -67,7 +67,7 @@ class _JournalListScreenState extends State<JournalListScreen> {
       context,
       MaterialPageRoute(builder: (context) => const MoodTrackerScreen()),
     );
-    
+
     if (result == true) {
       _loadJournals(); // Reload journals if something was saved
     }
@@ -77,10 +77,11 @@ class _JournalListScreenState extends State<JournalListScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const JournalWritingScreen(mood: 'Neutral'), // Default mood
+        builder: (context) =>
+            const JournalWritingScreen(mood: 'Neutral'), // Default mood
       ),
     );
-    
+
     if (result == true) {
       _loadJournals(); // Reload journals if something was saved
     }
@@ -112,10 +113,12 @@ class _JournalListScreenState extends State<JournalListScreen> {
         ),
         centerTitle: true,
       ),
-      body: isLoading 
-        ? const Center(child: CircularProgressIndicator(color: Color(0xFF115e5a)))
-        : journals.isEmpty 
-          ? _buildEmptyState() 
+      body: isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF115e5a)),
+            )
+          : journals.isEmpty
+          ? _buildEmptyState()
           : _buildJournalList(),
       floatingActionButton: _buildFloatingActionButton(),
     );
@@ -143,11 +146,7 @@ class _JournalListScreenState extends State<JournalListScreen> {
         onPressed: _navigateToJournalWriting,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        child: const Icon(
-          Icons.add,
-          color: Colors.white,
-          size: 28,
-        ),
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
     );
   }
@@ -159,10 +158,7 @@ class _JournalListScreenState extends State<JournalListScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SvgPicture.asset(
-              'assets/icons/Stress.svg',
-              height: 200,
-            ),
+            SvgPicture.asset('assets/icons/Stress.svg', height: 200),
             const SizedBox(height: 24),
             Text(
               'Start keeping track of your days',
@@ -303,10 +299,7 @@ class _JournalListScreenState extends State<JournalListScreen> {
       ),
       child: Text(
         emotion,
-        style: GoogleFonts.inter(
-          color: color,
-          fontWeight: FontWeight.w600,
-        ),
+        style: GoogleFonts.inter(color: color, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -332,9 +325,7 @@ class _JournalListScreenState extends State<JournalListScreen> {
               onPressed: () => Navigator.of(context).pop(false),
               child: Text(
                 'Cancel',
-                style: GoogleFonts.inter(
-                  color: Colors.grey[600],
-                ),
+                style: GoogleFonts.inter(color: Colors.grey[600]),
               ),
             ),
             TextButton(
@@ -356,7 +347,7 @@ class _JournalListScreenState extends State<JournalListScreen> {
       try {
         final dbHelper = DatabaseHelper();
         await dbHelper.deleteJournalEntry(entry.id!);
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -371,7 +362,7 @@ class _JournalListScreenState extends State<JournalListScreen> {
               ),
             ),
           );
-          
+
           // Reload the journals
           _loadJournals();
         }
@@ -418,10 +409,7 @@ class _JournalListScreenState extends State<JournalListScreen> {
                 ),
               ),
               ListTile(
-                leading: const Icon(
-                  Icons.visibility,
-                  color: Color(0xFF115e5a),
-                ),
+                leading: const Icon(Icons.visibility, color: Color(0xFF115e5a)),
                 title: Text(
                   'View Entry',
                   style: GoogleFonts.inter(fontWeight: FontWeight.w500),
@@ -432,10 +420,7 @@ class _JournalListScreenState extends State<JournalListScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(
-                  Icons.delete,
-                  color: Colors.red,
-                ),
+                leading: const Icon(Icons.delete, color: Colors.red),
                 title: Text(
                   'Delete Entry',
                   style: GoogleFonts.inter(

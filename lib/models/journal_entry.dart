@@ -25,7 +25,9 @@ class JournalEntry {
       'created_at': createdAt.millisecondsSinceEpoch,
       'mood': mood,
       'image_paths': imagePaths.join('|'), // Store as pipe-separated string
-      'audio_recordings': audioRecordings.map((audio) => audio.toJson()).join('|||'), // Store as triple-pipe-separated JSON strings
+      'audio_recordings': audioRecordings
+          .map((audio) => audio.toJson())
+          .join('|||'), // Store as triple-pipe-separated JSON strings
     };
   }
 
@@ -36,11 +38,17 @@ class JournalEntry {
       content: map['content'] ?? '',
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at']),
       mood: map['mood'],
-      imagePaths: map['image_paths'] != null && map['image_paths'].isNotEmpty 
-          ? map['image_paths'].split('|') 
+      imagePaths: map['image_paths'] != null && map['image_paths'].isNotEmpty
+          ? map['image_paths'].split('|')
           : <String>[],
-      audioRecordings: map['audio_recordings'] != null && map['audio_recordings'].isNotEmpty
-          ? map['audio_recordings'].split('|||').map<AudioRecording>((audioJson) => AudioRecording.fromJson(audioJson)).toList()
+      audioRecordings:
+          map['audio_recordings'] != null && map['audio_recordings'].isNotEmpty
+          ? map['audio_recordings']
+                .split('|||')
+                .map<AudioRecording>(
+                  (audioJson) => AudioRecording.fromJson(audioJson),
+                )
+                .toList()
           : <AudioRecording>[],
     );
   }
@@ -63,19 +71,22 @@ class AudioRecording {
 
   factory AudioRecording.fromJson(String json) {
     // Simple JSON parsing for our specific format
-    final cleanJson = json.replaceAll('{', '').replaceAll('}', '').replaceAll('"', '');
+    final cleanJson = json
+        .replaceAll('{', '')
+        .replaceAll('}', '')
+        .replaceAll('"', '');
     final parts = cleanJson.split(',');
-    
+
     String path = '';
     int durationMs = 0;
     int timestampMs = 0;
-    
+
     for (String part in parts) {
       final keyValue = part.split(':');
       if (keyValue.length == 2) {
         final key = keyValue[0].trim();
         final value = keyValue[1].trim();
-        
+
         switch (key) {
           case 'path':
             path = value;
@@ -89,7 +100,7 @@ class AudioRecording {
         }
       }
     }
-    
+
     return AudioRecording(
       path: path,
       duration: Duration(milliseconds: durationMs),

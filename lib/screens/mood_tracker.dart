@@ -21,10 +21,17 @@ class MoodTrackerScreen extends StatefulWidget {
 class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
   int selectedEmotionIndex = 1;
   final List<String> emotions = [
-    'Angelic', 'Sorry', 'Excited', 'Embarrassed', 'Happy', 
-    'Romantic', 'Neutral', 'Sad', 'Silly'
+    'Angelic',
+    'Sorry',
+    'Excited',
+    'Embarrassed',
+    'Happy',
+    'Romantic',
+    'Neutral',
+    'Sad',
+    'Silly',
   ];
-  
+
   final User _user = User(
     name: 'User',
     email: 'user@example.com',
@@ -58,7 +65,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
     try {
       // Check if there's already a mood entry for today
       final existingMoodEntry = await DatabaseHelper().getTodaysMoodEntry();
-      
+
       if (existingMoodEntry != null) {
         // Update existing mood entry
         final updatedMoodEntry = MoodEntry(
@@ -68,7 +75,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
           note: existingMoodEntry.note,
         );
         await DatabaseHelper().updateMoodEntry(updatedMoodEntry);
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -96,7 +103,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
           note: null,
         );
         await DatabaseHelper().insertMoodEntry(moodEntry);
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -151,369 +158,376 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF115e5a),
       body: Column(
-            children: [
-              Container(
-                color: const Color(0xFF115e5a),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 60, 20, 0),
-                  child: Column(
+        children: [
+          Container(
+            color: const Color(0xFF115e5a),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 60, 20, 0),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
+                          RepaintBoundary(
+                            child: CircleAvatar(
+                              radius: 28,
+                              backgroundImage: NetworkImage(_user.avatarUrl),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              CircleAvatar(
-                                radius: 28,
-                                backgroundImage: NetworkImage(_user.avatarUrl),
+                              Text(
+                                _user.name,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                  fontFamily: '.SF Pro Display',
+                                ),
                               ),
-                              const SizedBox(width: 16),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              const SizedBox(height: 2),
+                              Text(
+                                _user.email,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w400,
+                                  fontFamily: '.SF Pro Text',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Container(height: 2, color: Colors.white),
+                            Container(height: 2, color: Colors.white),
+                            Container(height: 2, color: Colors.white),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 40),
+                  Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
+                    children: [
+                      Text(
+                        'Hi, How do you\nfeel today?',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 36,
+                          fontWeight: FontWeight.w900,
+                          height: 1.2,
+                          fontFamily: GoogleFonts.inter().fontFamily,
+                        ),
+                      ),
+                      Positioned(
+                        top: -10,
+                        left: -20,
+                        child: SvgPicture.asset(
+                          'assets/icons/emphasis.svg',
+                          width: 20,
+                          height: 20,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Positioned(
+                        bottom: -10,
+                        right: 50,
+                        child: SvgPicture.asset(
+                          'assets/icons/underline.svg',
+                          width: 17,
+                          height: 17,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Select your current mood',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      fontFamily: '.SF Pro Text',
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ),
+          Container(
+            color: const Color(0xFF115e5a),
+            child: RepaintBoundary(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  children: [
+                    EmotionButton(
+                      emotion: 'Angelic',
+                      svgPath: 'assets/icons/angelic.svg',
+                      isSelected: selectedEmotionIndex == 0,
+                      onTap: () => _onMoodSelected(0, 'Angelic'),
+                    ),
+                    EmotionButton(
+                      emotion: 'Sorry',
+                      svgPath: 'assets/icons/disappointed.svg',
+                      isSelected: selectedEmotionIndex == 1,
+                      onTap: () => _onMoodSelected(1, 'Sorry'),
+                    ),
+                    EmotionButton(
+                      emotion: 'Excited',
+                      svgPath: 'assets/icons/excited.svg',
+                      isSelected: selectedEmotionIndex == 2,
+                      onTap: () => _onMoodSelected(2, 'Excited'),
+                    ),
+                    EmotionButton(
+                      emotion: 'Embarrassed',
+                      svgPath: 'assets/icons/embarrassed.svg',
+                      isSelected: selectedEmotionIndex == 3,
+                      onTap: () => _onMoodSelected(3, 'Embarrassed'),
+                    ),
+                    EmotionButton(
+                      emotion: 'Happy',
+                      svgPath: 'assets/icons/Happy.svg',
+                      isSelected: selectedEmotionIndex == 4,
+                      onTap: () => _onMoodSelected(4, 'Happy'),
+                    ),
+                    EmotionButton(
+                      emotion: 'Romantic',
+                      svgPath: 'assets/icons/loving.svg',
+                      isSelected: selectedEmotionIndex == 5,
+                      onTap: () => _onMoodSelected(5, 'Romantic'),
+                    ),
+                    EmotionButton(
+                      emotion: 'Neutral',
+                      svgPath: 'assets/icons/neutral.svg',
+                      isSelected: selectedEmotionIndex == 6,
+                      onTap: () => _onMoodSelected(6, 'Neutral'),
+                    ),
+                    EmotionButton(
+                      emotion: 'Sad',
+                      svgPath: 'assets/icons/sad.svg',
+                      isSelected: selectedEmotionIndex == 7,
+                      onTap: () => _onMoodSelected(7, 'Sad'),
+                    ),
+                    EmotionButton(
+                      emotion: 'Silly',
+                      svgPath: 'assets/icons/silly.svg',
+                      isSelected: selectedEmotionIndex == 8,
+                      onTap: () => _onMoodSelected(8, 'Silly'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: Color(0xFFfaf6f1),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(25),
+                  topRight: Radius.circular(25),
+                ),
+              ),
+              child: Column(
+                children: [
+                  // Hook/Handle component
+                  Container(
+                    margin: const EdgeInsets.only(top: 8, bottom: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF115e5a).withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          20,
+                          12,
+                          18,
+                          100,
+                        ), // Added bottom padding for nav bar
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            RichText(
+                              text: TextSpan(
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.3,
+                                  fontFamily: GoogleFonts.inter().fontFamily,
+                                ),
                                 children: [
-                                  Text(
-                                    _user.name,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w600,
-                                      fontFamily: '.SF Pro Display',
-                                    ),
+                                  const TextSpan(
+                                    text: 'Do You know?\n3 Days Your',
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _user.email,
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.7),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w400,
-                                      fontFamily: '.SF Pro Text',
+                                  WidgetSpan(
+                                    alignment: PlaceholderAlignment.middle,
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        SvgPicture.asset(
+                                          'assets/icons/circle.svg',
+                                          width: 50,
+                                          height: 35,
+                                          color: const Color.fromARGB(
+                                            255,
+                                            180,
+                                            235,
+                                            117,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Happiness',
+                                          style: TextStyle(
+                                            color: const Color.fromARGB(
+                                              255,
+                                              17,
+                                              84,
+                                              70,
+                                            ),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 22,
+                                            fontFamily:
+                                                GoogleFonts.inter().fontFamily,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                          SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                Container(height: 2, color: Colors.white),
-                                Container(height: 2, color: Colors.white),
-                                Container(height: 2, color: Colors.white),
-                              ],
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 40),
-                      Stack(
-                        alignment: Alignment.center,
-                        clipBehavior: Clip.none,
-                        children: [
-                          Text(
-                            'Hi, How do you\nfeel today?',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 36,
-                              fontWeight: FontWeight.w900,
-                              height: 1.2,
-                              fontFamily: GoogleFonts.inter().fontFamily,
-                            ),
-                          ),
-                          Positioned(
-                            top: -10,
-                            left: -20,
-                            child: SvgPicture.asset(
-                              'assets/icons/emphasis.svg',
-                              width: 20,
-                              height: 20,
-                              color: Colors.white,
-                            ),
-                          ),
-                          Positioned(
-                            bottom: -10,
-                            right: 50,
-                            child: SvgPicture.asset(
-                              'assets/icons/underline.svg',
-                              width: 17,
-                              height: 17,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Select your current mood',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
-                          fontFamily: '.SF Pro Text',
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
-                ),
-              ),
-              Container(
-                color: const Color(0xFF115e5a),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Row(
-                    children: [
-                      EmotionButton(
-                        emotion: 'Angelic',
-                        svgPath: 'assets/icons/angelic.svg',
-                        isSelected: selectedEmotionIndex == 0,
-                        onTap: () => _onMoodSelected(0, 'Angelic'),
-                      ),
-                      EmotionButton(
-                        emotion: 'Sorry',
-                        svgPath: 'assets/icons/disappointed.svg',
-                        isSelected: selectedEmotionIndex == 1,
-                        onTap: () => _onMoodSelected(1, 'Sorry'),
-                      ),
-                      EmotionButton(
-                        emotion: 'Excited',
-                        svgPath: 'assets/icons/excited.svg',
-                        isSelected: selectedEmotionIndex == 2,
-                        onTap: () => _onMoodSelected(2, 'Excited'),
-                      ),
-                      EmotionButton(
-                        emotion: 'Embarrassed',
-                        svgPath: 'assets/icons/embarrassed.svg',
-                        isSelected: selectedEmotionIndex == 3,
-                        onTap: () => _onMoodSelected(3, 'Embarrassed'),
-                      ),
-                      EmotionButton(
-                        emotion: 'Happy',
-                        svgPath: 'assets/icons/Happy.svg',
-                        isSelected: selectedEmotionIndex == 4,
-                        onTap: () => _onMoodSelected(4, 'Happy'),
-                      ),
-                      EmotionButton(
-                        emotion: 'Romantic',
-                        svgPath: 'assets/icons/loving.svg',
-                        isSelected: selectedEmotionIndex == 5,
-                        onTap: () => _onMoodSelected(5, 'Romantic'),
-                      ),
-                      EmotionButton(
-                        emotion: 'Neutral',
-                        svgPath: 'assets/icons/neutral.svg',
-                        isSelected: selectedEmotionIndex == 6,
-                        onTap: () => _onMoodSelected(6, 'Neutral'),
-                      ),
-                      EmotionButton(
-                        emotion: 'Sad',
-                        svgPath: 'assets/icons/sad.svg',
-                        isSelected: selectedEmotionIndex == 7,
-                        onTap: () => _onMoodSelected(7, 'Sad'),
-                      ),
-                      EmotionButton(
-                        emotion: 'Silly',
-                        svgPath: 'assets/icons/silly.svg',
-                        isSelected: selectedEmotionIndex == 8,
-                        onTap: () => _onMoodSelected(8, 'Silly'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFfaf6f1),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(25),
-                      topRight: Radius.circular(25),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      // Hook/Handle component
-                      Container(
-                        margin: const EdgeInsets.only(top: 8, bottom: 8),
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF115e5a).withOpacity(0.6),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(
-                              20,
-                              12,
-                              18,
-                              100,
-                            ), // Added bottom padding for nav bar
-                            child: Column(
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                RichText(
-                                  text: TextSpan(
+                                Expanded(
+                                  child: Text(
+                                    'Some things you might be\ninterested in doing',
                                     style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w700,
-                                      height: 1.3,
+                                      color: Colors.black54,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w400,
+                                      height: 1.4,
                                       fontFamily:
                                           GoogleFonts.inter().fontFamily,
                                     ),
-                                    children: [
-                                      const TextSpan(
-                                        text: 'Do You know?\n3 Days Your',
-                                      ),
-                                      WidgetSpan(
-                                        alignment: PlaceholderAlignment.middle,
-                                        child: Stack(
-                                          alignment: Alignment.center,
-                                          children: [
-                                            SvgPicture.asset(
-                                              'assets/icons/circle.svg',
-                                              width: 50,
-                                              height: 35,
-                                              color: const Color.fromARGB(
-                                                255,
-                                                180,
-                                                235,
-                                                117,
-                                              ),
-                                            ),
-                                            Text(
-                                              'Happiness',
-                                              style: TextStyle(
-                                                color: const Color.fromARGB(
-                                                  255,
-                                                  17,
-                                                  84,
-                                                  70,
-                                                ),
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 22,
-                                                fontFamily: GoogleFonts.inter()
-                                                    .fontFamily,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
                                   ),
                                 ),
-                                const SizedBox(height: 16),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        'Some things you might be\ninterested in doing',
-                                        style: TextStyle(
-                                          color: Colors.black54,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w400,
-                                          height: 1.4,
-                                          fontFamily:
-                                              GoogleFonts.inter().fontFamily,
-                                        ),
-                                      ),
-                                    ),
-                                    Text(
-                                      'View More',
-                                      style: TextStyle(
-                                        color: const Color(0xFF115e5a),
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        fontFamily: '.SF Pro Text',
-                                      ),
-                                    ),
-                                  ],
+                                Text(
+                                  'View More',
+                                  style: TextStyle(
+                                    color: const Color(0xFF115e5a),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    fontFamily: '.SF Pro Text',
+                                  ),
                                 ),
-                                const SizedBox(height: 32),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                const JournalListScreen(),
-                                          ),
-                                        );
-                                      },
-                                      child: const ActivityIcon(
-                                        label: 'My Journal',
-                                        backgroundColor: Color(0XFFc6e99f),
-                                        svgIcon: 'assets/icons/message.svg',
-                                        svgShape: 'assets/icons/octagon.svg',
-                                        shapeSize: 120,
-                                      ),
-                                    ),
-                                    GestureDetector(
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                const ProgressScreen(),
-                                          ),
-                                        );
-                                      },
-                                      child: const ActivityIcon(
-                                        label: 'My Progress',
-                                        backgroundColor: Color(0xFFECE9A5),
-                                        svgIcon: 'assets/icons/pie-chart.svg',
-                                        svgShape: 'assets/icons/b-circle.svg',
-                                      ),
-                                    ),
-                                    GestureDetector(
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                const MediaScreen(),
-                                          ),
-                                        );
-                                      },
-                                      child: const ActivityIcon(
-                                        label: 'Music & Media',
-                                        backgroundColor: Color(0xFFC1DFDF),
-                                        svgIcon: 'assets/icons/meditation.svg',
-                                        svgShape: 'assets/icons/heptagon.svg',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 24),
                               ],
                             ),
-                          ),
+                            const SizedBox(height: 32),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                RepaintBoundary(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const JournalListScreen(),
+                                        ),
+                                      );
+                                    },
+                                    child: const ActivityIcon(
+                                      label: 'My Journal',
+                                      backgroundColor: Color(0XFFc6e99f),
+                                      svgIcon: 'assets/icons/message.svg',
+                                      svgShape: 'assets/icons/octagon.svg',
+                                      shapeSize: 120,
+                                    ),
+                                  ),
+                                ),
+                                RepaintBoundary(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const ProgressScreen(),
+                                        ),
+                                      );
+                                    },
+                                    child: const ActivityIcon(
+                                      label: 'My Progress',
+                                      backgroundColor: Color(0xFFECE9A5),
+                                      svgIcon: 'assets/icons/pie-chart.svg',
+                                      svgShape: 'assets/icons/b-circle.svg',
+                                    ),
+                                  ),
+                                ),
+                                RepaintBoundary(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const MediaScreen(),
+                                        ),
+                                      );
+                                    },
+                                    child: const ActivityIcon(
+                                      label: 'Music & Media',
+                                      backgroundColor: Color(0xFFC1DFDF),
+                                      svgIcon: 'assets/icons/meditation.svg',
+                                      svgShape: 'assets/icons/heptagon.svg',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
+          ),
+        ],
       ),
     );
   }
-
 }

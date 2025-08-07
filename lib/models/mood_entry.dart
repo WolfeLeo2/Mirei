@@ -4,12 +4,7 @@ class MoodEntry {
   final DateTime createdAt;
   final String? note; // Optional note for the mood
 
-  MoodEntry({
-    this.id,
-    required this.mood,
-    required this.createdAt,
-    this.note,
-  });
+  MoodEntry({this.id, required this.mood, required this.createdAt, this.note});
 
   Map<String, dynamic> toMap() {
     return {

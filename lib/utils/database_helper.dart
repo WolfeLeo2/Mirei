@@ -39,7 +39,7 @@ class DatabaseHelper {
             audio_recordings TEXT
           )
         ''');
-        
+
         // Create moods table
         await db.execute('''
           CREATE TABLE moods(
@@ -72,7 +72,10 @@ class DatabaseHelper {
     });
   }
 
-  Future<List<MoodEntry>> getMoodEntriesForPeriod(DateTime start, DateTime end) async {
+  Future<List<MoodEntry>> getMoodEntriesForPeriod(
+    DateTime start,
+    DateTime end,
+  ) async {
     final db = await database;
     final maps = await db.query(
       'moods',
@@ -105,15 +108,18 @@ class DatabaseHelper {
     final now = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day);
     final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
-    
+
     final maps = await db.query(
       'moods',
       where: 'created_at >= ? AND created_at <= ?',
-      whereArgs: [startOfDay.millisecondsSinceEpoch, endOfDay.millisecondsSinceEpoch],
+      whereArgs: [
+        startOfDay.millisecondsSinceEpoch,
+        endOfDay.millisecondsSinceEpoch,
+      ],
       orderBy: 'created_at DESC',
       limit: 1,
     );
-    
+
     if (maps.isNotEmpty) {
       return MoodEntry.fromMap(maps.first);
     }
@@ -158,11 +164,7 @@ class DatabaseHelper {
 
   Future<int> deleteJournalEntry(int id) async {
     final db = await database;
-    return await db.delete(
-      'journal_entries',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('journal_entries', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<void> close() async {
