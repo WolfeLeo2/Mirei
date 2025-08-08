@@ -13,7 +13,19 @@ class NetworkOptimizer {
   final Map<String, Completer<Response>> _dedupMap = {};
   ConnectivityResult _currentConnectivity = ConnectivityResult.none;
   
-  Future<void> initialize() async {
+  Future<void>? _initFuture;
+  bool _isInitialized = false;
+  
+  /// Ensures initialization happens only once
+  Future<void> ensureInitialized() {
+    _initFuture ??= _initialize();
+    return _initFuture!;
+  }
+
+  Future<void> initialize() => ensureInitialized();
+  
+  Future<void> _initialize() async {
+    if (_isInitialized) return;
     // Initialize fast client for API calls
     _fastClient = Dio(BaseOptions(
       connectTimeout: const Duration(seconds: 5),
@@ -45,6 +57,8 @@ class NetworkOptimizer {
 
     // Monitor connectivity
     _monitorConnectivity();
+    
+    _isInitialized = true;
   }
 
   void _setupOptimizedInterceptors(Dio dio, {required bool isStreaming}) {

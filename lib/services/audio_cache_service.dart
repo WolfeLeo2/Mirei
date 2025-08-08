@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:collection';
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
@@ -28,11 +30,39 @@ class AudioCacheService {
   static final Map<String, CancelToken> _activeDownloads = {};
   static final Map<String, List<Function(double)>> _progressCallbacks = {};
 
+  // Request deduplication
+  final Map<String, Future<File?>> _pendingRequests = {};
+
+  // Download queue management
+  final Queue<_DownloadTask> _downloadQueue = Queue<_DownloadTask>();
+  final Set<String> _queuedUrls = <String>{};
+  final Set<String> _preloadedUrls = <String>{}; // Avoid duplicate preloads
+
+  // Performance tracking
+  int _cacheHits = 0;
+  int _cacheMisses = 0;
+  int _totalRequests = 0;
+
+  // Initialization state management
+  Future<void>? _initFuture;
+  bool _isInitialized = false;
+  Timer? _backgroundCleanupTimer;
+
   AudioCacheService._internal();
 
   factory AudioCacheService() => _instance;
 
-  Future<void> initialize() async {
+  /// Ensures initialization happens only once, even with multiple calls
+  Future<void> ensureInitialized() {
+    _initFuture ??= _initialize();
+    return _initFuture!;
+  }
+
+  Future<void> initialize() => ensureInitialized();
+
+  Future<void> _initialize() async {
+    if (_isInitialized) return;
+    
     // Initialize cache directory
     final appDir = await getApplicationDocumentsDirectory();
     _cacheDirectory = Directory(path.join(appDir.path, 'audio_cache'));
@@ -62,17 +92,95 @@ class AudioCacheService {
 
     // Clean up old cache entries on startup
     _cleanupCache();
+    
+    // Start background cleanup timer (every 10 minutes)
+    _startBackgroundCleanup();
+    
+    _isInitialized = true;
+    print('AudioCacheService: Initialization completed');
+  }
+
+  /// Start background cleanup with Timer
+  void _startBackgroundCleanup() {
+    _backgroundCleanupTimer?.cancel();
+    _backgroundCleanupTimer = Timer.periodic(const Duration(minutes: 10), (_) {
+      _performBackgroundCleanup();
+    });
+  }
+
+  /// Perform background cleanup with fragmentation stats
+  Future<void> _performBackgroundCleanup() async {
+    try {
+      print('AudioCacheService: Starting background cleanup...');
+      
+      // Get fragmentation stats before cleanup
+      final statsBefore = await _getFragmentationStats();
+      
+      // Perform cleanup
+      await _cleanupCache();
+      
+      // Get stats after cleanup
+      final statsAfter = await _getFragmentationStats();
+      
+      print('Background cleanup completed:');
+      print('  Files before: ${statsBefore['fileCount']}, after: ${statsAfter['fileCount']}');
+      print('  Size before: ${(statsBefore['totalSize'] / 1024 / 1024).toStringAsFixed(1)}MB, after: ${(statsAfter['totalSize'] / 1024 / 1024).toStringAsFixed(1)}MB');
+      print('  Fragmentation: ${statsBefore['fragmentationPercentage']}% -> ${statsAfter['fragmentationPercentage']}%');
+      
+    } catch (e) {
+      print('Background cleanup error: $e');
+    }
+  }
+
+  /// Get cache fragmentation statistics
+  Future<Map<String, dynamic>> _getFragmentationStats() async {
+    try {
+      final entries = await _dbHelper.getAllAudioCacheEntries();
+      final totalSize = await _dbHelper.getTotalCacheSize();
+      
+      // Count incomplete files (fragmentation indicator)
+      final incompleteFiles = entries.where((e) => !e.isComplete).length;
+      final fragmentationPercentage = entries.isNotEmpty 
+          ? ((incompleteFiles / entries.length) * 100).round()
+          : 0;
+      
+      return {
+        'fileCount': entries.length,
+        'totalSize': totalSize,
+        'incompleteFiles': incompleteFiles,
+        'fragmentationPercentage': fragmentationPercentage,
+        'averageFileSize': entries.isNotEmpty ? (totalSize / entries.length).round() : 0,
+      };
+    } catch (e) {
+      return {
+        'fileCount': 0,
+        'totalSize': 0,
+        'incompleteFiles': 0,
+        'fragmentationPercentage': 0,
+        'averageFileSize': 0,
+      };
+    }
   }
 
   // Main method to get audio file (cached or download)
   Future<File?> getAudioFile(String url, {Function(double)? onProgress}) async {
     try {
+      // Ensure service is initialized
+      await ensureInitialized();
+      
+      _totalRequests++;
+      
       // Check if file exists in cache
       final cachedFile = await _getCachedFile(url);
       if (cachedFile != null && await cachedFile.exists()) {
         await _updateCacheAccess(url);
+        _cacheHits++;
+        print('Cache HIT for: $url');
         return cachedFile;
       }
+
+      _cacheMisses++;
+      print('Cache MISS for: $url');
 
       // Check network connectivity
       final connectivity = await Connectivity().checkConnectivity();
@@ -80,21 +188,120 @@ class AudioCacheService {
         throw Exception('No network connection available');
       }
 
-      // Download file with progress tracking
-      return await _downloadAudioFile(url, onProgress: onProgress);
+      // Schedule download through queue system
+      return await _scheduleDownload(url, onProgress: onProgress);
     } catch (e) {
       print('AudioCacheService: Error getting audio file: $e');
       return null;
     }
   }
 
-  // Progressive download with chunked buffering (Spotify-style)
+  /// Schedule download with concurrency control and deduplication
+  Future<File?> _scheduleDownload(String url, {Function(double)? onProgress}) async {
+    // Check for existing pending request (deduplication)
+    if (_pendingRequests.containsKey(url)) {
+      print('Deduplicating request for: $url');
+      if (onProgress != null) {
+        _progressCallbacks[url] ??= [];
+        _progressCallbacks[url]!.add(onProgress);
+      }
+      return await _pendingRequests[url]!;
+    }
+
+    // Check if already downloading or queued
+    if (_activeDownloads.containsKey(url)) {
+      // Wait for existing download
+      if (onProgress != null) {
+        _progressCallbacks[url] ??= [];
+        _progressCallbacks[url]!.add(onProgress);
+      }
+      
+      // Poll for completion
+      while (_activeDownloads.containsKey(url)) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      
+      return await _getCachedFile(url);
+    }
+
+    // Create and cache the download future
+    late Future<File?> downloadFuture;
+
+    // Check if can start immediately
+    if (_activeDownloads.length < maxConcurrentDownloads) {
+      downloadFuture = _downloadAudioFile(url, onProgress: onProgress);
+    } else {
+      // Add to queue if not already queued
+      if (!_queuedUrls.contains(url)) {
+        _downloadQueue.add(_DownloadTask(url, onProgress));
+        _queuedUrls.add(url);
+        print('Queued download: $url (queue size: ${_downloadQueue.length})');
+      }
+      
+      // Create a future that resolves when download completes
+      downloadFuture = _waitForQueuedDownload(url);
+    }
+
+    _pendingRequests[url] = downloadFuture;
+    
+    // Clean up pending request when done
+    downloadFuture.whenComplete(() {
+      _pendingRequests.remove(url);
+    });
+
+    return await downloadFuture;
+  }
+
+  /// Wait for queued download to complete
+  Future<File?> _waitForQueuedDownload(String url) async {
+    // Wait for queue processing
+    while (_queuedUrls.contains(url)) {
+      await Future.delayed(const Duration(milliseconds: 200));
+    }
+    
+    return await _getCachedFile(url);
+  }
+
+  /// Process next item in download queue
+  void _processNextInQueue() {
+    _startNext();
+  }
+
+  /// Start next download from queue if possible
+  void _startNext() {
+    if (_downloadQueue.isNotEmpty && _activeDownloads.length < maxConcurrentDownloads) {
+      final task = _downloadQueue.removeFirst();
+      _queuedUrls.remove(task.url);
+      
+      // Start download asynchronously
+      _downloadAudioFile(task.url, onProgress: task.onProgress).then((file) {
+        // Process next item after completion
+        _startNext();
+        return file;
+      }).catchError((e) {
+        print('Download failed for ${task.url}: $e');
+        // Continue processing queue even on error
+        _startNext();
+        return Future<File?>.value(null); // Return proper Future type
+      });
+    }
+  }
+
+  // Progressive download with chunked buffering (Spotify-style) + Resume support
   Future<File> _downloadAudioFile(String url, {Function(double)? onProgress}) async {
     final cacheKey = _generateCacheKey(url);
     final localPath = path.join(_cacheDirectory.path, '$cacheKey.audio');
     final tempPath = '$localPath.tmp';
     final file = File(localPath);
     final tempFile = File(tempPath);
+
+    // Check for existing partial download
+    int resumeFrom = 0;
+    if (await tempFile.exists()) {
+      final stat = await tempFile.stat();
+      resumeFrom = stat.size;
+      print('Resuming download from byte: $resumeFrom');
+    }
 
     // Check if download is already in progress
     if (_activeDownloads.containsKey(url)) {
@@ -132,24 +339,29 @@ class AudioCacheService {
       );
       await _dbHelper.insertAudioCacheEntry(cacheEntry);
 
-      // Download with chunked streaming
+      // Download with chunked streaming + Resume support
+      final headers = <String, String>{};
+      if (resumeFrom > 0) {
+        headers['Range'] = 'bytes=$resumeFrom-'; // Resume from where we left off
+      } else {
+        headers['Range'] = 'bytes=0-'; // Enable range requests for resumable downloads
+      }
+      
       final response = await _dio.get<ResponseBody>(
         url,
         options: Options(
           responseType: ResponseType.stream,
-          headers: {
-            'Range': 'bytes=0-', // Enable range requests for resumable downloads
-          },
+          headers: headers,
         ),
         cancelToken: cancelToken,
       );
 
       final stream = response.data!.stream;
       final contentLength = response.headers.value('content-length');
-      final totalBytes = contentLength != null ? int.parse(contentLength) : 0;
+      final totalBytes = contentLength != null ? int.parse(contentLength) + resumeFrom : 0;
       
-      int downloadedBytes = 0;
-      final sink = tempFile.openWrite();
+      int downloadedBytes = resumeFrom;
+      final sink = tempFile.openWrite(mode: resumeFrom > 0 ? FileMode.append : FileMode.write);
 
       await for (final chunk in stream) {
         if (cancelToken.isCancelled) break;
@@ -200,52 +412,85 @@ class AudioCacheService {
     } finally {
       _activeDownloads.remove(url);
       _progressCallbacks.remove(url);
+      
+      // Process next item in queue using _startNext()
+      _startNext();
     }
   }
 
-  // Predictive caching for next songs in playlist
-  Future<void> preloadPlaylistItems(String playlistId, List<String> urls, {int maxPreload = 3}) async {
-    // Clear old playlist cache
-    await _dbHelper.clearPlaylistCache(playlistId);
+  // Adaptive predictive caching for next songs in playlist
+  Future<void> preloadPlaylistItems(String playlistKey, List<String> urls, {int maxPreload = 3, int currentIndex = 0}) async {
+    // Clear old playlist cache using consistent key
+    await _dbHelper.clearPlaylistCache(playlistKey);
 
-    // Add new items with priority
-    for (int i = 0; i < urls.length && i < maxPreload; i++) {
+    // Adaptive preloading: prioritize next tracks, include some previous for seeking
+    final urlsToPreload = <String>[];
+    
+    // Add next tracks (higher priority)
+    for (int i = 1; i <= maxPreload && currentIndex + i < urls.length; i++) {
+      urlsToPreload.add(urls[currentIndex + i]);
+    }
+    
+    // Add previous track for backward seeking (lower priority)
+    if (currentIndex > 0) {
+      urlsToPreload.add(urls[currentIndex - 1]);
+    }
+
+    // Add playlist entries with priority ordering
+    for (int i = 0; i < urlsToPreload.length; i++) {
+      final url = urlsToPreload[i];
+      final priority = i < maxPreload ? i + 1 : maxPreload + 1; // Next tracks get higher priority
+      
       final entry = PlaylistCacheEntry(
         ObjectId(),
-        playlistId,
-        urls[i],
-        i + 1,
+        playlistKey, // Use consistent key (playlistUrl)
+        url,
+        priority,
         DateTime.now(),
         false,
       );
       await _dbHelper.insertPlaylistCacheEntry(entry);
     }
 
-    // Start preloading in background (next 2-3 songs)
-    _preloadInBackground(playlistId);
+    // Start preloading in background with priority order
+    _preloadInBackground(playlistKey);
   }
 
-  void _preloadInBackground(String playlistId) async {
+  void _preloadInBackground(String playlistKey) async {
     try {
-      final items = await _dbHelper.getPlaylistCacheEntries(playlistId);
+      final items = await _dbHelper.getPlaylistCacheEntries(playlistKey);
+      
+      // Sort by priority (lower number = higher priority)
+      items.sort((a, b) => a.priority.compareTo(b.priority));
+      
       int preloadedCount = 0;
+      final maxConcurrentPreloads = 2; // Limit concurrent preloads
       
       for (final item in items) {
-        if (preloadedCount >= 2) break; // Limit concurrent preloads
+        if (preloadedCount >= maxConcurrentPreloads) break;
+        
+        // Skip if already preloaded (use Set for deduplication)
+        if (_preloadedUrls.contains(item.songUrl)) continue;
         
         if (!item.isPreloaded) {
           // Check if already cached
           final cached = await _getCachedFile(item.songUrl);
           if (cached == null || !await cached.exists()) {
-            // Start preload without waiting
-            getAudioFile(item.songUrl).then((_) {
+            // Mark as being preloaded to avoid duplicates
+            _preloadedUrls.add(item.songUrl);
+            
+            // Schedule download through queue (don't wait)
+            _scheduleDownload(item.songUrl).then((_) {
               _dbHelper.updatePlaylistCachePreloadStatus(item.id, true);
+              print('Preloaded: ${item.songUrl} (priority: ${item.priority})');
             }).catchError((e) {
               print('Preload failed for ${item.songUrl}: $e');
+              _preloadedUrls.remove(item.songUrl); // Remove on failure
             });
             preloadedCount++;
           } else {
             // Mark as preloaded if already cached
+            _preloadedUrls.add(item.songUrl);
             await _dbHelper.updatePlaylistCachePreloadStatus(item.id, true);
           }
         }
@@ -284,12 +529,23 @@ class AudioCacheService {
     }
   }
 
-  // Cache management methods
+  // Cache management methods with integrity validation
   Future<File?> _getCachedFile(String url) async {
     final entry = await _dbHelper.getAudioCacheEntry(url);
     if (entry != null) {
       final file = File(entry.localPath);
       if (await file.exists()) {
+        // Validate file integrity if we know the expected size
+        if (entry.isComplete && entry.sizeBytes > 0) {
+          final stat = await file.stat();
+          if (stat.size != entry.sizeBytes) {
+            print('Cache integrity failed for $url: expected ${entry.sizeBytes}, got ${stat.size}');
+            // Delete corrupted file and cache entry
+            await file.delete();
+            await _dbHelper.deleteAudioCacheEntry(url);
+            return null;
+          }
+        }
         return file;
       } else {
         // Clean up stale cache entry
@@ -323,26 +579,34 @@ class AudioCacheService {
     return digest.toString();
   }
 
-  // Cache cleanup and maintenance
+  // Cache cleanup and maintenance with LRU eviction
   Future<void> _cleanupCache() async {
     try {
       final totalSize = await _dbHelper.getTotalCacheSize();
       
       if (totalSize > maxCacheSize) {
-        // Remove oldest accessed files until under limit
-        final oldEntries = await _dbHelper.getOldestCacheEntries(100);
-        int removedSize = 0;
+        // LRU eviction: Remove least recently accessed files until under limit
+        final entries = await _dbHelper.getAllAudioCacheEntries();
         
-        for (final entry in oldEntries) {
-          if (totalSize - removedSize <= maxCacheSize * 0.8) break;
+        // Sort by last access time (LRU first)
+        entries.sort((a, b) => a.lastAccessed.compareTo(b.lastAccessed));
+        
+        int removedSize = 0;
+        final targetSize = (maxCacheSize * 0.8).toInt(); // Clean to 80% capacity
+        
+        for (final entry in entries) {
+          if (totalSize - removedSize <= targetSize) break;
           
           final file = File(entry.localPath);
           if (await file.exists()) {
             await file.delete();
             removedSize += entry.sizeBytes;
+            print('LRU evicted: ${entry.url} (${entry.sizeBytes} bytes)');
           }
           await _dbHelper.deleteAudioCacheEntry(entry.url);
         }
+        
+        print('Cache cleanup: Removed ${removedSize} bytes, ${entries.length} files');
       }
 
       // Clean expired HTTP cache
@@ -491,6 +755,9 @@ class AudioCacheService {
         'totalFiles': entries.length,
         'maxSize': maxCacheSize,
         'usagePercentage': (totalSize / maxCacheSize * 100).toInt(),
+        'activeDownloads': _activeDownloads.length,
+        'queuedDownloads': _downloadQueue.length,
+        'hitRate': _calculateHitRate(),
         'oldestEntry': entries.isNotEmpty 
             ? entries.map((e) => e.cachedAt).reduce((a, b) => a.isBefore(b) ? a : b)
             : null,
@@ -504,6 +771,39 @@ class AudioCacheService {
     }
   }
 
+  /// Get performance statistics
+  Future<Map<String, dynamic>> getPerformanceStats() async {
+    final utilization = await _getCacheUtilization();
+    final fragmentation = await _getFragmentationStats();
+    
+    return {
+      'activeDownloads': _activeDownloads.length,
+      'queuedDownloads': _downloadQueue.length,
+      'maxConcurrent': maxConcurrentDownloads,
+      'hitRate': _calculateHitRate(),
+      'cacheUtilization': '${(utilization * 100).toStringAsFixed(1)}%',
+      'totalRequests': _totalRequests,
+      'cacheHits': _cacheHits,
+      'cacheMisses': _cacheMisses,
+      'fragmentationPercentage': fragmentation['fragmentationPercentage'],
+      'incompleteFiles': fragmentation['incompleteFiles'],
+      'averageFileSize': fragmentation['averageFileSize'],
+    };
+  }
+
+  double _calculateHitRate() {
+    return _totalRequests > 0 ? (_cacheHits / _totalRequests) : 0.0;
+  }
+
+  Future<double> _getCacheUtilization() async {
+    try {
+      final totalSize = await _dbHelper.getTotalCacheSize();
+      return totalSize / maxCacheSize;
+    } catch (e) {
+      return 0.0;
+    }
+  }
+
   Future<void> dispose() async {
     // Cancel all active downloads
     for (final token in _activeDownloads.values) {
@@ -511,7 +811,24 @@ class AudioCacheService {
     }
     _activeDownloads.clear();
     _progressCallbacks.clear();
+    _pendingRequests.clear();
+    _downloadQueue.clear();
+    _queuedUrls.clear();
+    _preloadedUrls.clear();
+    
+    // Cancel background cleanup timer
+    _backgroundCleanupTimer?.cancel();
+    _backgroundCleanupTimer = null;
     
     _dio.close();
   }
+}
+
+/// Download task for queue management
+class _DownloadTask {
+  final String url;
+  final Function(double)? onProgress;
+  final DateTime createdAt;
+  
+  _DownloadTask(this.url, this.onProgress) : createdAt = DateTime.now();
 }

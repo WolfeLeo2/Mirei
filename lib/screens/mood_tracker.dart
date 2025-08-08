@@ -13,6 +13,35 @@ import 'progress.dart';
 import 'journal_list.dart';
 import 'media_screen.dart';
 
+// Const widgets for static decorative elements
+class _EmphasisIcon extends StatelessWidget {
+  const _EmphasisIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.asset(
+      'assets/icons/emphasis.svg',
+      width: 20,
+      height: 20,
+      color: Colors.white,
+    );
+  }
+}
+
+class _UnderlineIcon extends StatelessWidget {
+  const _UnderlineIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.asset(
+      'assets/icons/underline.svg',
+      width: 17,
+      height: 17,
+      color: Colors.white,
+    );
+  }
+}
+
 class MoodTrackerScreen extends StatefulWidget {
   const MoodTrackerScreen({super.key});
 
@@ -23,6 +52,8 @@ class MoodTrackerScreen extends StatefulWidget {
 class _MoodTrackerScreenState extends State<MoodTrackerScreen> 
     with PerformanceOptimizedStateMixin {
   int selectedEmotionIndex = 1;
+  
+  // Make emotions list const for better performance
   static const List<String> emotions = [
     'Angelic',
     'Sorry',
@@ -35,8 +66,8 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     'Silly',
   ];
 
-  // Lazy-loaded emotion data
-  static const List<Map<String, String>> _emotionData = [
+  // Make emotions config const for lazy loading
+  static const List<Map<String, String>> emotionConfigs = [
     {'emotion': 'Angelic', 'svgPath': 'assets/icons/angelic.svg'},
     {'emotion': 'Sorry', 'svgPath': 'assets/icons/disappointed.svg'},
     {'emotion': 'Excited', 'svgPath': 'assets/icons/excited.svg'},
@@ -48,7 +79,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     {'emotion': 'Silly', 'svgPath': 'assets/icons/silly.svg'},
   ];
 
-  static const User _user = User(
+  final User _user = User(
     name: 'User',
     email: 'user@example.com',
     avatarUrl: 'https://i.pravatar.cc/150?img=12',
@@ -170,70 +201,104 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     _saveMoodSelection(mood);
   }
 
-  // Build header with better performance
-  Widget _buildHeader() {
-    return Container(
-      color: const Color(0xFF115e5a),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 60, 20, 0),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    RepaintBoundary(
-                      child: CircleAvatar(
-                        radius: 28,
-                        backgroundImage: NetworkImage(_user.avatarUrl),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _user.name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: '.SF Pro Display',
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _user.email,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                            fontFamily: '.SF Pro Text',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const _MenuIcon(),
-              ],
-            ),
-            const SizedBox(height: 40),
-            const _MoodPrompt(),
-            const SizedBox(height: 16),
-            Text(
-              'Select your current mood',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                fontFamily: '.SF Pro Text',
+  // Lazy builder for emotion buttons with const optimization
+  Widget _buildEmotionButton(int index) {
+    final config = emotionConfigs[index];
+    return EmotionButton(
+      emotion: config['emotion']!,
+      svgPath: config['svgPath']!,
+      isSelected: selectedEmotionIndex == index,
+      onTap: () => _onMoodSelected(index, config['emotion']!),
+    );
+  }
+
+  // Const widget for hamburger menu icon
+  static const Widget _hamburgerMenuIcon = SizedBox(
+    width: 24,
+    height: 24,
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        SizedBox(height: 2, child: ColoredBox(color: Colors.white)),
+        SizedBox(height: 2, child: ColoredBox(color: Colors.white)),
+        SizedBox(height: 2, child: ColoredBox(color: Colors.white)),
+      ],
+    ),
+  );
+
+  // Const widget for subtitle text
+  static const Widget _subtitleText = Text(
+    'Select your current mood',
+    style: TextStyle(
+      color: Color.fromRGBO(255, 255, 255, 0.7),
+      fontSize: 16,
+      fontWeight: FontWeight.w400,
+      fontFamily: '.SF Pro Text',
+    ),
+  );
+
+  // Create const activity icons for better performance
+  Widget _buildActivityIcons(BuildContext context) {
+    return RepaintBoundary(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          RepaintBoundary(
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const JournalListScreen(),
+                  ),
+                );
+              },
+              child: const ActivityIcon(
+                label: 'My Journal',
+                backgroundColor: Color(0XFFc6e99f),
+                svgIcon: 'assets/icons/message.svg',
+                svgShape: 'assets/icons/octagon.svg',
+                shapeSize: 120,
               ),
             ),
-            const SizedBox(height: 24),
-          ],
-        ),
+          ),
+          RepaintBoundary(
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProgressScreen(),
+                  ),
+                );
+              },
+              child: const ActivityIcon(
+                label: 'My Progress',
+                backgroundColor: Color(0xFFECE9A5),
+                svgIcon: 'assets/icons/pie-chart.svg',
+                svgShape: 'assets/icons/b-circle.svg',
+              ),
+            ),
+          ),
+          RepaintBoundary(
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MediaScreen(),
+                  ),
+                );
+              },
+              child: const ActivityIcon(
+                label: 'Music & Media',
+                backgroundColor: Color(0xFFC1DFDF),
+                svgIcon: 'assets/icons/meditation.svg',
+                svgShape: 'assets/icons/heptagon.svg',
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -244,29 +309,103 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
       backgroundColor: const Color(0xFF115e5a),
       body: Column(
         children: [
-          _buildHeader(),
+          Container(
+            color: const Color(0xFF115e5a),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 60, 20, 0),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          RepaintBoundary(
+                            child: CircleAvatar(
+                              radius: 28,
+                              backgroundImage: NetworkImage(_user.avatarUrl),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _user.name,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                  fontFamily: '.SF Pro Display',
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _user.email,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w400,
+                                  fontFamily: '.SF Pro Text',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      // Use const hamburger menu for better performance
+                      _hamburgerMenuIcon,
+                    ],
+                  ),
+                  const SizedBox(height: 40),
+                  RepaintBoundary(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      clipBehavior: Clip.none,
+                      children: [
+                        Text(
+                          'Hi, How do you\nfeel today?',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 36,
+                            fontWeight: FontWeight.w900,
+                            height: 1.2,
+                            fontFamily: GoogleFonts.inter().fontFamily,
+                          ),
+                        ),
+                        const Positioned(
+                          top: -10,
+                          left: -20,
+                          child: _EmphasisIcon(),
+                        ),
+                        const Positioned(
+                          bottom: -10,
+                          right: 50,
+                          child: _UnderlineIcon(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _subtitleText,
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ),
           Container(
             color: const Color(0xFF115e5a),
             child: RepaintBoundary(
-              child: SizedBox(
-                height: 45, // Fixed height for better performance
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  itemCount: _emotionData.length,
-                  cacheExtent: 500, // Pre-cache nearby items
-                  itemBuilder: (context, index) {
-                    final emotion = _emotionData[index];
-                    return RepaintBoundary(
-                      child: EmotionButton(
-                        emotion: emotion['emotion']!,
-                        svgPath: emotion['svgPath']!,
-                        isSelected: selectedEmotionIndex == index,
-                        onTap: () => _onMoodSelected(index, emotion['emotion']!),
-                      ),
-                    );
-                  },
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  children: List.generate(
+                    emotionConfigs.length,
+                    (index) => _buildEmotionButton(index),
+                  ),
                 ),
               ),
             ),
@@ -283,281 +422,130 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                     topRight: Radius.circular(25),
                   ),
                 ),
-                child: const _BottomContent(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Optimized const widgets for better performance
-class _MenuIcon extends StatelessWidget {
-  const _MenuIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 24,
-      height: 24,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          Container(height: 2, color: Colors.white),
-          Container(height: 2, color: Colors.white),
-          Container(height: 2, color: Colors.white),
-        ],
-      ),
-    );
-  }
-}
-
-class _MoodPrompt extends StatelessWidget {
-  const _MoodPrompt();
-
-  @override
-  Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: Stack(
-        alignment: Alignment.center,
-        clipBehavior: Clip.none,
-        children: [
-          Text(
-            'Hi, How do you\nfeel today?',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 36,
-              fontWeight: FontWeight.w900,
-              height: 1.2,
-              fontFamily: GoogleFonts.inter().fontFamily,
-            ),
-          ),
-          Positioned(
-            top: -10,
-            left: -20,
-            child: RepaintBoundary(
-              child: SvgPicture.asset(
-                'assets/icons/emphasis.svg',
-                width: 20,
-                height: 20,
-                colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -10,
-            right: 50,
-            child: RepaintBoundary(
-              child: SvgPicture.asset(
-                'assets/icons/underline.svg',
-                width: 17,
-                height: 17,
-                colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BottomContent extends StatelessWidget {
-  const _BottomContent();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Hook/Handle component
-        Container(
-          margin: const EdgeInsets.only(top: 8, bottom: 8),
-          width: 40,
-          height: 4,
-          decoration: BoxDecoration(
-            color: const Color(0xFF115e5a).withOpacity(0.6),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 18, 100),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const _HappinessHeader(),
-                  const SizedBox(height: 16),
-                  const _ActivitySection(),
-                  const SizedBox(height: 32),
-                  const _ActionButtons(),
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _HappinessHeader extends StatelessWidget {
-  const _HappinessHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: RichText(
-        text: TextSpan(
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-            height: 1.3,
-            fontFamily: GoogleFonts.inter().fontFamily,
-          ),
-          children: [
-            const TextSpan(
-              text: 'Do You know?\n3 Days Your',
-            ),
-            WidgetSpan(
-              alignment: PlaceholderAlignment.middle,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  RepaintBoundary(
-                    child: SvgPicture.asset(
-                      'assets/icons/circle.svg',
-                      width: 50,
-                      height: 35,
-                      colorFilter: const ColorFilter.mode(
-                        Color.fromARGB(255, 180, 235, 117),
-                        BlendMode.srcIn,
+                child: Column(
+                  children: [
+                    // Hook/Handle component - make it const
+                    Container(
+                      margin: const EdgeInsets.only(top: 8, bottom: 8),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF115e5a).withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          20,
+                          12,
+                          18,
+                          100,
+                        ), // Added bottom padding for nav bar
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            RepaintBoundary(
+                              child: RichText(
+                                text: TextSpan(
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.3,
+                                    fontFamily: GoogleFonts.inter().fontFamily,
+                                  ),
+                                  children: [
+                                    const TextSpan(
+                                      text: 'Do You know?\n3 Days Your',
+                                    ),
+                                    WidgetSpan(
+                                      alignment: PlaceholderAlignment.middle,
+                                      child: RepaintBoundary(
+                                        child: Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            SvgPicture.asset(
+                                              'assets/icons/circle.svg',
+                                              width: 50,
+                                              height: 35,
+                                              color: const Color.fromARGB(
+                                                255,
+                                                180,
+                                                235,
+                                                117,
+                                              ),
+                                            ),
+                                            Text(
+                                              'Happiness',
+                                              style: TextStyle(
+                                                color: const Color.fromARGB(
+                                                  255,
+                                                  17,
+                                                  84,
+                                                  70,
+                                                ),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 22,
+                                                fontFamily:
+                                                    GoogleFonts.inter().fontFamily,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            RepaintBoundary(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'Some things you might be\ninterested in doing',
+                                      style: TextStyle(
+                                        color: Colors.black54,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w400,
+                                        height: 1.4,
+                                        fontFamily:
+                                            GoogleFonts.inter().fontFamily,
+                                      ),
+                                    ),
+                                  ),
+                                  const Text(
+                                    'View More',
+                                    style: TextStyle(
+                                      color: Color(0xFF115e5a),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      fontFamily: '.SF Pro Text',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            _buildActivityIcons(context),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                  Text(
-                    'Happiness',
-                    style: TextStyle(
-                      color: const Color.fromARGB(255, 17, 84, 70),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 22,
-                      fontFamily: GoogleFonts.inter().fontFamily,
-                    ),
-                  ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+          ),
+        ],
       ),
-    );
-  }
-}
-
-class _ActivitySection extends StatelessWidget {
-  const _ActivitySection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Text(
-            'Some things you might be\ninterested in doing',
-            style: TextStyle(
-              color: Colors.black54,
-              fontSize: 16,
-              fontWeight: FontWeight.w400,
-              height: 1.4,
-              fontFamily: GoogleFonts.inter().fontFamily,
-            ),
-          ),
-        ),
-        const Text(
-          'View More',
-          style: TextStyle(
-            color: Color(0xFF115e5a),
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            fontFamily: '.SF Pro Text',
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ActionButtons extends StatelessWidget {
-  const _ActionButtons();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        RepaintBoundary(
-          child: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const JournalListScreen(),
-                ),
-              );
-            },
-            child: const ActivityIcon(
-              label: 'My Journal',
-              backgroundColor: Color(0XFFc6e99f),
-              svgIcon: 'assets/icons/message.svg',
-              svgShape: 'assets/icons/octagon.svg',
-              shapeSize: 120,
-            ),
-          ),
-        ),
-        RepaintBoundary(
-          child: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ProgressScreen(),
-                ),
-              );
-            },
-            child: const ActivityIcon(
-              label: 'My Progress',
-              backgroundColor: Color(0xFFECE9A5),
-              svgIcon: 'assets/icons/pie-chart.svg',
-              svgShape: 'assets/icons/b-circle.svg',
-            ),
-          ),
-        ),
-        RepaintBoundary(
-          child: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MediaScreen(),
-                ),
-              );
-            },
-            child: const ActivityIcon(
-              label: 'Music & Media',
-              backgroundColor: Color(0xFFC1DFDF),
-              svgIcon: 'assets/icons/meditation.svg',
-              svgShape: 'assets/icons/heptagon.svg',
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

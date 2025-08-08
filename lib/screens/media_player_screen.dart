@@ -6,6 +6,7 @@ import 'package:audio_session/audio_session.dart';
 import 'dart:ui';
 import 'dart:convert';
 import 'dart:typed_data';
+import '../services/audio_cache_service.dart';
 
 class MediaPlayerScreen extends StatefulWidget {
   final String trackTitle;
@@ -39,6 +40,9 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
   late AnimationController _waveController;
   late AudioPlayer _audioPlayer;
 
+  // Optimized audio services for better performance and caching
+  late final AudioCacheService _cacheService;
+
   // Dynamic audio URL - use provided URL or default
   String get _audioUrl =>
       widget.audioUrl ?? "https://mirei-audio.netlify.app/NujabesLOFI.m4a";
@@ -61,6 +65,10 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
   @override
   void initState() {
     super.initState();
+    
+    // Initialize optimized audio services
+    _cacheService = AudioCacheService();
+    
     _audioPlayer = AudioPlayer();
     _currentPlaylistIndex =
         widget.currentIndex ?? 0; // Initialize playlist index
@@ -104,23 +112,47 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
         print("Audio session configuration failed: $e");
       }
 
-      // Set URL and start playback immediately (don't await for full download)
-      _audioPlayer
-          .setUrl(_audioUrl)
-          .then((_) {
-            // URL is set, ready to play but don't wait for full download
-            setState(() {
-              _isLoading = false;
-            });
-            // Auto-start playback for better UX
-            _audioPlayer.play();
-          })
-          .catchError((e) {
-            print("Error loading audio: $e");
-            setState(() {
-              _isLoading = false;
-            });
-          });
+      // Use cached audio loading for better performance
+      try {
+        // Ensure service is initialized
+        await _cacheService.ensureInitialized();
+        final cachedFile = await _cacheService.getAudioFile(_audioUrl);
+        
+        if (cachedFile != null) {
+          // Use cached file for instant playback
+          await _audioPlayer.setFilePath(cachedFile.path);
+          print("Playing from cache: ${cachedFile.path}");
+        } else {
+          // Stream directly and cache in background
+          await _audioPlayer.setUrl(_audioUrl);
+          print("Streaming and caching: $_audioUrl");
+          
+          // Cache for future use (don't wait for completion)
+          _cacheService.getAudioFile(_audioUrl);
+        }
+        
+        // Preload next track if in playlist
+        if (widget.playlist != null && _currentPlaylistIndex + 1 < widget.playlist!.length) {
+          final nextTrack = widget.playlist![_currentPlaylistIndex + 1];
+          final nextUrl = nextTrack['url'] as String?;
+          if (nextUrl != null) {
+            // Start caching next track in background
+            _cacheService.getAudioFile(nextUrl);
+          }
+        }
+        
+      } catch (e) {
+        print("Cached audio loading failed, falling back to direct URL: $e");
+        // Fallback to direct URL loading
+        await _audioPlayer.setUrl(_audioUrl);
+      }
+
+      // URL is set, ready to play but don't wait for full download
+      setState(() {
+        _isLoading = false;
+      });
+      // Auto-start playback for better UX
+      _audioPlayer.play();
 
       // Listen to position changes
       _audioPlayer.positionStream.listen((position) {

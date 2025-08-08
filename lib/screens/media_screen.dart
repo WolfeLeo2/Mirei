@@ -3,6 +3,33 @@ import 'package:google_fonts/google_fonts.dart';
 import '../utils/media_player_modal.dart';
 import 'playlist_screen.dart';
 
+// Static data classes for better performance
+class _AlbumData {
+  final String title;
+  final String subtitle;
+  final String imagePath;
+
+  const _AlbumData({
+    required this.title,
+    required this.subtitle,
+    required this.imagePath,
+  });
+}
+
+class _MixData {
+  final String title;
+  final String subtitle;
+  final String imagePath;
+  final String url;
+
+  const _MixData({
+    required this.title,
+    required this.subtitle,
+    required this.imagePath,
+    required this.url,
+  });
+}
+
 class MediaScreen extends StatefulWidget {
   const MediaScreen({super.key});
 
@@ -11,279 +38,365 @@ class MediaScreen extends StatefulWidget {
 }
 
 class _MediaScreenState extends State<MediaScreen> {
-  // Static data for better performance
-  static const List<Map<String, String>> _albumData = [
-    {
-      'title': 'Lofi Mix',
-      'subtitle': 'Kick back and relax',
-      'image': 'assets/images/lofi.png',
-    },
-    {
-      'title': 'Ocean Waves',
-      'subtitle': 'Nature Sounds',
-      'image': 'assets/images/bg-afternoon.jpg',
-    },
-    {
-      'title': 'Morning Jazz',
-      'subtitle': 'Relaxing Vibes',
-      'image': 'assets/images/bg-evening.jpg',
-    },
+  // Static const data for better performance
+  static const List<_AlbumData> _albumData = [
+    _AlbumData(
+      title: 'Lofi Mix',
+      subtitle: 'Kick back and relax',
+      imagePath: 'assets/images/lofi.png',
+    ),
+    _AlbumData(
+      title: 'Ocean Waves',
+      subtitle: 'Nature Sounds',
+      imagePath: 'assets/images/bg-afternoon.jpg',
+    ),
+    _AlbumData(
+      title: 'Morning Jazz',
+      subtitle: 'Relaxing Vibes',
+      imagePath: 'assets/images/bg-evening.jpg',
+    ),
   ];
 
-  static const List<Map<String, String>> _mixData = [
-    {
-      'title': 'Bedroom Pop',
-      'subtitle': 'Dreamy bedroom pop vibes',
-      'image': 'assets/images/color.jpg',
-    },
-    {
-      'title': 'Soul Mix',
-      'subtitle': 'Deep soul vibes',
-      'image': 'assets/images/bg-morning.jpg',
-    },
-    {
-      'title': 'R&B Mix',
-      'subtitle': 'Smooth R&B classics',
-      'image': 'assets/images/bg-afternoon.jpg',
-    },
-    {
-      'title': 'Chill Mix',
-      'subtitle': 'Relaxing chill beats',
-      'image': 'assets/images/bg-evening.jpg',
-    },
-    {
-      'title': 'Moody Mix',
-      'subtitle': 'Moody atmosphere',
-      'image': 'assets/images/gradient.png',
-    },
+  static const List<_MixData> _mixData = [
+    _MixData(
+      title: 'Bedroom Pop',
+      subtitle: 'Dreamy bedroom pop vibes',
+      imagePath: 'assets/images/color.jpg',
+      url: 'https://wolfeleo2.github.io/audio-cdn/bedroompop/',
+    ),
+    _MixData(
+      title: 'Soul Mix',
+      subtitle: 'Deep soul vibes',
+      imagePath: 'assets/images/bg-morning.jpg',
+      url: 'https://wolfeleo2.github.io/audio-cdn/soul/',
+    ),
+    _MixData(
+      title: 'R&B Mix',
+      subtitle: 'Smooth R&B classics',
+      imagePath: 'assets/images/bg-afternoon.jpg',
+      url: 'https://wolfeleo2.github.io/audio-cdn/rnb/',
+    ),
+    _MixData(
+      title: 'Chill Mix',
+      subtitle: 'Relaxing chill beats',
+      imagePath: 'assets/images/bg-evening.jpg',
+      url: 'https://wolfeleo2.github.io/audio-cdn/chill/',
+    ),
+    _MixData(
+      title: 'Moody Mix',
+      subtitle: 'Moody atmosphere',
+      imagePath: 'assets/images/gradient.png',
+      url: 'https://wolfeleo2.github.io/audio-cdn/moody/',
+    ),
   ];
 
+  // Const text styles for better performance
+  static final TextStyle _sectionHeaderStyle = GoogleFonts.inter(
+    fontSize: 20,
+    fontWeight: FontWeight.bold,
+    color: const Color(0xFF115e5a),
+  );
+
+  static final TextStyle _cardTitleStyle = GoogleFonts.inter(
+    color: const Color(0xFF115e5a),
+    fontWeight: FontWeight.bold,
+    fontSize: 16,
+    letterSpacing: -0.3,
+  );
+
+  static final TextStyle _cardSubtitleStyle = GoogleFonts.inter(
+    color: const Color(0xFF115e5a).withValues(alpha: 0.6),
+    fontSize: 13,
+    fontWeight: FontWeight.w400,
+    letterSpacing: -0.2,
+  );
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFfaf6f1),
-      appBar: const _OptimizedAppBar(),
-      body: const Column(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFfaf6f1),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            color: Color(0xFF115e5a),
+            size: 20,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Media Library',
+          style: GoogleFonts.inter(
+            color: const Color(0xFF115e5a),
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, color: Color(0xFF115e5a)),
+            onPressed: () {
+              // TODO: Implement search functionality
+            },
+          ),
+        ],
+      ),
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionHeader(title: 'Top Picks'),
-          SizedBox(height: 16),
-          _AlbumCardsSection(),
-          SizedBox(height: 32),
-          _SectionHeader(title: 'Your top mixes'),
-          SizedBox(height: 16),
-          _MixCardsSection(),
+          // Section header with RepaintBoundary
+          RepaintBoundary(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: Text(
+                'Top Picks',
+                style: _sectionHeaderStyle,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Optimized album cards with RepaintBoundary
+          _buildAlbumCards(),
+
+          const SizedBox(height: 32),
+
+          // Your top mixes section with RepaintBoundary
+          RepaintBoundary(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+              child: Text(
+                'Your top mixes',
+                style: _sectionHeaderStyle,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Optimized mix cards with RepaintBoundary
+          _buildMixCards(),
         ],
       ),
     );
   }
-}
 
-// Optimized const widgets for better performance
-class _OptimizedAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const _OptimizedAppBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return AppBar(
-      backgroundColor: const Color(0xFFfaf6f1),
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(
-          Icons.arrow_back_ios,
-          color: Color(0xFF115e5a),
-          size: 20,
-        ),
-        onPressed: () => Navigator.pop(context),
-      ),
-      title: Text(
-        'Media Library',
-        style: GoogleFonts.inter(
-          color: const Color(0xFF115e5a),
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      centerTitle: true,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.search, color: Color(0xFF115e5a)),
-          onPressed: () {
-            // TODO: Implement search functionality
-          },
-        ),
-      ],
-    );
-  }
-
-  @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
-  
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-      child: Text(
-        title,
-        style: GoogleFonts.inter(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: const Color(0xFF115e5a),
-        ),
-      ),
-    );
-  }
-}
-
-class _AlbumCardsSection extends StatelessWidget {
-  const _AlbumCardsSection();
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildAlbumCards() {
     return RepaintBoundary(
       child: SizedBox(
         height: 260,
         child: ListView.builder(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           scrollDirection: Axis.horizontal,
-          itemCount: _MediaScreenState._albumData.length,
-          cacheExtent: 400, // Pre-cache nearby items
+          itemCount: _albumData.length,
           itemBuilder: (context, index) {
-            final album = _MediaScreenState._albumData[index];
-            return RepaintBoundary(
-              child: _MediaCard(
-                title: album['title']!,
-                subtitle: album['subtitle']!,
-                imagePath: album['image']!,
-                width: 200,
-                onTap: () {
-                  showMediaPlayerModal(
-                    context: context,
-                    trackTitle: album['title']!,
-                    artistName: 'Various Artists',
-                    albumArt: album['image']!,
-                  );
-                },
-              ),
+            final album = _albumData[index];
+            return _AlbumCard(
+              album: album,
+              onTap: () => _handleAlbumTap(album),
             );
           },
         ),
       ),
     );
   }
-}
 
-class _MixCardsSection extends StatelessWidget {
-  const _MixCardsSection();
+  void _handleAlbumTap(_AlbumData album) {
+    showMediaPlayerModal(
+      context: context,
+      trackTitle: album.title,
+      artistName: 'Various Artists',
+      albumArt: album.imagePath,
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildMixCards() {
     return RepaintBoundary(
       child: SizedBox(
         height: 260,
         child: ListView.builder(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           scrollDirection: Axis.horizontal,
-          itemCount: _MediaScreenState._mixData.length,
-          cacheExtent: 400, // Pre-cache nearby items
+          itemCount: _mixData.length,
           itemBuilder: (context, index) {
-            final mix = _MediaScreenState._mixData[index];
-            return RepaintBoundary(
-              child: _MediaCard(
-                title: mix['title']!,
-                subtitle: mix['subtitle']!,
-                imagePath: mix['image']!,
-                width: 200,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PlaylistScreen(
-                        playlistTitle: mix['title']!,
-                        playlistUrl: 'https://wolfeleo2.github.io/audio-cdn/api/bedroompop.json', // Default URL
-                        albumArt: mix['image']!,
-                      ),
-                    ),
-                  );
-                },
-              ),
+            final mix = _mixData[index];
+            return _MixCard(
+              mix: mix,
+              onTap: () => _handleMixTap(mix),
             );
           },
         ),
       ),
     );
   }
+
+  void _handleMixTap(_MixData mix) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PlaylistScreen(
+          playlistTitle: mix.title,
+          playlistUrl: mix.url,
+          albumArt: mix.imagePath,
+        ),
+      ),
+    );
+  }
 }
 
-class _MediaCard extends StatelessWidget {
-  const _MediaCard({
-    required this.title,
-    required this.subtitle,
-    required this.imagePath,
-    required this.width,
+// Optimized Album Card widget with RepaintBoundary
+class _AlbumCard extends StatelessWidget {
+  final _AlbumData album;
+  final VoidCallback onTap;
+
+  const _AlbumCard({
+    required this.album,
     required this.onTap,
   });
 
-  final String title;
-  final String subtitle;
-  final String imagePath;
-  final double width;
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 200,
+          margin: const EdgeInsets.only(right: 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Album artwork container with RepaintBoundary
+              RepaintBoundary(
+                child: Container(
+                  width: 180,
+                  height: 200,
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(16)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.asset(
+                      album.imagePath,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+              // Text section with RepaintBoundary
+              RepaintBoundary(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 12),
+                    Text(
+                      album.title,
+                      style: _MediaScreenState._cardTitleStyle,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      album.subtitle,
+                      style: _MediaScreenState._cardSubtitleStyle,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Optimized Mix Card widget with RepaintBoundary
+class _MixCard extends StatelessWidget {
+  final _MixData mix;
   final VoidCallback onTap;
+
+  const _MixCard({
+    required this.mix,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: width,
-        margin: const EdgeInsets.only(right: 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Album artwork container with optimized image loading
-            Container(
-              width: 180,
-              height: 200,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.asset(
-                  imagePath,
-                  fit: BoxFit.cover,
-                  cacheWidth: 180, // Cache at display size
-                  cacheHeight: 200,
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 200,
+          margin: const EdgeInsets.only(right: 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Mix artwork container with RepaintBoundary
+              RepaintBoundary(
+                child: Container(
+                  width: 180,
+                  height: 200,
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(16)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.asset(
+                      mix.imagePath,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const _FallbackMixImage();
+                      },
+                    ),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: GoogleFonts.inter(
-                color: const Color(0xFF115e5a),
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                letterSpacing: -0.3,
+              // Text section with RepaintBoundary
+              RepaintBoundary(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 12),
+                    Text(
+                      mix.title,
+                      style: _MediaScreenState._cardTitleStyle,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      mix.subtitle,
+                      style: _MediaScreenState._cardSubtitleStyle,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: GoogleFonts.inter(
-                color: const Color(0xFF115e5a).withOpacity(0.6),
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-                letterSpacing: -0.2,
-              ),
-            ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Const fallback image widget
+class _FallbackMixImage extends StatelessWidget {
+  const _FallbackMixImage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(16)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF115e5a),
+            Color.fromRGBO(17, 94, 90, 0.7),
           ],
+        ),
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.music_note,
+          size: 40,
+          color: Color.fromRGBO(255, 255, 255, 0.8),
         ),
       ),
     );

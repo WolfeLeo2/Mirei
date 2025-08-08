@@ -25,11 +25,11 @@ This guide shows how to integrate the performance optimizations created for your
 - **Smart retry logic** with exponential backoff
 - **Connection pooling** for HTTP clients
 
-### 4. OptimizedAudioService (`lib/services/optimized_audio_service.dart`)
-- **Audio player pooling** (reuse players)
+### 4. AudioCacheService (`lib/services/audio_cache_service.dart`)
+- **Audio file caching** (reuse cached files)
 - **Background preloading** for next tracks
-- **Optimized audio session** configuration
 - **Progressive downloading** for instant playback
+- **Intelligent cache management** with size limits
 
 ## Integration Steps
 
@@ -41,7 +41,7 @@ Add initialization in your main.dart:
 import 'package:flutter/material.dart';
 import 'services/performance_service.dart';
 import 'services/network_optimizer.dart';
-import 'services/optimized_audio_service.dart';
+import 'services/audio_cache_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,8 +61,8 @@ Future<void> initializePerformanceServices() async {
   final networkOptimizer = NetworkOptimizer();
   await networkOptimizer.initialize();
   
-  // Initialize optimized audio service
-  final audioService = OptimizedAudioService();
+  // Initialize audio cache service
+  final audioService = AudioCacheService();
   await audioService.initialize();
   
   // Start performance monitoring
@@ -141,14 +141,16 @@ Replace existing audio player usage:
 final player = AudioPlayer();
 await player.setUrl(audioUrl);
 
-// NEW: Optimized audio service
-final audioService = OptimizedAudioService();
-final player = await audioService.getOptimizedPlayer(trackId);
-await audioService.loadAudioOptimized(player, audioUrl);
+// NEW: Audio cache service
+final audioService = AudioCacheService();
+final cachedFile = await audioService.getAudioFile(audioUrl);
 
-// Preload next track for seamless experience
-if (nextTrackUrl != null) {
-  audioService.preloadAudio(nextTrackUrl);
+if (cachedFile != null) {
+  await player.setFilePath(cachedFile.path);
+} else {
+  await player.setUrl(audioUrl);
+  // Cache in background for future use
+  audioService.getAudioFile(audioUrl);
 }
 ```
 
