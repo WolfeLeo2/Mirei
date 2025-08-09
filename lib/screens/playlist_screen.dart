@@ -9,12 +9,14 @@ class PlaylistScreen extends StatefulWidget {
   final String playlistTitle;
   final String playlistUrl;
   final String albumArt;
+  final String? playlistDescription;
 
   const PlaylistScreen({
     super.key,
     required this.playlistTitle,
     required this.playlistUrl,
     required this.albumArt,
+    this.playlistDescription,
   });
 
   @override
@@ -36,23 +38,6 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
   static final Map<String, DateTime> _cacheTimestamps = {};
 
   // Static const styles for better performance
-  static final TextStyle _appBarTitleStyle = GoogleFonts.inter(
-    color: const Color(0xFF115e5a),
-    fontSize: 20,
-    fontWeight: FontWeight.w600,
-  );
-
-  static final TextStyle _playlistTitleStyle = GoogleFonts.inter(
-    fontSize: 24,
-    fontWeight: FontWeight.bold,
-    color: const Color(0xFF115e5a),
-  );
-
-  static final TextStyle _songCountStyle = GoogleFonts.inter(
-    fontSize: 16,
-    color: const Color(0xFF115e5a).withValues(alpha: 0.7),
-  );
-
   static final TextStyle _songTitleStyle = GoogleFonts.inter(
     fontSize: 16,
     fontWeight: FontWeight.w500,
@@ -86,7 +71,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       // Initialize services before using them
       await _initializeServices();
-      
+
       setState(() {
         isInitialLoading = false; // Show UI immediately
       });
@@ -103,7 +88,9 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
     } catch (e) {
       print('Failed to initialize caching services: $e');
     }
-  }  /// Simple playlist data caching
+  }
+
+  /// Simple playlist data caching
   List<Map<String, dynamic>>? _getCachedPlaylistData(String cacheKey) {
     final timestamp = _cacheTimestamps[cacheKey];
     if (timestamp == null) return null;
@@ -141,11 +128,13 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
       final cachedData = _getCachedPlaylistData(cacheKey);
       if (cachedData != null) {
         print('Loading playlist from cache: ${cachedData.length} songs');
-        setState(() {
-          songs = cachedData;
-          isInitialLoading = false;
-          isLoadingMore = false;
-        });
+        if (mounted) {
+          setState(() {
+            songs = cachedData;
+            isInitialLoading = false;
+            isLoadingMore = false;
+          });
+        }
 
         // Pre-cache audio files for smooth playback
         await _preloadPlaylistAudio();
@@ -171,14 +160,18 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
       }
     } catch (e) {
       print('Error loading playlist: $e'); // Debug log
-      setState(() {
-        error = 'Failed to load playlist: $e';
-      });
+      if (mounted) {
+        setState(() {
+          error = 'Failed to load playlist: $e';
+        });
+      }
     } finally {
-      setState(() {
-        isInitialLoading = false;
-        isLoadingMore = false;
-      });
+      if (mounted) {
+        setState(() {
+          isInitialLoading = false;
+          isLoadingMore = false;
+        });
+      }
     }
   }
 
@@ -283,16 +276,6 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
-      appBar: AppBar(
-        backgroundColor: backgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: primaryColor, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(widget.playlistTitle, style: _appBarTitleStyle),
-        centerTitle: true,
-      ),
       body: Column(
         children: [
           // Loading indicator with RepaintBoundary
@@ -311,16 +294,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                   ? const _LoadingWidget()
                   : error != null && songs.isEmpty
                   ? _ErrorWidget(error: error!, onRetry: _loadPlaylist)
-                  : Column(
-                      children: [
-                        _buildPlaylistHeader(),
-                        Expanded(
-                          child: songs.isEmpty && isLoadingMore
-                              ? const _SkeletonListWidget()
-                              : _buildSongsList(),
-                        ),
-                      ],
-                    ),
+                  : _buildSliverContent(),
             ),
           ),
         ],
@@ -328,75 +302,95 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
     );
   }
 
-  Widget _buildPlaylistHeader() {
-    return RepaintBoundary(
+  Widget _buildSliverContent() {
+    return CustomScrollView(
+      slivers: [
+        // Playlist header as SliverAppBar
+        _buildSliverAppBarHeader(),
+
+        // Play controls section
+        _buildPlayControlsSection(),
+
+        // Songs list as sliver
+        songs.isEmpty && isLoadingMore
+            ? const _SliverSkeletonList()
+            : _buildSliverSongsList(),
+      ],
+    );
+  }
+
+  Widget _buildPlayControlsSection() {
+    return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.all(20),
-        child: Row(
+        child: Column(
           children: [
-            // Playlist artwork with RepaintBoundary
-            RepaintBoundary(
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color.fromRGBO(0, 0, 0, 0.1),
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
+            // Description and song count
+            if (widget.playlistDescription != null) ...[
+              Text(
+                widget.playlistDescription!,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  color: primaryColor.withValues(alpha: 0.7),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.asset(
-                    widget.albumArt,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const _PlaylistFallbackArt();
-                    },
-                  ),
-                ),
+                textAlign: TextAlign.center,
               ),
+              const SizedBox(height: 8),
+            ],
+
+            Text(
+              '${songs.length} songs',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: primaryColor.withValues(alpha: 0.7),
+              ),
+              textAlign: TextAlign.center,
             ),
 
-            const SizedBox(width: 20),
+            const SizedBox(height: 20),
 
-            // Playlist info with RepaintBoundary
-            Expanded(
-              child: RepaintBoundary(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.playlistTitle, style: _playlistTitleStyle),
-                    const SizedBox(height: 8),
-                    Text('${songs.length} songs', style: _songCountStyle),
-                    const SizedBox(height: 16),
-
-                    // Play all button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: songs.isNotEmpty
-                            ? () => _playAllSongs()
-                            : null,
-                        icon: const Icon(Icons.play_arrow),
-                        label: const Text('Play All'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                        ),
+            // Play and Shuffle buttons
+            Row(
+              children: [
+                // Play button
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: songs.isNotEmpty ? () => _playAllSongs() : null,
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text('Play'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
+
+                const SizedBox(width: 12),
+
+                // Shuffle button
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: songs.isNotEmpty
+                        ? () => _shuffleAllSongs()
+                        : null,
+                    icon: const Icon(Icons.shuffle),
+                    label: const Text('Shuffle'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: primaryColor,
+                      side: const BorderSide(color: primaryColor),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -404,24 +398,121 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
     );
   }
 
-  Widget _buildSongsList() {
-    return ListView.builder(
+  Widget _buildSliverAppBarHeader() {
+    return SliverAppBar(
+      expandedHeight: 300.0,
+      floating: false,
+      pinned: true,
+      backgroundColor: backgroundColor,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios, color: primaryColor, size: 20),
+        onPressed: () => Navigator.pop(context),
+      ),
+      flexibleSpace: FlexibleSpaceBar(
+        title: Text(
+          widget.playlistTitle,
+          style: GoogleFonts.inter(
+            color: primaryColor,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: true,
+        collapseMode: CollapseMode.parallax,
+        background: Container(
+          color: backgroundColor,
+          child: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 60), // Space for title
+                child: RepaintBoundary(
+                  child: Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color.fromRGBO(0, 0, 0, 0.1),
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(
+                        widget.albumArt,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [primaryColor, primaryColorLight],
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.music_note,
+                              size: 60,
+                              color: Color.fromRGBO(255, 255, 255, 0.8),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSliverSongsList() {
+    return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: songs.length,
-      itemBuilder: (context, index) {
-        final song = songs[index];
-        return _SongListItem(
-          song: song,
-          onTap: () => _playSong(song, index),
-          fallbackAlbumArt: widget.albumArt,
-        );
-      },
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final song = songs[index];
+          return _SongListItem(
+            song: song,
+            onTap: () => _playSong(song, index),
+            fallbackAlbumArt: widget.albumArt,
+          );
+        }, childCount: songs.length),
+      ),
     );
   }
 
   void _playAllSongs() {
     if (songs.isNotEmpty) {
       _playSong(songs[0], 0);
+    }
+  }
+
+  void _shuffleAllSongs() {
+    if (songs.isNotEmpty) {
+      // Create a shuffled copy of the songs list
+      final shuffledSongs = List<Map<String, dynamic>>.from(songs);
+      shuffledSongs.shuffle();
+
+      // Play the first song from the shuffled list
+      final firstShuffledSong = shuffledSongs[0];
+
+      showMediaPlayerModal(
+        context: context,
+        trackTitle: firstShuffledSong['title'] ?? 'Unknown Title',
+        artistName: firstShuffledSong['artist'] ?? 'Unknown Artist',
+        albumArt: firstShuffledSong['albumArt'] ?? widget.albumArt,
+        audioUrl: firstShuffledSong['url'],
+        playlist: shuffledSongs, // Pass the shuffled playlist
+        currentIndex: 0, // Start at first position in shuffled list
+      );
     }
   }
 
@@ -484,18 +575,19 @@ class _ErrorWidget extends StatelessWidget {
   }
 }
 
-// Optimized skeleton list widget
-class _SkeletonListWidget extends StatelessWidget {
-  const _SkeletonListWidget();
+// Optimized sliver skeleton list widget
+class _SliverSkeletonList extends StatelessWidget {
+  const _SliverSkeletonList();
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
+    return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: 8,
-      itemBuilder: (context, index) {
-        return const _SkeletonListItem();
-      },
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate((context, index) {
+          return const _SkeletonListItem();
+        }, childCount: 8),
+      ),
     );
   }
 }
@@ -557,35 +649,6 @@ class _SkeletonListItem extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// Optimized playlist fallback art
-class _PlaylistFallbackArt extends StatelessWidget {
-  const _PlaylistFallbackArt();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.all(Radius.circular(16)),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            _PlaylistScreenState.primaryColor,
-            _PlaylistScreenState.primaryColorLight,
-          ],
-        ),
-      ),
-      child: const Center(
-        child: Icon(
-          Icons.music_note,
-          size: 40,
-          color: Color.fromRGBO(255, 255, 255, 0.8),
         ),
       ),
     );

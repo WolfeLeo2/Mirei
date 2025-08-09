@@ -43,13 +43,19 @@ class ActivityIcon extends StatelessWidget {
                   svgShape,
                   width: actualShapeSize,
                   height: actualShapeSize,
-                  color: shapeColor ?? backgroundColor,
+                  colorFilter: ColorFilter.mode(
+                    shapeColor ?? backgroundColor,
+                    BlendMode.srcIn,
+                  ),
                 ),
                 SvgPicture.asset(
                   svgIcon,
                   width: size * 0.4,
                   height: size * 0.4,
-                  color: iconColor ?? Colors.black,
+                  colorFilter: ColorFilter.mode(
+                    iconColor ?? Colors.black,
+                    BlendMode.srcIn,
+                  ),
                   fit: BoxFit.contain,
                 ),
               ],

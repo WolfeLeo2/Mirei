@@ -16,9 +16,9 @@ Future<void> showMediaPlayerModal({
     isScrollControlled: true, // Allows full-screen height
     backgroundColor: Colors.transparent, // Make background transparent
     barrierColor: Colors.black.withOpacity(0.5), // Custom barrier color
-    enableDrag: true, // Enable native drag-to-close
+    enableDrag: true, // Disable drag since we removed the handle
     isDismissible: true, // Allow tapping outside to close
-    useSafeArea: false, // Respect safe areas
+    useSafeArea: false, // Let the MediaPlayerScreen handle safe areas
     builder: (BuildContext context) {
       return MediaPlayerBottomSheet(
         trackTitle: trackTitle,
@@ -66,13 +66,16 @@ class MediaPlayerBottomSheet extends StatelessWidget {
           top: Radius.circular(20), // Rounded top corners for modal feel
         ),
       ),
-      child: MediaPlayerScreen(
-        trackTitle: trackTitle,
-        artistName: artistName,
-        albumArt: albumArt,
-        audioUrl: audioUrl,
-        playlist: playlist,
-        currentIndex: currentIndex,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: MediaPlayerScreen(
+          trackTitle: trackTitle,
+          artistName: artistName,
+          albumArt: albumArt,
+          audioUrl: audioUrl,
+          playlist: playlist,
+          currentIndex: currentIndex,
+        ),
       ),
     );
   }

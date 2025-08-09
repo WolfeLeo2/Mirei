@@ -24,10 +24,10 @@ class EmotionCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05), // Reduced opacity
+            const BoxShadow(
+              color: Color.fromRGBO(0, 0, 0, 0.05), // Reduced opacity
               blurRadius: 12, // Reduced blur radius
-              offset: const Offset(0, 6), // Reduced offset
+              offset: Offset(0, 6), // Reduced offset
             ),
           ],
         ),
@@ -76,15 +76,13 @@ class EmotionCard extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(
-                        0.85,
-                      ), // Increased opacity for visibility
+                      color: const Color.fromRGBO(255, 255, 255, 0.85), // Increased opacity for visibility
                       shape: BoxShape.circle,
                       boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                        const BoxShadow(
+                          color: Color.fromRGBO(0, 0, 0, 0.1),
                           blurRadius: 8,
-                          offset: const Offset(0, 2),
+                          offset: Offset(0, 2),
                         ),
                       ],
                     ),
@@ -120,13 +118,8 @@ class EmotionCard extends StatelessWidget {
                     Text(
                       subtitle,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: const Color.fromARGB(
-                          255,
-                          20,
-                          50,
-                          81,
-                        ).withAlpha(165),
+                      style: const TextStyle(
+                        color: Color.fromRGBO(20, 50, 81, 0.65),
                         fontSize: 15,
                         fontWeight: FontWeight.w400,
                         letterSpacing: -1.0,

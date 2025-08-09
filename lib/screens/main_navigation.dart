@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_floating_bottom_bar/flutter_floating_bottom_bar.dart';
 import 'package:icons_plus/icons_plus.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mirei/bloc/emotion_bloc.dart';
 import 'package:mirei/screens/media_screen.dart';
 import 'home_screen.dart';
 import 'mood_tracker.dart';
@@ -43,8 +41,7 @@ class _MainNavigationState extends State<MainNavigation>
     ];
 
     _tabController.addListener(() {
-      // Dispatch BLoC event when tab changes
-      context.read<EmotionBloc>().add(EmotionSelected(_tabController.index));
+      setState(() {});
     });
   }
 
@@ -56,72 +53,61 @@ class _MainNavigationState extends State<MainNavigation>
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<EmotionBloc, EmotionState>(
-      builder: (context, state) {
-        int currentIndex = 0;
-        if (state is EmotionLoadSuccess) {
-          currentIndex = state.selectedIndex;
-        }
-
-        return Scaffold(
-          body: BottomBar(
-            child: TabBar(
-              controller: _tabController,
-              indicatorColor: colors[currentIndex],
-              dividerColor: Colors.transparent,
-              labelColor: colors[currentIndex],
-              unselectedLabelColor: const Color.fromARGB(255, 21, 55, 26),
-              onTap: (index) {
-                // Dispatch BLoC event when tab is tapped
-                context.read<EmotionBloc>().add(EmotionSelected(index));
-                _tabController.animateTo(index);
-              },
-              tabs: const [
-                Tab(icon: Icon(FontAwesome.house_chimney_solid, size: 24)),
-                Tab(icon: Icon(FontAwesome.book_journal_whills_solid, size: 24)),
-                Tab(icon: Icon(FontAwesome.spa_solid, size: 24)),
-                Tab(icon: Icon(FontAwesome.radio_solid, size: 24)),
-              ],
-            ),
-            fit: StackFit.expand,
-            icon: (width, height) => Center(
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                onPressed: null,
-                icon: Icon(
-                  Icons.arrow_upward_rounded,
-                  color: Colors.black,
-                  size: width,
-                ),
-              ),
-            ),
-            borderRadius: BorderRadius.circular(500),
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.decelerate,
-            showIcon: true,
-            width: MediaQuery.of(context).size.width * 0.6,
-            start: 2,
-            end: 0,
-            offset: 10,
-            barAlignment: Alignment.bottomCenter,
-            iconHeight: 35,
-            iconWidth: 35,
-            barColor: const Color.fromARGB(212, 255, 255, 255),
-            hideOnScroll: true,
-            scrollOpposite: false,
-            onBottomBarHidden: () {},
-            onBottomBarShown: () {},
-            body: (context, controller) => TabBarView(
-              controller: _tabController,
-              dragStartBehavior: DragStartBehavior.down,
-              physics: const BouncingScrollPhysics(),
-              children: _screens
-                  .map((screen) => RepaintBoundary(child: screen))
-                  .toList(),
+    return Scaffold(
+      body: BottomBar(
+        child: TabBar(
+          controller: _tabController,
+          indicatorColor: colors[_tabController.index],
+          dividerColor: Colors.transparent,
+          labelColor: colors[_tabController.index],
+          unselectedLabelColor: const Color.fromARGB(255, 21, 55, 26),
+          onTap: (index) {
+            _tabController.animateTo(index);
+          },
+          tabs: const [
+            Tab(icon: Icon(FontAwesome.house_chimney_solid, size: 24)),
+            Tab(icon: Icon(FontAwesome.book_journal_whills_solid, size: 24)),
+            Tab(icon: Icon(FontAwesome.spa_solid, size: 24)),
+            Tab(icon: Icon(FontAwesome.radio_solid, size: 24)),
+          ],
+        ),
+        fit: StackFit.expand,
+        icon: (width, height) => Center(
+          child: IconButton(
+            padding: EdgeInsets.zero,
+            onPressed: null,
+            icon: Icon(
+              Icons.arrow_upward_rounded,
+              color: Colors.black,
+              size: width,
             ),
           ),
-        );
-      },
+        ),
+        borderRadius: BorderRadius.circular(500),
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.decelerate,
+        showIcon: true,
+        width: MediaQuery.of(context).size.width * 0.6,
+        start: 2,
+        end: 0,
+        offset: 10,
+        barAlignment: Alignment.bottomCenter,
+        iconHeight: 35,
+        iconWidth: 35,
+        barColor: const Color.fromARGB(212, 255, 255, 255),
+        hideOnScroll: true,
+        scrollOpposite: false,
+        onBottomBarHidden: () {},
+        onBottomBarShown: () {},
+        body: (context, controller) => TabBarView(
+          controller: _tabController,
+          dragStartBehavior: DragStartBehavior.down,
+          physics: const BouncingScrollPhysics(),
+          children: _screens
+              .map((screen) => RepaintBoundary(child: screen))
+              .toList(),
+        ),
+      ),
     );
   }
 }

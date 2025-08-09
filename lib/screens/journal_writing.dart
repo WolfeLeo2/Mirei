@@ -15,9 +15,7 @@ import '../utils/realm_database_helper.dart';
 import 'journal_list.dart';
 
 class JournalWritingScreen extends StatefulWidget {
-  final String? mood;
-
-  const JournalWritingScreen({super.key, this.mood});
+  const JournalWritingScreen({super.key});
 
   @override
   _JournalWritingScreenState createState() => _JournalWritingScreenState();
@@ -67,6 +65,10 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
     // Check photo permission
     final photoStatus = await Permission.photos.status;
     print('Photo permission status: $photoStatus');
+
+    // Check camera permission
+    final cameraStatus = await Permission.camera.status;
+    print('Camera permission status: $cameraStatus');
   }
 
   @override
@@ -87,262 +89,267 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFfaf6f1),
-      appBar: AppBar(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Scaffold(
         backgroundColor: const Color(0xFFfaf6f1),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios,
-            color: Color(0xFF115e5a),
-            size: 20,
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFfaf6f1),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios,
+              color: Color(0xFF115e5a),
+              size: 20,
+            ),
+            onPressed: () => Navigator.pop(context),
           ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'New Entry',
-          style: TextStyle(
-            color: const Color(0xFF115e5a),
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            fontFamily: GoogleFonts.inter().fontFamily,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          TextButton(
-            onPressed: _saveJournalEntry,
-            child: Text(
-              'Save',
-              style: TextStyle(
-                color: const Color(0xFF115e5a),
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                fontFamily: GoogleFonts.inter().fontFamily,
-              ),
+          title: Text(
+            'New Entry',
+            style: TextStyle(
+              color: const Color(0xFF115e5a),
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              fontFamily: GoogleFonts.inter().fontFamily,
             ),
           ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Date display
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF115e5a).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today,
-                      color: const Color(0xFF115e5a),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      DateFormat('EEEE, MMMM d, yyyy').format(DateTime.now()),
-                      style: TextStyle(
-                        color: const Color(0xFF115e5a),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        fontFamily: GoogleFonts.inter().fontFamily,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Title input
-              Text(
-                'Title',
+          centerTitle: true,
+          actions: [
+            TextButton(
+              onPressed: _saveJournalEntry,
+              child: Text(
+                'Save',
                 style: TextStyle(
-                  color: Colors.black87,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: GoogleFonts.inter().fontFamily,
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _titleController,
-                focusNode: _titleFocusNode,
-                style: TextStyle(
+                  color: const Color(0xFF115e5a),
                   fontSize: 16,
-                  fontFamily: GoogleFonts.inter().fontFamily,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Give your entry a title...',
-                  hintStyle: TextStyle(
-                    color: Colors.black38,
-                    fontFamily: GoogleFonts.inter().fontFamily,
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Content input
-              Text(
-                'Your thoughts',
-                style: TextStyle(
-                  color: Colors.black87,
-                  fontSize: 18,
                   fontWeight: FontWeight.w600,
                   fontFamily: GoogleFonts.inter().fontFamily,
                 ),
               ),
-              const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TextField(
-                  controller: _contentController,
-                  focusNode: _contentFocusNode,
-                  maxLines: 15,
-                  style: TextStyle(
-                    fontSize: 16,
-                    height: 1.5,
-                    fontFamily: GoogleFonts.inter().fontFamily,
+            ),
+          ],
+        ),
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Date display
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
-                  decoration: InputDecoration(
-                    hintText:
-                        'What\'s on your mind? Write about your day, your feelings, your goals, or anything that comes to mind...',
-                    hintStyle: TextStyle(
-                      color: Colors.black38,
-                      fontFamily: GoogleFonts.inter().fontFamily,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF115e5a).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Media attachments section
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Attachments',
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: GoogleFonts.inter().fontFamily,
-                    ),
-                  ),
-                  Row(
+                  child: Row(
                     children: [
-                      // Add image button
-                      GestureDetector(
-                        onTap: _pickImages,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF115e5a),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.image,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Photo',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  fontFamily: GoogleFonts.inter().fontFamily,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      Icon(
+                        Icons.calendar_today,
+                        color: const Color(0xFF115e5a),
+                        size: 20,
                       ),
                       const SizedBox(width: 12),
-                      // Add audio button
-                      GestureDetector(
-                        onTap: _isRecording ? _stopRecording : _startRecording,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _isRecording
-                                ? Colors.red
-                                : const Color(0xFF115e5a),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                _isRecording ? Icons.stop : Icons.mic,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                _isRecording ? 'Stop' : 'Voice',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  fontFamily: GoogleFonts.inter().fontFamily,
-                                ),
-                              ),
-                            ],
-                          ),
+                      Text(
+                        DateFormat('EEEE, MMMM d, yyyy').format(DateTime.now()),
+                        style: TextStyle(
+                          color: const Color(0xFF115e5a),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: GoogleFonts.inter().fontFamily,
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
+                ),
+                const SizedBox(height: 32),
 
-              // Media grid
-              if (_selectedImages.isNotEmpty || _audioRecordings.isNotEmpty)
-                _buildMediaGrid(),
+                // Title input
+                Text(
+                  'Title',
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: GoogleFonts.inter().fontFamily,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _titleController,
+                  focusNode: _titleFocusNode,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontFamily: GoogleFonts.inter().fontFamily,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Give your entry a title...',
+                    hintStyle: TextStyle(
+                      color: Colors.black38,
+                      fontFamily: GoogleFonts.inter().fontFamily,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-              const SizedBox(
-                height: 100,
-              ), // Extra space for comfortable scrolling
-            ],
+                // Content input
+                Text(
+                  'Your thoughts',
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: GoogleFonts.inter().fontFamily,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TextField(
+                    controller: _contentController,
+                    focusNode: _contentFocusNode,
+                    maxLines: 15,
+                    style: TextStyle(
+                      fontSize: 16,
+                      height: 1.5,
+                      fontFamily: GoogleFonts.inter().fontFamily,
+                    ),
+                    decoration: InputDecoration(
+                      hintText:
+                          'What\'s on your mind? Write about your day, your feelings, your goals, or anything that comes to mind...',
+                      hintStyle: TextStyle(
+                        color: Colors.black38,
+                        fontFamily: GoogleFonts.inter().fontFamily,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.all(20),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // Media attachments section
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Attachments',
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: GoogleFonts.inter().fontFamily,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        // Add image button
+                        GestureDetector(
+                          onTap: _pickImages,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF115e5a),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.image,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Photo',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    fontFamily: GoogleFonts.inter().fontFamily,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Add audio button
+                        GestureDetector(
+                          onTap: _isRecording
+                              ? _stopRecording
+                              : _startRecording,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _isRecording
+                                  ? Colors.red
+                                  : const Color(0xFF115e5a),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _isRecording ? Icons.stop : Icons.mic,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _isRecording ? 'Stop' : 'Voice',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    fontFamily: GoogleFonts.inter().fontFamily,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Media grid
+                if (_selectedImages.isNotEmpty || _audioRecordings.isNotEmpty)
+                  _buildMediaGrid(),
+
+                const SizedBox(
+                  height: 100,
+                ), // Extra space for comfortable scrolling
+              ],
+            ),
           ),
         ),
       ),
@@ -386,9 +393,13 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
         _titleController.text.trim(),
         _contentController.text.trim(),
         DateTime.now(),
-        mood: widget.mood, // Pass mood from previous screen
-        imagePathsString: _selectedImages.map((image) => image.path).join('|'),
-        audioRecordingsString: audioRecordings.map((audio) => audio.toJson()).join('|'),
+        // Removed mood field - moods are stored separately in MoodEntryRealm
+        imagePathsString: _selectedImages
+            .map((image) => image.path)
+            .join('|||'),
+        audioRecordingsString: audioRecordings
+            .map((audio) => audio.toJson())
+            .join('|'),
       );
 
       // Save to database
@@ -667,19 +678,82 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
 
   Future<void> _pickImages() async {
     try {
-      // Check photo library permission first
-      PermissionStatus status = await Permission.photos.status;
+      // Show options dialog for camera or gallery
+      final choice = await showDialog<String>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(
+              'Add Image',
+              style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily),
+            ),
+            content: Text(
+              'Choose an option:',
+              style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop('camera'),
+                child: Text(
+                  'Camera',
+                  style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop('gallery'),
+                child: Text(
+                  'Gallery',
+                  style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily),
+                ),
+              ),
+            ],
+          );
+        },
+      );
 
-      if (status.isDenied) {
-        status = await Permission.photos.request();
+      if (choice == null) return;
+
+      List<XFile> images = [];
+
+      if (choice == 'camera') {
+        // Check camera permission first
+        PermissionStatus cameraStatus = await Permission.camera.status;
+        if (cameraStatus.isDenied) {
+          cameraStatus = await Permission.camera.request();
+        }
+        if (cameraStatus.isPermanentlyDenied) {
+          _showCameraPermissionDialog();
+          return;
+        }
+
+        // Take photo with camera
+        final XFile? photo = await _picker.pickImage(
+          source: ImageSource.camera,
+        );
+        if (photo != null) {
+          images = [photo];
+        }
+      } else {
+        // Check photo library permission first
+        PermissionStatus status = await Permission.photos.status;
+        if (status.isDenied) {
+          status = await Permission.photos.request();
+        }
+        if (status.isPermanentlyDenied) {
+          _showPhotoPermissionDialog();
+          return;
+        }
+
+        // Pick from gallery
+        images = await _picker.pickMultiImage();
       }
-
-      if (status.isPermanentlyDenied) {
-        _showPhotoPermissionDialog();
-        return;
-      }
-
-      final List<XFile> images = await _picker.pickMultiImage();
       if (images.isNotEmpty) {
         setState(() {
           _selectedImages.addAll(images);
@@ -973,6 +1047,55 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  void _showCameraPermissionDialog() {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'Camera Access Required',
+            style: TextStyle(
+              fontFamily: GoogleFonts.inter().fontFamily,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          content: Text(
+            'To take photos for your journal, please grant camera permission in your device settings.',
+            style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  fontFamily: GoogleFonts.inter().fontFamily,
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                openAppSettings();
+              },
+              child: Text(
+                'Open Settings',
+                style: TextStyle(
+                  fontFamily: GoogleFonts.inter().fontFamily,
+                  color: const Color(0xFF115e5a),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

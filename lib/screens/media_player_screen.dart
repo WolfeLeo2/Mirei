@@ -65,10 +65,10 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize optimized audio services
     _cacheService = AudioCacheService();
-    
+
     _audioPlayer = AudioPlayer();
     _currentPlaylistIndex =
         widget.currentIndex ?? 0; // Initialize playlist index
@@ -117,7 +117,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
         // Ensure service is initialized
         await _cacheService.ensureInitialized();
         final cachedFile = await _cacheService.getAudioFile(_audioUrl);
-        
+
         if (cachedFile != null) {
           // Use cached file for instant playback
           await _audioPlayer.setFilePath(cachedFile.path);
@@ -126,13 +126,14 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
           // Stream directly and cache in background
           await _audioPlayer.setUrl(_audioUrl);
           print("Streaming and caching: $_audioUrl");
-          
+
           // Cache for future use (don't wait for completion)
           _cacheService.getAudioFile(_audioUrl);
         }
-        
+
         // Preload next track if in playlist
-        if (widget.playlist != null && _currentPlaylistIndex + 1 < widget.playlist!.length) {
+        if (widget.playlist != null &&
+            _currentPlaylistIndex + 1 < widget.playlist!.length) {
           final nextTrack = widget.playlist![_currentPlaylistIndex + 1];
           final nextUrl = nextTrack['url'] as String?;
           if (nextUrl != null) {
@@ -140,7 +141,6 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
             _cacheService.getAudioFile(nextUrl);
           }
         }
-        
       } catch (e) {
         print("Cached audio loading failed, falling back to direct URL: $e");
         // Fallback to direct URL loading
@@ -157,7 +157,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
       // Listen to position changes
       _audioPlayer.positionStream.listen((position) {
         final duration = _audioPlayer.duration;
-        if (duration != null && duration.inMilliseconds > 0) {
+        if (duration != null && duration.inMilliseconds > 0 && mounted) {
           setState(() {
             currentPosition = position.inMilliseconds / duration.inMilliseconds;
           });
@@ -190,13 +190,20 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
             _isLoading =
                 state == ProcessingState.loading && !_audioPlayer.playing;
           });
+
+          // Auto-play next song when current song completes
+          if (state == ProcessingState.completed) {
+            _handleSongCompletion();
+          }
         }
       });
     } catch (e) {
       print("Error initializing audio: $e");
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -214,6 +221,21 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
         // If there's an error, it might be because the URL isn't fully set yet
         // The player will start automatically once the URL is loaded
       }
+    }
+  }
+
+  void _handleSongCompletion() {
+    // Auto-advance to next song in playlist
+    if (widget.playlist != null &&
+        widget.playlist!.isNotEmpty &&
+        _currentPlaylistIndex < widget.playlist!.length - 1) {
+      _playTrackAtIndex(_currentPlaylistIndex + 1);
+    } else {
+      // End of playlist - stop playback
+      setState(() {
+        isPlaying = false;
+        currentPosition = 0.0;
+      });
     }
   }
 
@@ -278,25 +300,67 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
     final audioUrl = track['url'] as String?;
 
     if (audioUrl != null) {
-      // Set URL and start playback immediately (don't await for full download)
-      _audioPlayer
-          .setUrl(audioUrl)
-          .then((_) {
-            setState(() {
-              _isLoading = false;
-            });
+      try {
+        setState(() {
+          _isLoading = true;
+        });
 
-            // Start playing immediately once URL is set
-            if (isPlaying) {
-              _audioPlayer.play();
-            }
-          })
-          .catchError((e) {
-            print('Error loading track: $e');
-            setState(() {
-              _isLoading = false;
-            });
+        // Use cached audio loading for instant playback
+        await _cacheService.ensureInitialized();
+        final cachedFile = await _cacheService.getAudioFile(audioUrl);
+
+        if (cachedFile != null) {
+          // Use cached file for instant playback
+          await _audioPlayer.setFilePath(cachedFile.path);
+          print("Playing from cache: ${cachedFile.path}");
+        } else {
+          // Fallback to streaming while caching in background
+          await _audioPlayer.setUrl(audioUrl);
+          print("Streaming and caching: $audioUrl");
+
+          // Cache for future use (don't wait for completion)
+          _cacheService.getAudioFile(audioUrl);
+        }
+
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
           });
+        }
+
+        // Start playing immediately once URL/file is set
+        if (isPlaying) {
+          _audioPlayer.play();
+        }
+
+        // Preload next track for smooth transitions
+        if (widget.playlist != null &&
+            _currentPlaylistIndex + 1 < widget.playlist!.length) {
+          final nextTrack = widget.playlist![_currentPlaylistIndex + 1];
+          final nextUrl = nextTrack['url'] as String?;
+          if (nextUrl != null) {
+            // Start caching next track in background
+            _cacheService.getAudioFile(nextUrl);
+          }
+        }
+      } catch (e) {
+        print('Error loading track: $e');
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+
+        // Fallback to direct streaming on cache failure
+        try {
+          await _audioPlayer.setUrl(audioUrl);
+          if (isPlaying) {
+            _audioPlayer.play();
+          }
+        } catch (fallbackError) {
+          print('Fallback streaming also failed: $fallbackError');
+        }
+      }
     }
   }
 
@@ -332,6 +396,8 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+
     return Scaffold(
       backgroundColor: Colors.transparent, // Make transparent for modal
       body: Container(
@@ -344,27 +410,28 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+            padding: EdgeInsets.symmetric(
+              horizontal: screenSize.width * 0.08,
+              vertical: 20,
+            ),
             child: Column(
               children: [
-                // Add drag indicator for modal bottom sheet
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2),
+                // Main content centered in available space
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildAlbumArt(),
+                      const SizedBox(height: 40),
+                      _buildTrackInfo(),
+                      const SizedBox(height: 30),
+                      _buildProgressBar(),
+                      const SizedBox(height: 20),
+                      _buildPlaybackControls(),
+                    ],
                   ),
                 ),
-                _buildAlbumArt(),
-                const SizedBox(height: 40),
-                _buildTrackInfo(),
-                const SizedBox(height: 30),
-                _buildProgressBar(),
-                const SizedBox(height: 20),
-                _buildPlaybackControls(),
-                const SizedBox(height: 100),
+                // Bottom actions pinned to bottom
                 _buildBottomActions(),
               ],
             ),
@@ -643,10 +710,10 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
                   onPanEnd: (details) {
                     _isDraggingSeeker = false;
                   },
-                  child: Container(
+                  child: SizedBox(
                     height: 44, // Larger touch target
                     child: Center(
-                      child: Container(
+                      child: SizedBox(
                         height: 6,
                         child: LinearProgressIndicator(
                           value: progress, // Always show the actual progress
@@ -770,7 +837,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(20)
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

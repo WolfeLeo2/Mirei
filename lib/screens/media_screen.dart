@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/media_player_modal.dart';
 import 'playlist_screen.dart';
+// Removed LiveStreamService
+import 'package:just_audio/just_audio.dart';
 
 // Static data classes for better performance
 class _AlbumData {
@@ -30,6 +32,20 @@ class _MixData {
   });
 }
 
+class _LiveRadioData {
+  final String title;
+  final String subtitle;
+  final String imagePath;
+  final String url;
+
+  const _LiveRadioData({
+    required this.title,
+    required this.subtitle,
+    required this.imagePath,
+    required this.url,
+  });
+}
+
 class MediaScreen extends StatefulWidget {
   const MediaScreen({super.key});
 
@@ -38,12 +54,62 @@ class MediaScreen extends StatefulWidget {
 }
 
 class _MediaScreenState extends State<MediaScreen> {
+  void _pauseOrResumeLiveRadio() {
+    if (_audioPlayer.playing) {
+      _audioPlayer.pause();
+    } else {
+      _audioPlayer.play();
+    }
+  }
+
+  void _stopLiveRadio() {
+    _audioPlayer.stop();
+    setState(() {
+      currentLiveStation = null;
+      isLiveRadioPaused = false;
+      isLiveRadioError = false;
+    });
+  }
+
+  late AudioPlayer _audioPlayer;
+  bool isLoadingLiveRadio = false;
+  String? currentLiveStation;
+  bool isLiveRadioPaused = false;
+  bool isLiveRadioError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer = AudioPlayer();
+    _audioPlayer.playerStateStream.listen((state) {
+      setState(() {
+        if (state.playing) {
+          isLiveRadioPaused = false;
+          isLiveRadioError = false;
+          isLoadingLiveRadio =
+              false; // Stop showing loading spinner when playback starts
+        } else if (state.processingState == ProcessingState.ready &&
+            !state.playing) {
+          isLiveRadioPaused = true;
+        } else if (state.processingState == ProcessingState.idle) {
+          isLiveRadioError = true;
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
   // Static const data for better performance
   static const List<_AlbumData> _albumData = [
     _AlbumData(
       title: 'Lofi Mix',
       subtitle: 'Kick back and relax',
-      imagePath: 'assets/images/lofi.png',
+      imagePath: 'assets/images/lofi_girl.jpeg',
     ),
     _AlbumData(
       title: 'Ocean Waves',
@@ -61,7 +127,7 @@ class _MediaScreenState extends State<MediaScreen> {
     _MixData(
       title: 'Bedroom Pop',
       subtitle: 'Dreamy bedroom pop vibes',
-      imagePath: 'assets/images/color.jpg',
+      imagePath: 'assets/images/lofi.png',
       url: 'https://wolfeleo2.github.io/audio-cdn/bedroompop/',
     ),
     _MixData(
@@ -87,6 +153,27 @@ class _MediaScreenState extends State<MediaScreen> {
       subtitle: 'Moody atmosphere',
       imagePath: 'assets/images/gradient.png',
       url: 'https://wolfeleo2.github.io/audio-cdn/moody/',
+    ),
+  ];
+
+  static const List<_LiveRadioData> _liveRadioData = [
+    _LiveRadioData(
+      title: 'LoFi Hip Hop Radio',
+      subtitle: '24/7 Chill Beats • Live',
+      imagePath: 'assets/images/lofi_cover.png',
+      url: 'http://manager.dhectar.fr:1480/stream',
+    ),
+    _LiveRadioData(
+      title: 'Chillhop Radio',
+      subtitle: 'Jazzy Hip Hop • Live',
+      imagePath: 'assets/images/gradient-2.png',
+      url: 'http://puma.streemlion.com:3620/stream',
+    ),
+    _LiveRadioData(
+      title: 'Chill R&B',
+      subtitle: 'Relaxing R&B Vibes • Live',
+      imagePath: 'assets/images/rnb_cover.png',
+      url: 'http://216.245.218.194:8010/autodj',
     ),
   ];
 
@@ -143,38 +230,37 @@ class _MediaScreenState extends State<MediaScreen> {
           ),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        physics: const BouncingScrollPhysics(),
         children: [
-          // Section header with RepaintBoundary
           RepaintBoundary(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              child: Text(
-                'Top Picks',
-                style: _sectionHeaderStyle,
-              ),
+              child: Text('Live Radio', style: _sectionHeaderStyle),
             ),
           ),
           const SizedBox(height: 16),
-          // Optimized album cards with RepaintBoundary
-          _buildAlbumCards(),
-
+          _buildLiveRadioCards(),
           const SizedBox(height: 32),
-
-          // Your top mixes section with RepaintBoundary
           RepaintBoundary(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-              child: Text(
-                'Your top mixes',
-                style: _sectionHeaderStyle,
-              ),
+              child: Text('Top Picks', style: _sectionHeaderStyle),
             ),
           ),
           const SizedBox(height: 16),
-          // Optimized mix cards with RepaintBoundary
+          _buildAlbumCards(),
+          const SizedBox(height: 32),
+          RepaintBoundary(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+              child: Text('Your top mixes', style: _sectionHeaderStyle),
+            ),
+          ),
+          const SizedBox(height: 16),
           _buildMixCards(),
+          const SizedBox(height: 60), // Space for the bottom nav bar
         ],
       ),
     );
@@ -219,10 +305,7 @@ class _MediaScreenState extends State<MediaScreen> {
           itemCount: _mixData.length,
           itemBuilder: (context, index) {
             final mix = _mixData[index];
-            return _MixCard(
-              mix: mix,
-              onTap: () => _handleMixTap(mix),
-            );
+            return _MixCard(mix: mix, onTap: () => _handleMixTap(mix));
           },
         ),
       ),
@@ -237,9 +320,96 @@ class _MediaScreenState extends State<MediaScreen> {
           playlistTitle: mix.title,
           playlistUrl: mix.url,
           albumArt: mix.imagePath,
+          playlistDescription: mix.subtitle,
         ),
       ),
     );
+  }
+
+  Widget _buildLiveRadioCards() {
+    return RepaintBoundary(
+      child: SizedBox(
+        height: 260,
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          scrollDirection: Axis.horizontal,
+          itemCount: _liveRadioData.length,
+          itemBuilder: (context, index) {
+            final station = _liveRadioData[index];
+            final isCurrent = currentLiveStation == station.title;
+            final isPlaying =
+                isCurrent &&
+                !isLiveRadioPaused &&
+                !isLiveRadioError &&
+                !isLoadingLiveRadio;
+            final isPaused =
+                isCurrent &&
+                isLiveRadioPaused &&
+                !isLiveRadioError &&
+                !isLoadingLiveRadio;
+            final isError =
+                isCurrent && isLiveRadioError && !isLoadingLiveRadio;
+            final isLoading = isLoadingLiveRadio && isCurrent;
+            return _LiveRadioCard(
+              station: station,
+              onTap: () => _handleLiveRadioTap(station),
+              isPlaying: isPlaying,
+              isPaused: isPaused,
+              isError: isError,
+              isLoading: isLoading,
+              onPauseOrResume: isCurrent ? _pauseOrResumeLiveRadio : null,
+              onStop: isCurrent ? _stopLiveRadio : null,
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleLiveRadioTap(_LiveRadioData station) async {
+    try {
+      setState(() {
+        isLoadingLiveRadio = true;
+        currentLiveStation = station.title;
+        isLiveRadioError = false;
+      });
+
+      await _audioPlayer.stop();
+
+      // Use direct radio streams for all stations
+      String streamUrl = station.url;
+      if (station.title == 'Chillhop Radio') {
+        streamUrl = 'http://puma.streemlion.com:3620/stream';
+      } else if (station.title == 'LoFi Hip Hop Radio') {
+        streamUrl = 'http://manager.dhectar.fr:1480/stream';
+      }
+      try {
+        await _audioPlayer.setUrl(streamUrl);
+        await _audioPlayer.play();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Now playing: ${station.title}'),
+            backgroundColor: const Color(0xFF115e5a),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } catch (e) {
+        setState(() {
+          isLiveRadioError = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to play ${station.title}: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        isLoadingLiveRadio = false;
+      });
+    }
   }
 }
 
@@ -248,10 +418,7 @@ class _AlbumCard extends StatelessWidget {
   final _AlbumData album;
   final VoidCallback onTap;
 
-  const _AlbumCard({
-    required this.album,
-    required this.onTap,
-  });
+  const _AlbumCard({required this.album, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -274,10 +441,7 @@ class _AlbumCard extends StatelessWidget {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      album.imagePath,
-                      fit: BoxFit.cover,
-                    ),
+                    child: Image.asset(album.imagePath, fit: BoxFit.cover),
                   ),
                 ),
               ),
@@ -287,10 +451,7 @@ class _AlbumCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 12),
-                    Text(
-                      album.title,
-                      style: _MediaScreenState._cardTitleStyle,
-                    ),
+                    Text(album.title, style: _MediaScreenState._cardTitleStyle),
                     const SizedBox(height: 4),
                     Text(
                       album.subtitle,
@@ -312,10 +473,7 @@ class _MixCard extends StatelessWidget {
   final _MixData mix;
   final VoidCallback onTap;
 
-  const _MixCard({
-    required this.mix,
-    required this.onTap,
-  });
+  const _MixCard({required this.mix, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -354,10 +512,7 @@ class _MixCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 12),
-                    Text(
-                      mix.title,
-                      style: _MediaScreenState._cardTitleStyle,
-                    ),
+                    Text(mix.title, style: _MediaScreenState._cardTitleStyle),
                     const SizedBox(height: 4),
                     Text(
                       mix.subtitle,
@@ -386,15 +541,270 @@ class _FallbackMixImage extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF115e5a),
-            Color.fromRGBO(17, 94, 90, 0.7),
-          ],
+          colors: [Color(0xFF115e5a), Color.fromRGBO(17, 94, 90, 0.7)],
         ),
       ),
       child: const Center(
         child: Icon(
           Icons.music_note,
+          size: 40,
+          color: Color.fromRGBO(255, 255, 255, 0.8),
+        ),
+      ),
+    );
+  }
+}
+
+// Live Radio Card widget
+class _LiveRadioCard extends StatelessWidget {
+  final _LiveRadioData station;
+  final VoidCallback onTap;
+  final bool isPlaying;
+  final bool isPaused;
+  final bool isError;
+  final bool isLoading;
+  final VoidCallback? onPauseOrResume;
+  final VoidCallback? onStop;
+
+  const _LiveRadioCard({
+    required this.station,
+    required this.onTap,
+    required this.isPlaying,
+    required this.isPaused,
+    required this.isError,
+    required this.isLoading,
+    this.onPauseOrResume,
+    this.onStop,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isCardTappable = !isPlaying && !isLoading;
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: isCardTappable ? onTap : null,
+        child: Container(
+          width: 200,
+          margin: const EdgeInsets.only(right: 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Station artwork container
+              RepaintBoundary(
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 180,
+                      height: 200,
+                      decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.all(Radius.circular(16)),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.asset(
+                          station.imagePath,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const _FallbackRadioImage();
+                          },
+                          color: isPlaying
+                              ? Colors.black.withOpacity(0.2)
+                              : isPaused
+                              ? Colors.black.withOpacity(0.08)
+                              : Colors.black.withOpacity(0.05),
+                          colorBlendMode: BlendMode.darken,
+                        ),
+                      ),
+                    ),
+                    // Live indicator
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isPlaying
+                              ? Colors.red
+                              : isPaused
+                              ? Colors.orange
+                              : Colors.black.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'LIVE',
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Play/Pause/Error indicator
+                    if (isLoading)
+                      Positioned(
+                        bottom: 12,
+                        right: 12,
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF115e5a),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (isPlaying || isPaused)
+                      Positioned(
+                        bottom: 12,
+                        right: 12,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Waveform icon (always shown when playing)
+                            if (isPlaying)
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF115e5a),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.graphic_eq,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ), // No GestureDetector here, so no tap action
+                            // Pause/Resume button
+                            GestureDetector(
+                              onTap: onPauseOrResume,
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                margin: const EdgeInsets.only(left: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  isPlaying ? Icons.pause : Icons.play_arrow,
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
+                              ),
+                            ),
+                            // Stop button
+                            GestureDetector(
+                              onTap: onStop,
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                margin: const EdgeInsets.only(left: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.stop,
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (isPaused)
+                      Positioned(
+                        bottom: 12,
+                        right: 12,
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.orange,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.pause_circle_filled,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              // Text section
+              RepaintBoundary(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 12),
+                    Text(
+                      station.title,
+                      style: _MediaScreenState._cardTitleStyle,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      station.subtitle,
+                      style: _MediaScreenState._cardSubtitleStyle,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Fallback radio image widget
+class _FallbackRadioImage extends StatelessWidget {
+  const _FallbackRadioImage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(16)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF115e5a), Color.fromRGBO(17, 94, 90, 0.7)],
+        ),
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.radio,
           size: 40,
           color: Color.fromRGBO(255, 255, 255, 0.8),
         ),

@@ -109,7 +109,6 @@ class JournalEntryRealm extends _JournalEntryRealm
     String title,
     String content,
     DateTime createdAt, {
-    String? mood,
     String? imagePathsString,
     String? audioRecordingsString,
   }) {
@@ -117,7 +116,6 @@ class JournalEntryRealm extends _JournalEntryRealm
     RealmObjectBase.set(this, 'title', title);
     RealmObjectBase.set(this, 'content', content);
     RealmObjectBase.set(this, 'createdAt', createdAt);
-    RealmObjectBase.set(this, 'mood', mood);
     RealmObjectBase.set(this, 'imagePathsString', imagePathsString);
     RealmObjectBase.set(this, 'audioRecordingsString', audioRecordingsString);
   }
@@ -145,11 +143,6 @@ class JournalEntryRealm extends _JournalEntryRealm
   @override
   set createdAt(DateTime value) =>
       RealmObjectBase.set(this, 'createdAt', value);
-
-  @override
-  String? get mood => RealmObjectBase.get<String>(this, 'mood') as String?;
-  @override
-  set mood(String? value) => RealmObjectBase.set(this, 'mood', value);
 
   @override
   String? get imagePathsString =>
@@ -184,7 +177,6 @@ class JournalEntryRealm extends _JournalEntryRealm
       'title': title.toEJson(),
       'content': content.toEJson(),
       'createdAt': createdAt.toEJson(),
-      'mood': mood.toEJson(),
       'imagePathsString': imagePathsString.toEJson(),
       'audioRecordingsString': audioRecordingsString.toEJson(),
     };
@@ -205,7 +197,6 @@ class JournalEntryRealm extends _JournalEntryRealm
           fromEJson(title),
           fromEJson(content),
           fromEJson(createdAt),
-          mood: fromEJson(ejson['mood']),
           imagePathsString: fromEJson(ejson['imagePathsString']),
           audioRecordingsString: fromEJson(ejson['audioRecordingsString']),
         ),
@@ -225,7 +216,6 @@ class JournalEntryRealm extends _JournalEntryRealm
         SchemaProperty('title', RealmPropertyType.string),
         SchemaProperty('content', RealmPropertyType.string),
         SchemaProperty('createdAt', RealmPropertyType.timestamp),
-        SchemaProperty('mood', RealmPropertyType.string, optional: true),
         SchemaProperty(
           'imagePathsString',
           RealmPropertyType.string,
@@ -398,6 +388,7 @@ class PlaylistCacheEntry extends _PlaylistCacheEntry
     String songUrl,
     int priority,
     DateTime createdAt,
+    DateTime expiresAt,
     bool isPreloaded,
   ) {
     RealmObjectBase.set(this, 'id', id);
@@ -405,6 +396,7 @@ class PlaylistCacheEntry extends _PlaylistCacheEntry
     RealmObjectBase.set(this, 'songUrl', songUrl);
     RealmObjectBase.set(this, 'priority', priority);
     RealmObjectBase.set(this, 'createdAt', createdAt);
+    RealmObjectBase.set(this, 'expiresAt', expiresAt);
     RealmObjectBase.set(this, 'isPreloaded', isPreloaded);
   }
 
@@ -440,6 +432,13 @@ class PlaylistCacheEntry extends _PlaylistCacheEntry
       RealmObjectBase.set(this, 'createdAt', value);
 
   @override
+  DateTime get expiresAt =>
+      RealmObjectBase.get<DateTime>(this, 'expiresAt') as DateTime;
+  @override
+  set expiresAt(DateTime value) =>
+      RealmObjectBase.set(this, 'expiresAt', value);
+
+  @override
   bool get isPreloaded =>
       RealmObjectBase.get<bool>(this, 'isPreloaded') as bool;
   @override
@@ -466,6 +465,7 @@ class PlaylistCacheEntry extends _PlaylistCacheEntry
       'songUrl': songUrl.toEJson(),
       'priority': priority.toEJson(),
       'createdAt': createdAt.toEJson(),
+      'expiresAt': expiresAt.toEJson(),
       'isPreloaded': isPreloaded.toEJson(),
     };
   }
@@ -480,6 +480,7 @@ class PlaylistCacheEntry extends _PlaylistCacheEntry
         'songUrl': EJsonValue songUrl,
         'priority': EJsonValue priority,
         'createdAt': EJsonValue createdAt,
+        'expiresAt': EJsonValue expiresAt,
         'isPreloaded': EJsonValue isPreloaded,
       } =>
         PlaylistCacheEntry(
@@ -488,6 +489,7 @@ class PlaylistCacheEntry extends _PlaylistCacheEntry
           fromEJson(songUrl),
           fromEJson(priority),
           fromEJson(createdAt),
+          fromEJson(expiresAt),
           fromEJson(isPreloaded),
         ),
       _ => raiseInvalidEJson(ejson),
@@ -507,7 +509,136 @@ class PlaylistCacheEntry extends _PlaylistCacheEntry
         SchemaProperty('songUrl', RealmPropertyType.string),
         SchemaProperty('priority', RealmPropertyType.int),
         SchemaProperty('createdAt', RealmPropertyType.timestamp),
+        SchemaProperty('expiresAt', RealmPropertyType.timestamp),
         SchemaProperty('isPreloaded', RealmPropertyType.bool),
+      ],
+    );
+  }();
+
+  @override
+  SchemaObject get objectSchema => RealmObjectBase.getSchema(this) ?? schema;
+}
+
+class PlaylistData extends _PlaylistData
+    with RealmEntity, RealmObjectBase, RealmObject {
+  PlaylistData(
+    String playlistUrl,
+    String jsonData,
+    DateTime cachedAt,
+    DateTime expiresAt,
+    int trackCount, {
+    String? title,
+  }) {
+    RealmObjectBase.set(this, 'playlistUrl', playlistUrl);
+    RealmObjectBase.set(this, 'jsonData', jsonData);
+    RealmObjectBase.set(this, 'cachedAt', cachedAt);
+    RealmObjectBase.set(this, 'expiresAt', expiresAt);
+    RealmObjectBase.set(this, 'trackCount', trackCount);
+    RealmObjectBase.set(this, 'title', title);
+  }
+
+  PlaylistData._();
+
+  @override
+  String get playlistUrl =>
+      RealmObjectBase.get<String>(this, 'playlistUrl') as String;
+  @override
+  set playlistUrl(String value) =>
+      RealmObjectBase.set(this, 'playlistUrl', value);
+
+  @override
+  String get jsonData =>
+      RealmObjectBase.get<String>(this, 'jsonData') as String;
+  @override
+  set jsonData(String value) => RealmObjectBase.set(this, 'jsonData', value);
+
+  @override
+  DateTime get cachedAt =>
+      RealmObjectBase.get<DateTime>(this, 'cachedAt') as DateTime;
+  @override
+  set cachedAt(DateTime value) => RealmObjectBase.set(this, 'cachedAt', value);
+
+  @override
+  DateTime get expiresAt =>
+      RealmObjectBase.get<DateTime>(this, 'expiresAt') as DateTime;
+  @override
+  set expiresAt(DateTime value) =>
+      RealmObjectBase.set(this, 'expiresAt', value);
+
+  @override
+  int get trackCount => RealmObjectBase.get<int>(this, 'trackCount') as int;
+  @override
+  set trackCount(int value) => RealmObjectBase.set(this, 'trackCount', value);
+
+  @override
+  String? get title => RealmObjectBase.get<String>(this, 'title') as String?;
+  @override
+  set title(String? value) => RealmObjectBase.set(this, 'title', value);
+
+  @override
+  Stream<RealmObjectChanges<PlaylistData>> get changes =>
+      RealmObjectBase.getChanges<PlaylistData>(this);
+
+  @override
+  Stream<RealmObjectChanges<PlaylistData>> changesFor([
+    List<String>? keyPaths,
+  ]) => RealmObjectBase.getChangesFor<PlaylistData>(this, keyPaths);
+
+  @override
+  PlaylistData freeze() => RealmObjectBase.freezeObject<PlaylistData>(this);
+
+  EJsonValue toEJson() {
+    return <String, dynamic>{
+      'playlistUrl': playlistUrl.toEJson(),
+      'jsonData': jsonData.toEJson(),
+      'cachedAt': cachedAt.toEJson(),
+      'expiresAt': expiresAt.toEJson(),
+      'trackCount': trackCount.toEJson(),
+      'title': title.toEJson(),
+    };
+  }
+
+  static EJsonValue _toEJson(PlaylistData value) => value.toEJson();
+  static PlaylistData _fromEJson(EJsonValue ejson) {
+    if (ejson is! Map<String, dynamic>) return raiseInvalidEJson(ejson);
+    return switch (ejson) {
+      {
+        'playlistUrl': EJsonValue playlistUrl,
+        'jsonData': EJsonValue jsonData,
+        'cachedAt': EJsonValue cachedAt,
+        'expiresAt': EJsonValue expiresAt,
+        'trackCount': EJsonValue trackCount,
+      } =>
+        PlaylistData(
+          fromEJson(playlistUrl),
+          fromEJson(jsonData),
+          fromEJson(cachedAt),
+          fromEJson(expiresAt),
+          fromEJson(trackCount),
+          title: fromEJson(ejson['title']),
+        ),
+      _ => raiseInvalidEJson(ejson),
+    };
+  }
+
+  static final schema = () {
+    RealmObjectBase.registerFactory(PlaylistData._);
+    register(_toEJson, _fromEJson);
+    return const SchemaObject(
+      ObjectType.realmObject,
+      PlaylistData,
+      'PlaylistData',
+      [
+        SchemaProperty(
+          'playlistUrl',
+          RealmPropertyType.string,
+          primaryKey: true,
+        ),
+        SchemaProperty('jsonData', RealmPropertyType.string),
+        SchemaProperty('cachedAt', RealmPropertyType.timestamp),
+        SchemaProperty('expiresAt', RealmPropertyType.timestamp),
+        SchemaProperty('trackCount', RealmPropertyType.int),
+        SchemaProperty('title', RealmPropertyType.string, optional: true),
       ],
     );
   }();

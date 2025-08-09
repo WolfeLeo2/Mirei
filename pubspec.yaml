@@ -51,6 +51,7 @@ dependencies:
   flutter_svg: ^2.2.0
   # sqflite: ^2.3.0  # Removed - migrating to Realm
   flutter_staggered_grid_view: ^0.7.0
+  animations: ^2.0.11
   path: ^1.9.0
   intl: ^0.20.2
   audio_waveforms: ^1.1.0
@@ -59,6 +60,7 @@ dependencies:
   url_launcher: ^6.3.0
   equatable: ^2.0.5
   fl_chart: ^1.0.0
+  freezed_annotation: ^2.4.1
   
   # New dependencies for enhanced features
   realm: ^20.1.1  # Realm database replacement for SQLite
@@ -71,10 +73,14 @@ dependencies:
   cached_network_image: ^3.4.1  # Image caching
   crypto: ^3.0.3  # For cache key generation
   collection: ^1.18.0  # Additional collection utilities
+  youtube_explode_dart: ^2.5.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  
+  build_runner: ^2.4.11
+  freezed: ^2.5.2
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -124,6 +130,7 @@ flutter:
     - assets/icons/Stress.svg
     - assets/images/lofi.png
     - assets/images/color.jpg
+    - assets/images/lofi_girl.jpeg
 
     
   # assets:

@@ -118,6 +118,8 @@ class AudioCacheService {
       
       // Perform cleanup
       await _cleanupCache();
+      await _dbHelper.cleanExpiredPlaylistEntries();
+      await _dbHelper.cleanExpiredPlaylistData();
       
       // Get stats after cleanup
       final statsAfter = await _getFragmentationStats();
@@ -262,11 +264,6 @@ class AudioCacheService {
     return await _getCachedFile(url);
   }
 
-  /// Process next item in download queue
-  void _processNextInQueue() {
-    _startNext();
-  }
-
   /// Start next download from queue if possible
   void _startNext() {
     if (_downloadQueue.isNotEmpty && _activeDownloads.length < maxConcurrentDownloads) {
@@ -278,11 +275,15 @@ class AudioCacheService {
         // Process next item after completion
         _startNext();
         return file;
-      }).catchError((e) {
+      }).catchError((e) async {
         print('Download failed for ${task.url}: $e');
         // Continue processing queue even on error
         _startNext();
-        return Future<File?>.value(null); // Return proper Future type
+        // Return a temporary empty file to satisfy the return type
+        final tempDir = await getTemporaryDirectory();
+        final errorFile = File(path.join(tempDir.path, 'download_error_${DateTime.now().millisecondsSinceEpoch}.tmp'));
+        await errorFile.create();
+        return errorFile;
       });
     }
   }
@@ -418,6 +419,48 @@ class AudioCacheService {
     }
   }
 
+  // Playlist JSON management with disk cache fallback
+  Future<Map<String, dynamic>?> getPlaylistWithCache(String playlistUrl) async {
+    try {
+      // Try to get cached JSON first
+      final cachedJson = await _dbHelper.getCachedPlaylistJson(playlistUrl);
+      if (cachedJson != null) {
+        return json.decode(cachedJson);
+      }
+      
+      // Cache miss - need to fetch from network
+      print('Playlist cache miss for: $playlistUrl, fetching from network...');
+      
+      final response = await _dio.get(playlistUrl);
+      if (response.statusCode == 200) {
+        final jsonData = json.encode(response.data);
+        
+        // Cache the JSON for future use (6 hour TTL)
+        await _dbHelper.cachePlaylistJson(playlistUrl, jsonData);
+        
+        return response.data;
+      }
+      
+    } catch (e) {
+      print('Error fetching playlist JSON: $e');
+      
+      // Fallback to any expired cache as last resort (cold start)
+      try {
+        final entries = await _dbHelper.realm.then((realm) => 
+          realm.all<PlaylistData>().where((p) => p.playlistUrl == playlistUrl));
+        
+        if (entries.isNotEmpty) {
+          print('Using expired cache as fallback for cold start');
+          return json.decode(entries.first.jsonData);
+        }
+      } catch (fallbackError) {
+        print('Fallback cache also failed: $fallbackError');
+      }
+    }
+    
+    return null;
+  }
+
   // Adaptive predictive caching for next songs in playlist
   Future<void> preloadPlaylistItems(String playlistKey, List<String> urls, {int maxPreload = 3, int currentIndex = 0}) async {
     // Clear old playlist cache using consistent key
@@ -447,6 +490,7 @@ class AudioCacheService {
         url,
         priority,
         DateTime.now(),
+        DateTime.now().add(const Duration(hours: 24)), // TTL 24 hours
         false,
       );
       await _dbHelper.insertPlaylistCacheEntry(entry);

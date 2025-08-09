@@ -114,11 +114,11 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
       final existingMoodEntry = await RealmDatabaseHelper().getTodaysMoodEntry();
 
       if (existingMoodEntry != null) {
-        // Update existing mood entry
+        // Update existing mood entry with current timestamp
         final updatedMoodEntry = MoodEntryRealm(
           existingMoodEntry.id,
           mood,
-          existingMoodEntry.createdAt,
+          DateTime.now(),
           note: existingMoodEntry.note,
         );
         await RealmDatabaseHelper().updateMoodEntry(updatedMoodEntry);

@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 import '../models/realm_models.dart';
 import '../utils/realm_database_helper.dart';
 import 'journal_writing.dart';
+import 'journal_view.dart';
 import '../utils/emotion_colors.dart';
+import 'package:animations/animations.dart';
 
 class JournalListScreen extends StatefulWidget {
   const JournalListScreen({super.key});
@@ -34,10 +36,8 @@ class _JournalListScreenState extends State<JournalListScreen> {
       final moodMap = <String, MoodEntryRealm>{};
       for (var mood in moodEntries) {
         final dateKey = DateFormat('yyyy-MM-dd').format(mood.createdAt);
-        // Store the first mood of the day
-        if (!moodMap.containsKey(dateKey)) {
-          moodMap[dateKey] = mood;
-        }
+        // Always store the most recent mood for the day
+        moodMap[dateKey] = mood;
       }
 
       setState(() {
@@ -63,10 +63,7 @@ class _JournalListScreenState extends State<JournalListScreen> {
   Future<void> _navigateToJournalWriting() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) =>
-            const JournalWritingScreen(mood: 'Neutral'), // Default mood
-      ),
+      MaterialPageRoute(builder: (context) => const JournalWritingScreen()),
     );
 
     if (result == true) {
@@ -115,26 +112,29 @@ class _JournalListScreenState extends State<JournalListScreen> {
     if (journals.isEmpty) {
       return const SizedBox.shrink(); // Hide FAB if no entries
     }
-    return Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-        color: const Color(0xFF115e5a),
-        borderRadius: BorderRadius.circular(16), // Squircle shape
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
+    return OpenContainer(
+      closedShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(30),
       ),
-      child: FloatingActionButton(
-        onPressed: _navigateToJournalWriting,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
+      transitionType: ContainerTransitionType.fade,
+      openShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(30),
       ),
+      closedColor: const Color(0xFF115e5a),
+      closedBuilder: (context, openContainer) => Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          color: const Color(0xFF115e5a),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: IconButton(
+          onPressed: openContainer,
+          icon: const Icon(Icons.add, color: Colors.white, size: 28),
+        ),
+      ),
+      openBuilder: (context, closeContainer) => const JournalWritingScreen(),
+      transitionDuration: const Duration(milliseconds: 500),
     );
   }
 
@@ -214,7 +214,6 @@ class _JournalListScreenState extends State<JournalListScreen> {
       elevation: 4,
       child: InkWell(
         onTap: () => _viewJournalEntry(journal),
-        onLongPress: () => _showJournalOptions(journal),
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -237,9 +236,59 @@ class _JournalListScreenState extends State<JournalListScreen> {
                     children: [
                       _buildEmotionChip(emotion, color),
                       const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () => _showJournalOptions(journal),
-                        child: Icon(
+                      PopupMenuButton<String>(
+                        onSelected: (String value) {
+                          switch (value) {
+                            case 'view':
+                              _viewJournalEntry(journal);
+                              break;
+                            case 'delete':
+                              _deleteJournalEntry(journal);
+                              break;
+                          }
+                        },
+                        itemBuilder: (BuildContext context) => [
+                          PopupMenuItem<String>(
+                            value: 'view',
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.visibility,
+                                  color: Color(0xFF115e5a),
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'View Entry',
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Delete Entry',
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        icon: Icon(
                           Icons.more_vert,
                           color: Colors.grey[600],
                           size: 20,
@@ -373,68 +422,10 @@ class _JournalListScreenState extends State<JournalListScreen> {
     }
   }
 
-  void _showJournalOptions(JournalEntryRealm journal) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.visibility, color: Color(0xFF115e5a)),
-                title: Text(
-                  'View Entry',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w500),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _viewJournalEntry(journal);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: Text(
-                  'Delete Entry',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w500,
-                    color: Colors.red,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _deleteJournalEntry(journal);
-                },
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   void _viewJournalEntry(JournalEntryRealm entry) {
-    // TODO: Navigate to journal detail view
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Journal detail view coming soon!'),
-        backgroundColor: Color(0xFF115e5a),
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => JournalViewScreen(entry: entry)),
     );
   }
 }

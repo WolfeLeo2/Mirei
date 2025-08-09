@@ -51,7 +51,7 @@ class _JournalEntryRealm {
   late String title;
   late String content;
   late DateTime createdAt;
-  String? mood;
+  // Removed mood field - moods are stored separately in MoodEntryRealm
   
   // Store image paths as a single string with delimiter
   String? imagePathsString;
@@ -107,7 +107,21 @@ class _PlaylistCacheEntry {
   late String songUrl;
   late int priority; // 1 = next song, 2 = second next, etc.
   late DateTime createdAt;
+  late DateTime expiresAt; // TTL for playlist entries
   late bool isPreloaded;
+}
+
+// Playlist JSON data cache with TTL
+@RealmModel()
+class _PlaylistData {
+  @PrimaryKey()
+  late String playlistUrl; // URL/key for the playlist
+  
+  late String jsonData; // JSON string of the playlist
+  late DateTime cachedAt;
+  late DateTime expiresAt; // TTL for playlist JSON
+  late int trackCount;
+  String? title;
 }
 
 // Network request cache for metadata

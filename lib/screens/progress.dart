@@ -46,15 +46,25 @@ class _ProgressScreenState extends State<ProgressScreen> {
         endOfMonth,
       );
 
-      final frequency = <String, int>{};
+      // Group moods by date, keep only the latest for each day
+      final latestMoodPerDay = <String, MoodEntryRealm>{};
       for (final mood in moods) {
+        final dateKey = DateFormat('yyyy-MM-dd').format(mood.createdAt);
+        // Always overwrite to keep the latest
+        latestMoodPerDay[dateKey] = mood;
+      }
+      final latestMoods = latestMoodPerDay.values.toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      final frequency = <String, int>{};
+      for (final mood in latestMoods) {
         frequency[mood.mood] = (frequency[mood.mood] ?? 0) + 1;
       }
 
       setState(() {
-        monthlyMoods = moods;
+        monthlyMoods = latestMoods;
         moodFrequency = frequency;
-        totalEntries = moods.length;
+        totalEntries = latestMoods.length;
         currentMonth = DateFormat('MMMM yyyy').format(selectedDate);
         isLoading = false;
       });

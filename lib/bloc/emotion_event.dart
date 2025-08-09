@@ -1,9 +1,7 @@
 part of 'emotion_bloc.dart';
 
-abstract class EmotionEvent {}
-
-class EmotionSelected extends EmotionEvent {
-  final int selectedIndex;
-
-  EmotionSelected(this.selectedIndex);
+@freezed
+abstract class EmotionEvent with _$EmotionEvent {
+  const factory EmotionEvent.loadInitialMood() = LoadInitialMood;
+  const factory EmotionEvent.moodSelected(String mood) = MoodSelected;
 }

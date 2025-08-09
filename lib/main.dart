@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mirei/bloc/emotion_bloc.dart';
+import 'package:mirei/repositories/mood_repository.dart';
 import 'package:mirei/screens/main_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'services/performance_service.dart';
@@ -35,7 +36,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (context) => EmotionBloc()),
+        BlocProvider(
+          create: (context) => EmotionBloc(
+            moodRepository: RealmMoodRepository(),
+          ),
+        ),
       ],
       child: MaterialApp(
         title: 'Mirei',

@@ -22,8 +22,8 @@ class SectionHeader extends StatelessWidget {
             Container(
               width: 5,
               height: 5,
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 20, 50, 81).withValues(alpha: 0.5),
+              decoration: const BoxDecoration(
+                color: Color.fromRGBO(20, 50, 81, 0.5),
                 shape: BoxShape.circle,
               ),
             ),
@@ -31,8 +31,8 @@ class SectionHeader extends StatelessWidget {
             Container(
               width: 5,
               height: 5,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1a237e).withOpacity(0.5),
+              decoration: const BoxDecoration(
+                color: Color.fromRGBO(26, 35, 126, 0.5),
                 shape: BoxShape.circle,
               ),
             ),
@@ -49,10 +49,10 @@ class SectionHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
+        const Text(
           'For rest and recuperation',
           style: TextStyle(
-            color: const Color.fromARGB(255, 20, 50, 81).withValues(alpha: 0.7),
+            color: Color.fromRGBO(20, 50, 81, 0.7),
             fontSize: 16,
             letterSpacing: -1.0,
           ),
