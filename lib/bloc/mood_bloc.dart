@@ -2,50 +2,50 @@ import 'package:bloc/bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../repositories/mood_repository.dart';
 
-part 'emotion_event.dart';
-part 'emotion_state.dart';
-part 'emotion_bloc.freezed.dart';
+part 'mood_event.dart';
+part 'mood_state.dart';
+part 'mood_bloc.freezed.dart';
 
-class EmotionBloc extends Bloc<EmotionEvent, EmotionState> {
+class MoodBloc extends Bloc<MoodEvent, MoodState> {
   final MoodRepository _moodRepository;
 
-  // This static list defines the available emotions.
+  // This static list defines the available Moods.
   // In a more dynamic app, this could also come from the repository.
-  static const List<String> _emotions = [
+  static const List<String> _moods = [
     'Angelic', 'Sorry', 'Excited', 'Embarrassed', 'Happy',
     'Romantic', 'Neutral', 'Sad', 'Silly',
   ];
 
-  EmotionBloc({required MoodRepository moodRepository})
+  MoodBloc({required MoodRepository moodRepository})
       : _moodRepository = moodRepository,
-        super(const EmotionState.initial()) {
+        super(const MoodState.initial()) {
     on<LoadInitialMood>(_onLoadInitialMood);
     on<MoodSelected>(_onMoodSelected);
   }
 
   Future<void> _onLoadInitialMood(
-      LoadInitialMood event, Emitter<EmotionState> emit) async {
-    emit(const EmotionState.loadInProgress());
+      LoadInitialMood event, Emitter<MoodState> emit) async {
+    emit(const MoodState.loadInProgress());
     try {
       final todaysMood = await _moodRepository.getTodaysMood();
       // Default to 'Neutral' if no mood is set for the day.
       final initialMood = todaysMood?.mood ?? 'Neutral';
-      emit(EmotionState.loadSuccess(
-        allEmotions: _emotions,
+      emit(MoodState.loadSuccess(
+        allMoods: _moods,
         selectedMood: initialMood,
       ));
     } catch (e) {
-      emit(EmotionState.loadFailure(e.toString()));
+      emit(MoodState.loadFailure(e.toString()));
     }
   }
 
   Future<void> _onMoodSelected(
-      MoodSelected event, Emitter<EmotionState> emit) async {
+      MoodSelected event, Emitter<MoodState> emit) async {
     final currentState = state;
-    if (currentState is EmotionLoadSuccess) {
+    if (currentState is MoodLoadSuccess) {
       // Immediately update the UI with the new selection.
-      emit(EmotionState.loadSuccess(
-        allEmotions: currentState.allEmotions,
+      emit(MoodState.loadSuccess(
+        allMoods: currentState.allMoods,
         selectedMood: event.mood,
       ));
       try {
@@ -56,7 +56,7 @@ class EmotionBloc extends Bloc<EmotionEvent, EmotionState> {
       } catch (e) {
         // If saving fails, emit a failure state. You could also revert
         // the UI to the previous state if desired.
-        emit(EmotionState.loadFailure("Failed to save mood: ${e.toString()}"));
+        emit(MoodState.loadFailure("Failed to save mood: ${e.toString()}"));
       }
     }
   }

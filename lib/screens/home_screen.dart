@@ -3,6 +3,7 @@ import 'package:mirei/components/top_bar.dart';
 import 'package:mirei/components/main_card.dart';
 import 'package:mirei/components/section_header.dart';
 import 'package:mirei/components/horizontal_card_list.dart';
+import 'package:mirei/models/card_data.dart';
 import 'package:mirei/models/session_info.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -13,6 +14,49 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final List<CardData> cardData = [
+    const CardData(
+      gradient: LinearGradient(
+        colors: [Color(0xFFfce5e7), Color(0xFFe8e0f9)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      title: 'Relax Mode',
+      subtitle: 'A soothing atmosphere for rest',
+      imagePath: 'assets/images/image1.jpg',
+    ),
+    const CardData(
+      gradient: LinearGradient(
+        colors: [Color(0xFFd9f0ff), Color(0xFFcde5fe)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      title: 'Mood',
+      subtitle: 'Boogey Woogey',
+      imagePath: 'assets/images/image2.jpg',
+    ),
+    const CardData(
+      title: 'Focus Mode',
+      subtitle: 'Enhanced concentration',
+      imagePath: 'assets/images/gradient.png',
+      gradient: LinearGradient(
+        colors: [Color(0xFF6366f1), Color(0xFF8b5cf6)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+    ),
+    const CardData(
+      title: 'Relaxing',
+      subtitle: 'A soothing atmosphere for rest',
+      imagePath: 'assets/images/image2.jpg',
+      gradient: LinearGradient(
+        colors: [Color(0xFFd9f0ff), Color(0xFFcde5fe)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final session = getSessionInfo();
@@ -38,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 30),
               RepaintBoundary(child: SectionHeader()),
               const SizedBox(height: 20),
-              RepaintBoundary(child: const HorizontalCardList()),
+              RepaintBoundary(child: HorizontalCardList(cardData: cardData)),
               const SizedBox(height: 100), // Space for the bottom nav bar
             ],
           ),

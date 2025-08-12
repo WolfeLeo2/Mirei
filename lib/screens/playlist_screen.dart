@@ -27,15 +27,14 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
   List<Map<String, dynamic>> songs = [];
   bool isInitialLoading = true;
   bool isLoadingMore = false;
+  bool isLoadingFromCache = false;
   String? error;
 
   // Simplified caching with existing services only
   late final AudioCacheService _cacheService;
   late final NetworkOptimizer _networkOptimizer;
 
-  // Cache for playlist data to avoid repeated fetches
-  static final Map<String, List<Map<String, dynamic>>> _playlistCache = {};
-  static final Map<String, DateTime> _cacheTimestamps = {};
+  // Remove temporary cache - use persistent database cache instead
 
   // Static const styles for better performance
   static final TextStyle _songTitleStyle = GoogleFonts.inter(
@@ -72,10 +71,8 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
       // Initialize services before using them
       await _initializeServices();
 
-      setState(() {
-        isInitialLoading = false; // Show UI immediately
-      });
-      _loadPlaylist(); // Start loading in background
+      // Start loading playlist (cache-first via AudioCacheService)
+      _loadPlaylist();
     });
   }
 
@@ -90,31 +87,11 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
     }
   }
 
-  /// Simple playlist data caching
-  List<Map<String, dynamic>>? _getCachedPlaylistData(String cacheKey) {
-    final timestamp = _cacheTimestamps[cacheKey];
-    if (timestamp == null) return null;
-
-    // Cache expires after 30 minutes
-    if (DateTime.now().difference(timestamp) > const Duration(minutes: 30)) {
-      _playlistCache.remove(cacheKey);
-      _cacheTimestamps.remove(cacheKey);
-      return null;
-    }
-
-    return _playlistCache[cacheKey];
-  }
-
-  /// Cache playlist data
-  void _cachePlaylistData(String cacheKey, List<Map<String, dynamic>> data) {
-    _playlistCache[cacheKey] = List.from(data);
-    _cacheTimestamps[cacheKey] = DateTime.now();
-  }
-
   Future<void> _loadPlaylist() async {
     try {
       setState(() {
         isLoadingMore = true;
+        isLoadingFromCache = true;
         error = null;
       });
 
@@ -123,40 +100,26 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
       final apiUrl =
           'https://wolfeleo2.github.io/audio-cdn/api/$playlistName.json';
 
-      // Check for cached playlist data first
-      final cacheKey = widget.playlistUrl;
-      final cachedData = _getCachedPlaylistData(cacheKey);
-      if (cachedData != null) {
-        print('Loading playlist from cache: ${cachedData.length} songs');
-        if (mounted) {
-          setState(() {
-            songs = cachedData;
-            isInitialLoading = false;
-            isLoadingMore = false;
-          });
-        }
+      print('Loading playlist: $apiUrl'); // Debug log
+
+      // Use persistent database caching via AudioCacheService
+      final jsonData = await _cacheService.getPlaylistWithCache(apiUrl);
+
+      if (jsonData != null) {
+        print(
+          'Loaded playlist data with ${jsonData['tracks']?.length ?? 0} tracks',
+        );
+
+        setState(() {
+          isLoadingFromCache = false;
+        });
+
+        await _parseApiResponse(jsonData);
 
         // Pre-cache audio files for smooth playback
         await _preloadPlaylistAudio();
-        return;
-      }
-
-      print('Fetching from API: $apiUrl'); // Debug log
-
-      // Use the network optimizer for API requests
-      final response = await _networkOptimizer.apiClient.get(apiUrl);
-
-      if (response.statusCode == 200) {
-        final jsonData = response.data;
-        await _parseApiResponse(jsonData);
-
-        // Cache the playlist data for future loads
-        _cachePlaylistData(cacheKey, songs);
-
-        // Pre-cache next few songs for smooth playback
-        await _preloadPlaylistAudio();
       } else {
-        throw Exception('API not available: ${response.statusCode}');
+        throw Exception('Failed to load playlist data from cache or network');
       }
     } catch (e) {
       print('Error loading playlist: $e'); // Debug log
@@ -170,6 +133,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
         setState(() {
           isInitialLoading = false;
           isLoadingMore = false;
+          isLoadingFromCache = false;
         });
       }
     }
@@ -517,6 +481,22 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
   }
 
   void _playSong(Map<String, dynamic> song, int index) {
+    print('\n🎵 PlaylistScreen._playSong called:');
+    print('   - Song index: $index');
+    print('   - Song title: ${song['title']}');
+    print('   - Song artist: ${song['artist']}');
+    print('   - Song URL: ${song['url']}');
+    print('   - Playlist length: ${songs.length}');
+    print('   - Album art: ${song['albumArt'] ?? widget.albumArt}');
+
+    // Verify the song data structure
+    print('\n🔍 Song data structure:');
+    song.forEach((key, value) {
+      print(
+        '   - $key: ${value.toString().length > 50 ? '${value.toString().substring(0, 50)}...' : value}',
+      );
+    });
+
     showMediaPlayerModal(
       context: context,
       trackTitle: song['title'] ?? 'Unknown Title',
@@ -526,6 +506,8 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
       playlist: songs, // Pass the entire playlist
       currentIndex: index, // Pass the current song index
     );
+
+    print('✅ showMediaPlayerModal called successfully\n');
   }
 }
 

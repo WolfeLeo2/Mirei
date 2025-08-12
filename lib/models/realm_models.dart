@@ -37,8 +37,9 @@ class AudioRecordingData {
 class _MoodEntryRealm {
   @PrimaryKey()
   late ObjectId id;
-  
+
   late String mood;
+  @Indexed() // Index for date-based queries (most common query pattern)
   late DateTime createdAt;
   String? note;
 }
@@ -47,15 +48,16 @@ class _MoodEntryRealm {
 class _JournalEntryRealm {
   @PrimaryKey()
   late ObjectId id;
-  
+
   late String title;
   late String content;
+  @Indexed() // Index for date-based queries and sorting
   late DateTime createdAt;
   // Removed mood field - moods are stored separately in MoodEntryRealm
-  
+
   // Store image paths as a single string with delimiter
   String? imagePathsString;
-  
+
   // Store audio recordings as JSON string
   String? audioRecordingsString;
 
@@ -64,19 +66,21 @@ class _JournalEntryRealm {
     if (imagePathsString == null || imagePathsString!.isEmpty) return [];
     return imagePathsString!.split('|||');
   }
-  
+
   set imagePaths(List<String> paths) {
     imagePathsString = paths.join('|||');
   }
 
   List<AudioRecordingData> get audioRecordings {
-    if (audioRecordingsString == null || audioRecordingsString!.isEmpty) return [];
-    return audioRecordingsString!.split('|||')
+    if (audioRecordingsString == null || audioRecordingsString!.isEmpty)
+      return [];
+    return audioRecordingsString!
+        .split('|||')
         .where((s) => s.isNotEmpty)
         .map((s) => AudioRecordingData.fromJson(s))
         .toList();
   }
-  
+
   set audioRecordings(List<AudioRecordingData> recordings) {
     audioRecordingsString = recordings.map((r) => r.toJson()).join('|||');
   }
@@ -87,9 +91,10 @@ class _JournalEntryRealm {
 class _AudioCacheEntry {
   @PrimaryKey()
   late String url; // URL is the primary key
-  
+
   late String localPath; // Local file path
   late DateTime cachedAt;
+  @Indexed() // Index for LRU cache cleanup queries
   late DateTime lastAccessed;
   late int sizeBytes;
   String? mimeType;
@@ -102,11 +107,13 @@ class _AudioCacheEntry {
 class _PlaylistCacheEntry {
   @PrimaryKey()
   late ObjectId id;
-  
+
+  @Indexed() // Index for playlist-based queries
   late String playlistId; // Identifier for the playlist
   late String songUrl;
   late int priority; // 1 = next song, 2 = second next, etc.
   late DateTime createdAt;
+  @Indexed() // Index for TTL cleanup queries
   late DateTime expiresAt; // TTL for playlist entries
   late bool isPreloaded;
 }
@@ -116,9 +123,10 @@ class _PlaylistCacheEntry {
 class _PlaylistData {
   @PrimaryKey()
   late String playlistUrl; // URL/key for the playlist
-  
+
   late String jsonData; // JSON string of the playlist
   late DateTime cachedAt;
+  @Indexed() // Index for TTL cleanup queries
   late DateTime expiresAt; // TTL for playlist JSON
   late int trackCount;
   String? title;
@@ -129,9 +137,10 @@ class _PlaylistData {
 class _HttpCacheEntry {
   @PrimaryKey()
   late String key; // Hash of URL + headers
-  
+
   late String responseBody;
   late DateTime cachedAt;
+  @Indexed() // Index for TTL cleanup queries
   late DateTime expiresAt;
   late int statusCode;
   String? contentType;

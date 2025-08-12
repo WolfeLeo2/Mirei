@@ -39,11 +39,14 @@ class RealmDatabaseHelper {
       final config = Configuration.local(
         schemas, 
         path: realmPath,
-        schemaVersion: 4, // Increment version due to removing mood field from JournalEntryRealm
+        schemaVersion:
+            5, // Increment version due to added indexes for performance optimization
         migrationCallback: (migration, oldSchemaVersion) {
           // For cache data, it's safer to just clear and rebuild rather than migrate
-          if (oldSchemaVersion < 4) {
-            print('Schema version $oldSchemaVersion detected. Cache will be rebuilt.');
+          if (oldSchemaVersion < 5) {
+            print(
+              'Schema version $oldSchemaVersion detected. Cache will be rebuilt with new indexes.',
+            );
             // Migration will be handled by database recreation fallback
           }
         },
@@ -64,7 +67,11 @@ class RealmDatabaseHelper {
         }
         
         // Create fresh database with new schema
-        final config = Configuration.local(schemas, path: realmPath, schemaVersion: 3);
+        final config = Configuration.local(
+          schemas,
+          path: realmPath,
+          schemaVersion: 3,
+        );
         return Realm(config);
       } catch (recreateError) {
         print('Failed to recreate database: $recreateError');
@@ -119,7 +126,9 @@ class RealmDatabaseHelper {
 
   Future<List<MoodEntryRealm>> getAllMoodEntries() async {
     final realmDb = await realm;
-    final results = realmDb.all<MoodEntryRealm>().query('TRUEPREDICATE SORT(createdAt DESC)');
+    final results = realmDb.all<MoodEntryRealm>().query(
+      'TRUEPREDICATE SORT(createdAt DESC)',
+    );
     return results.toList();
   }
 
@@ -128,8 +137,10 @@ class RealmDatabaseHelper {
     DateTime end,
   ) async {
     final realmDb = await realm;
-    final results = realmDb.all<MoodEntryRealm>()
-        .query('createdAt >= \$0 AND createdAt <= \$1 SORT(createdAt DESC)', [start, end]);
+    final results = realmDb.all<MoodEntryRealm>().query(
+      'createdAt >= \$0 AND createdAt <= \$1 SORT(createdAt DESC)',
+      [start, end],
+    );
     return results.toList();
   }
 
@@ -162,8 +173,10 @@ class RealmDatabaseHelper {
     final startOfDay = DateTime(now.year, now.month, now.day);
     final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
-    final results = realmDb.all<MoodEntryRealm>()
-        .query('createdAt >= \$0 AND createdAt <= \$1 SORT(createdAt DESC) LIMIT(1)', [startOfDay, endOfDay]);
+    final results = realmDb.all<MoodEntryRealm>().query(
+      'createdAt >= \$0 AND createdAt <= \$1 SORT(createdAt DESC) LIMIT(1)',
+      [startOfDay, endOfDay],
+    );
     
     return results.isEmpty ? null : results.first;
   }
@@ -183,7 +196,9 @@ class RealmDatabaseHelper {
 
   Future<List<JournalEntryRealm>> getAllJournalEntries() async {
     final realmDb = await realm;
-    final results = realmDb.all<JournalEntryRealm>().query('TRUEPREDICATE SORT(createdAt DESC)');
+    final results = realmDb.all<JournalEntryRealm>().query(
+      'TRUEPREDICATE SORT(createdAt DESC)',
+    );
     return results.toList();
   }
 
@@ -215,6 +230,18 @@ class RealmDatabaseHelper {
         realmDb.delete(entry);
       });
     }
+  }
+
+  Future<List<JournalEntryRealm>> getJournalEntriesForPeriod(
+    DateTime start,
+    DateTime end,
+  ) async {
+    final realmDb = await realm;
+    final results = realmDb.all<JournalEntryRealm>().query(
+      'createdAt >= \$0 AND createdAt <= \$1 SORT(createdAt DESC)',
+      [start, end],
+    );
+    return results.toList();
   }
 
   // AUDIO CACHE METHODS
@@ -258,8 +285,10 @@ class RealmDatabaseHelper {
 
   Future<List<AudioCacheEntry>> getOldestCacheEntries(int limit) async {
     final realmDb = await realm;
-    final results = realmDb.all<AudioCacheEntry>()
-        .query('TRUEPREDICATE SORT(lastAccessed ASC) LIMIT(\$0)', [limit]);
+    final results = realmDb.all<AudioCacheEntry>().query(
+      'TRUEPREDICATE SORT(lastAccessed ASC) LIMIT(\$0)',
+      [limit],
+    );
     return results.toList();
   }
 
@@ -281,17 +310,23 @@ class RealmDatabaseHelper {
     });
   }
 
-  Future<List<PlaylistCacheEntry>> getPlaylistCacheEntries(String playlistId) async {
+  Future<List<PlaylistCacheEntry>> getPlaylistCacheEntries(
+    String playlistId,
+  ) async {
     final realmDb = await realm;
-    final results = realmDb.all<PlaylistCacheEntry>()
-        .query('playlistId == \$0 SORT(priority ASC)', [playlistId]);
+    final results = realmDb.all<PlaylistCacheEntry>().query(
+      'playlistId == \$0 SORT(priority ASC)',
+      [playlistId],
+    );
     return results.toList();
   }
 
   Future<void> clearPlaylistCache(String playlistId) async {
     final realmDb = await realm;
-    final entries = realmDb.all<PlaylistCacheEntry>()
-        .query('playlistId == \$0', [playlistId]);
+    final entries = realmDb.all<PlaylistCacheEntry>().query(
+      'playlistId == \$0',
+      [playlistId],
+    );
     
     realmDb.write(() {
       realmDb.deleteMany(entries);
@@ -301,8 +336,10 @@ class RealmDatabaseHelper {
   Future<void> cleanExpiredPlaylistEntries() async {
     final realmDb = await realm;
     final now = DateTime.now();
-    final expiredEntries = realmDb.all<PlaylistCacheEntry>()
-        .query('expiresAt < \$0', [now]);
+    final expiredEntries = realmDb.all<PlaylistCacheEntry>().query(
+      'expiresAt < \$0',
+      [now],
+    );
     
     realmDb.write(() {
       realmDb.deleteMany(expiredEntries);
@@ -311,7 +348,10 @@ class RealmDatabaseHelper {
     print('Cleaned ${expiredEntries.length} expired playlist cache entries');
   }
 
-  Future<void> updatePlaylistCachePreloadStatus(ObjectId id, bool isPreloaded) async {
+  Future<void> updatePlaylistCachePreloadStatus(
+    ObjectId id,
+    bool isPreloaded,
+  ) async {
     final realmDb = await realm;
     final entry = realmDb.find<PlaylistCacheEntry>(id);
     if (entry != null) {
@@ -322,7 +362,11 @@ class RealmDatabaseHelper {
   }
 
   // PLAYLIST JSON CACHE METHODS WITH TTL
-  Future<void> cachePlaylistJson(String playlistUrl, String jsonData, {Duration ttl = const Duration(hours: 6)}) async {
+  Future<void> cachePlaylistJson(
+    String playlistUrl,
+    String jsonData, {
+    Duration ttl = const Duration(hours: 6),
+  }) async {
     final realmDb = await realm;
     await realmDb.writeAsync(() {
       final now = DateTime.now();
@@ -359,7 +403,9 @@ class RealmDatabaseHelper {
     
     if (entry != null) {
       if (entry.expiresAt.isAfter(now)) {
-        print('Playlist cache hit for: $playlistUrl (expires: ${entry.expiresAt})');
+        print(
+          'Playlist cache hit for: $playlistUrl (expires: ${entry.expiresAt})',
+        );
         return entry.jsonData;
       } else {
         // Expired entry, clean it up
@@ -376,8 +422,10 @@ class RealmDatabaseHelper {
   Future<void> cleanExpiredPlaylistData() async {
     final realmDb = await realm;
     final now = DateTime.now();
-    final expiredPlaylists = realmDb.all<PlaylistData>()
-        .query('expiresAt < \$0', [now]);
+    final expiredPlaylists = realmDb.all<PlaylistData>().query(
+      'expiresAt < \$0',
+      [now],
+    );
     
     await realmDb.writeAsync(() {
       realmDb.deleteMany(expiredPlaylists);
@@ -402,8 +450,10 @@ class RealmDatabaseHelper {
   Future<void> cleanExpiredHttpCache() async {
     final realmDb = await realm;
     final now = DateTime.now();
-    final expiredEntries = realmDb.all<HttpCacheEntry>()
-        .query('expiresAt < \$0', [now]);
+    final expiredEntries = realmDb.all<HttpCacheEntry>().query(
+      'expiresAt < \$0',
+      [now],
+    );
     
     realmDb.write(() {
       realmDb.deleteMany(expiredEntries);

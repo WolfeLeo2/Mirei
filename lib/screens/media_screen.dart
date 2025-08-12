@@ -2,19 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/media_player_modal.dart';
 import 'playlist_screen.dart';
-// Removed LiveStreamService
+import '../services/youtube_live_audio_service.dart';
 import 'package:just_audio/just_audio.dart';
+import '../services/background_audio_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/media_player_bloc.dart';
+import '../bloc/media_player_event.dart';
 
 // Static data classes for better performance
 class _AlbumData {
   final String title;
   final String subtitle;
   final String imagePath;
+  final String? url;
 
   const _AlbumData({
     required this.title,
     required this.subtitle,
     required this.imagePath,
+    this.url,
   });
 }
 
@@ -54,16 +60,32 @@ class MediaScreen extends StatefulWidget {
 }
 
 class _MediaScreenState extends State<MediaScreen> {
-  void _pauseOrResumeLiveRadio() {
-    if (_audioPlayer.playing) {
-      _audioPlayer.pause();
+  final YouTubeLiveAudioService _ytAudioService = YouTubeLiveAudioService();
+  void _pauseOrResumeLiveRadio() async {
+    final bg = BackgroundAudioService.instance;
+    try {
+      if (isLiveRadioPaused) {
+        await bg.play();
+        setState(() {
+          isLiveRadioPaused = false;
+          isLiveRadioError = false;
+        });
     } else {
-      _audioPlayer.play();
+        await bg.pause();
+        setState(() {
+          isLiveRadioPaused = true;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLiveRadioError = true;
+      });
     }
   }
 
-  void _stopLiveRadio() {
-    _audioPlayer.stop();
+  void _stopLiveRadio() async {
+    final bg = BackgroundAudioService.instance;
+    await bg.stop();
     setState(() {
       currentLiveStation = null;
       isLiveRadioPaused = false;
@@ -110,16 +132,19 @@ class _MediaScreenState extends State<MediaScreen> {
       title: 'Lofi Mix',
       subtitle: 'Kick back and relax',
       imagePath: 'assets/images/lofi_girl.jpeg',
+      url: 'https://youtu.be/AMcVJmb5mvk?list=RDAMcVJmb5mvk',
     ),
     _AlbumData(
       title: 'Ocean Waves',
       subtitle: 'Nature Sounds',
       imagePath: 'assets/images/bg-afternoon.jpg',
+      url: 'https://www.youtube.com/watch?v=5yx6BWlEVcY',
     ),
     _AlbumData(
       title: 'Morning Jazz',
       subtitle: 'Relaxing Vibes',
       imagePath: 'assets/images/bg-evening.jpg',
+      url: 'https://www.youtube.com/watch?v=kgx4WGK0oNU',
     ),
   ];
 
@@ -292,6 +317,7 @@ class _MediaScreenState extends State<MediaScreen> {
       trackTitle: album.title,
       artistName: 'Various Artists',
       albumArt: album.imagePath,
+      audioUrl: album.url,
     );
   }
 
@@ -374,18 +400,35 @@ class _MediaScreenState extends State<MediaScreen> {
         isLiveRadioError = false;
       });
 
+      // Ensure single-source playback: stop BLoC player if active
+      if (mounted) {
+        final bloc = context.read<MediaPlayerBloc>();
+        // Pause current playback if any
+        bloc.add(const Pause());
+      }
+
+      // Stop local AudioPlayer instance if playing anything
       await _audioPlayer.stop();
 
-      // Use direct radio streams for all stations
+      // Map station to stream URL and metadata
       String streamUrl = station.url;
       if (station.title == 'Chillhop Radio') {
         streamUrl = 'http://puma.streemlion.com:3620/stream';
       } else if (station.title == 'LoFi Hip Hop Radio') {
         streamUrl = 'http://manager.dhectar.fr:1480/stream';
       }
-      try {
-        await _audioPlayer.setUrl(streamUrl);
-        await _audioPlayer.play();
+
+      // Use shared BackgroundAudioService for notifications and single session
+      final bg = BackgroundAudioService.instance;
+      await bg.initialize();
+      await bg.playLiveStream(
+        title: station.title,
+        artist: station.subtitle,
+        artUrl: 'asset://${station.imagePath}',
+        streamUrl: streamUrl,
+      );
+
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Now playing: ${station.title}'),
@@ -393,10 +436,12 @@ class _MediaScreenState extends State<MediaScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+      }
       } catch (e) {
         setState(() {
           isLiveRadioError = true;
         });
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to play ${station.title}: $e'),
@@ -496,13 +541,7 @@ class _MixCard extends StatelessWidget {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      mix.imagePath,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const _FallbackMixImage();
-                      },
-                    ),
+                    child: Image.asset(mix.imagePath, fit: BoxFit.cover),
                   ),
                 ),
               ),
@@ -523,32 +562,6 @@ class _MixCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// Const fallback image widget
-class _FallbackMixImage extends StatelessWidget {
-  const _FallbackMixImage();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.all(Radius.circular(16)),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF115e5a), Color.fromRGBO(17, 94, 90, 0.7)],
-        ),
-      ),
-      child: const Center(
-        child: Icon(
-          Icons.music_note,
-          size: 40,
-          color: Color.fromRGBO(255, 255, 255, 0.8),
         ),
       ),
     );
@@ -604,9 +617,6 @@ class _LiveRadioCard extends StatelessWidget {
                         child: Image.asset(
                           station.imagePath,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const _FallbackRadioImage();
-                          },
                           color: isPlaying
                               ? Colors.black.withOpacity(0.2)
                               : isPaused
@@ -781,32 +791,6 @@ class _LiveRadioCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// Fallback radio image widget
-class _FallbackRadioImage extends StatelessWidget {
-  const _FallbackRadioImage();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.all(Radius.circular(16)),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF115e5a), Color.fromRGBO(17, 94, 90, 0.7)],
-        ),
-      ),
-      child: const Center(
-        child: Icon(
-          Icons.radio,
-          size: 40,
-          color: Color.fromRGBO(255, 255, 255, 0.8),
         ),
       ),
     );

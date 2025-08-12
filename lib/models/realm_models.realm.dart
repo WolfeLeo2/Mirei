@@ -92,7 +92,11 @@ class MoodEntryRealm extends _MoodEntryRealm
       [
         SchemaProperty('id', RealmPropertyType.objectid, primaryKey: true),
         SchemaProperty('mood', RealmPropertyType.string),
-        SchemaProperty('createdAt', RealmPropertyType.timestamp),
+        SchemaProperty(
+          'createdAt',
+          RealmPropertyType.timestamp,
+          indexType: RealmIndexType.regular,
+        ),
         SchemaProperty('note', RealmPropertyType.string, optional: true),
       ],
     );
@@ -215,7 +219,11 @@ class JournalEntryRealm extends _JournalEntryRealm
         SchemaProperty('id', RealmPropertyType.objectid, primaryKey: true),
         SchemaProperty('title', RealmPropertyType.string),
         SchemaProperty('content', RealmPropertyType.string),
-        SchemaProperty('createdAt', RealmPropertyType.timestamp),
+        SchemaProperty(
+          'createdAt',
+          RealmPropertyType.timestamp,
+          indexType: RealmIndexType.regular,
+        ),
         SchemaProperty(
           'imagePathsString',
           RealmPropertyType.string,
@@ -367,7 +375,11 @@ class AudioCacheEntry extends _AudioCacheEntry
         SchemaProperty('url', RealmPropertyType.string, primaryKey: true),
         SchemaProperty('localPath', RealmPropertyType.string),
         SchemaProperty('cachedAt', RealmPropertyType.timestamp),
-        SchemaProperty('lastAccessed', RealmPropertyType.timestamp),
+        SchemaProperty(
+          'lastAccessed',
+          RealmPropertyType.timestamp,
+          indexType: RealmIndexType.regular,
+        ),
         SchemaProperty('sizeBytes', RealmPropertyType.int),
         SchemaProperty('mimeType', RealmPropertyType.string, optional: true),
         SchemaProperty('accessCount', RealmPropertyType.int),
@@ -505,11 +517,19 @@ class PlaylistCacheEntry extends _PlaylistCacheEntry
       'PlaylistCacheEntry',
       [
         SchemaProperty('id', RealmPropertyType.objectid, primaryKey: true),
-        SchemaProperty('playlistId', RealmPropertyType.string),
+        SchemaProperty(
+          'playlistId',
+          RealmPropertyType.string,
+          indexType: RealmIndexType.regular,
+        ),
         SchemaProperty('songUrl', RealmPropertyType.string),
         SchemaProperty('priority', RealmPropertyType.int),
         SchemaProperty('createdAt', RealmPropertyType.timestamp),
-        SchemaProperty('expiresAt', RealmPropertyType.timestamp),
+        SchemaProperty(
+          'expiresAt',
+          RealmPropertyType.timestamp,
+          indexType: RealmIndexType.regular,
+        ),
         SchemaProperty('isPreloaded', RealmPropertyType.bool),
       ],
     );
@@ -636,7 +656,11 @@ class PlaylistData extends _PlaylistData
         ),
         SchemaProperty('jsonData', RealmPropertyType.string),
         SchemaProperty('cachedAt', RealmPropertyType.timestamp),
-        SchemaProperty('expiresAt', RealmPropertyType.timestamp),
+        SchemaProperty(
+          'expiresAt',
+          RealmPropertyType.timestamp,
+          indexType: RealmIndexType.regular,
+        ),
         SchemaProperty('trackCount', RealmPropertyType.int),
         SchemaProperty('title', RealmPropertyType.string, optional: true),
       ],
@@ -761,7 +785,11 @@ class HttpCacheEntry extends _HttpCacheEntry
         SchemaProperty('key', RealmPropertyType.string, primaryKey: true),
         SchemaProperty('responseBody', RealmPropertyType.string),
         SchemaProperty('cachedAt', RealmPropertyType.timestamp),
-        SchemaProperty('expiresAt', RealmPropertyType.timestamp),
+        SchemaProperty(
+          'expiresAt',
+          RealmPropertyType.timestamp,
+          indexType: RealmIndexType.regular,
+        ),
         SchemaProperty('statusCode', RealmPropertyType.int),
         SchemaProperty('contentType', RealmPropertyType.string, optional: true),
       ],

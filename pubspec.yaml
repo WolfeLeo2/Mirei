@@ -37,9 +37,10 @@ dependencies:
   google_fonts: ^6.1.0
   just_audio_background: ^0.0.1-beta.17
   just_audio: ^0.10.4
-  audio_session: ^0.1.23
+  audio_service: ^0.18.18
+  audio_session: ^0.2.2
   path_provider: ^2.0.15
-  permission_handler: ^11.0.1
+  permission_handler: ^12.0.1
   flutter_media_metadata: ^1.0.0
   flutter_animate: ^4.5.2
   pull_down_button: ^0.10.2
@@ -56,17 +57,17 @@ dependencies:
   intl: ^0.20.2
   audio_waveforms: ^1.1.0
   flutter_floating_bottom_bar: ^1.3.0
-  flutter_bloc: ^8.1.3
+  flutter_bloc: ^9.1.1
   url_launcher: ^6.3.0
   equatable: ^2.0.5
   fl_chart: ^1.0.0
-  freezed_annotation: ^2.4.1
+  freezed_annotation: ^3.1.0
   
   # New dependencies for enhanced features
   realm: ^20.1.1  # Realm database replacement for SQLite
   dio: ^5.8.0+1  # Enhanced HTTP client with caching, pooling, interceptors
   dio_cache_interceptor: ^3.5.0  # HTTP caching for audio streams
-  dio_cache_interceptor_hive_store: ^3.2.2  # Hive-based cache storage
+  dio_cache_interceptor_hive_store: ^4.0.0  # Hive-based cache storage
   hive: ^2.2.3  # Fast key-value database for caching
   hive_flutter: ^1.1.0  # Flutter integration for Hive
   connectivity_plus: ^6.0.5  # Network connectivity monitoring
@@ -80,14 +81,14 @@ dev_dependencies:
     sdk: flutter
   
   build_runner: ^2.4.11
-  freezed: ^2.5.2
+  freezed: ^3.1.0
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -131,6 +132,8 @@ flutter:
     - assets/images/lofi.png
     - assets/images/color.jpg
     - assets/images/lofi_girl.jpeg
+    - assets/images/lofi_cover.png
+    - assets/images/rnb_cover.png
 
     
   # assets:

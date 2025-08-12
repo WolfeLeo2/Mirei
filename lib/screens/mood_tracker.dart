@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:realm/realm.dart';
 import 'package:mirei/components/activity_icon.dart';
-import 'package:mirei/components/emotion_button.dart';
+import 'package:mirei/components/mood_button.dart';
 import 'package:mirei/models/user.dart';
 import '../models/realm_models.dart';
 import '../utils/realm_database_helper.dart';
@@ -51,10 +51,10 @@ class MoodTrackerScreen extends StatefulWidget {
 
 class _MoodTrackerScreenState extends State<MoodTrackerScreen> 
     with PerformanceOptimizedStateMixin {
-  int selectedEmotionIndex = 1;
+  int selectedMoodIndex = 1;
   
-  // Make emotions list const for better performance
-  static const List<String> emotions = [
+  // Make Moods list const for better performance
+  static const List<String> Moods = [
     'Angelic',
     'Sorry',
     'Excited',
@@ -66,17 +66,17 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     'Silly',
   ];
 
-  // Make emotions config const for lazy loading
-  static const List<Map<String, String>> emotionConfigs = [
-    {'emotion': 'Angelic', 'svgPath': 'assets/icons/angelic.svg'},
-    {'emotion': 'Sorry', 'svgPath': 'assets/icons/disappointed.svg'},
-    {'emotion': 'Excited', 'svgPath': 'assets/icons/excited.svg'},
-    {'emotion': 'Embarrassed', 'svgPath': 'assets/icons/embarrassed.svg'},
-    {'emotion': 'Happy', 'svgPath': 'assets/icons/Happy.svg'},
-    {'emotion': 'Romantic', 'svgPath': 'assets/icons/loving.svg'},
-    {'emotion': 'Neutral', 'svgPath': 'assets/icons/neutral.svg'},
-    {'emotion': 'Sad', 'svgPath': 'assets/icons/sad.svg'},
-    {'emotion': 'Silly', 'svgPath': 'assets/icons/silly.svg'},
+  // Make Moods config const for lazy loading
+  static const List<Map<String, String>> MoodConfigs = [
+    {'Mood': 'Angelic', 'svgPath': 'assets/icons/angelic.svg'},
+    {'Mood': 'Sorry', 'svgPath': 'assets/icons/disappointed.svg'},
+    {'Mood': 'Excited', 'svgPath': 'assets/icons/excited.svg'},
+    {'Mood': 'Embarrassed', 'svgPath': 'assets/icons/embarrassed.svg'},
+    {'Mood': 'Happy', 'svgPath': 'assets/icons/Happy.svg'},
+    {'Mood': 'Romantic', 'svgPath': 'assets/icons/loving.svg'},
+    {'Mood': 'Neutral', 'svgPath': 'assets/icons/neutral.svg'},
+    {'Mood': 'Sad', 'svgPath': 'assets/icons/sad.svg'},
+    {'Mood': 'Silly', 'svgPath': 'assets/icons/silly.svg'},
   ];
 
   final User _user = User(
@@ -95,10 +95,10 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     try {
       final todaysMood = await RealmDatabaseHelper().getTodaysMoodEntry();
       if (todaysMood != null) {
-        final moodIndex = emotions.indexOf(todaysMood.mood);
+        final moodIndex = Moods.indexOf(todaysMood.mood);
         if (moodIndex != -1) {
           safeSetState(() {
-            selectedEmotionIndex = moodIndex;
+            selectedMoodIndex = moodIndex;
           });
         }
       }
@@ -195,20 +195,20 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     // Material 3 Expressive haptic feedback for selection
     HapticFeedback.selectionClick();
     safeSetState(() {
-      selectedEmotionIndex = index;
+      selectedMoodIndex = index;
     });
     // Save the mood immediately on selection
     _saveMoodSelection(mood);
   }
 
-  // Lazy builder for emotion buttons with const optimization
-  Widget _buildEmotionButton(int index) {
-    final config = emotionConfigs[index];
-    return EmotionButton(
-      emotion: config['emotion']!,
+  // Lazy builder for Mood buttons with const optimization
+  Widget _buildMoodButton(int index) {
+    final config = MoodConfigs[index];
+    return MoodButton(
+      Mood: config['Mood']!,
       svgPath: config['svgPath']!,
-      isSelected: selectedEmotionIndex == index,
-      onTap: () => _onMoodSelected(index, config['emotion']!),
+      isSelected: selectedMoodIndex == index,
+      onTap: () => _onMoodSelected(index, config['Mood']!),
     );
   }
 
@@ -403,8 +403,8 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Row(
                   children: List.generate(
-                    emotionConfigs.length,
-                    (index) => _buildEmotionButton(index),
+                    MoodConfigs.length,
+                    (index) => _buildMoodButton(index),
                   ),
                 ),
               ),

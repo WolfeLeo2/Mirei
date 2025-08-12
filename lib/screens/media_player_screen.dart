@@ -1,12 +1,18 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:just_audio/just_audio.dart';
-import 'package:audio_session/audio_session.dart';
+// import 'package:just_audio/just_audio.dart';
 import 'dart:ui';
 import 'dart:convert';
-import 'dart:typed_data';
-import '../services/audio_cache_service.dart';
+// import 'dart:typed_data';
+import '../bloc/media_player_bloc.dart';
+import '../bloc/media_player_event.dart';
+import '../bloc/media_player_state.dart';
+
+ImageProvider? _albumArtProvider;
+String? _lastAlbumArt;
 
 class MediaPlayerScreen extends StatefulWidget {
   final String trackTitle;
@@ -32,51 +38,14 @@ class MediaPlayerScreen extends StatefulWidget {
 
 class _MediaPlayerScreenState extends State<MediaPlayerScreen>
     with TickerProviderStateMixin {
-  bool isPlaying = false; // Start paused
-  bool isMuted = false;
-  double currentPosition = 0.0; // Start at beginning
-  double volume = 0.7;
   late AnimationController _albumRotationController;
   late AnimationController _waveController;
-  late AudioPlayer _audioPlayer;
-
-  // Optimized audio services for better performance and caching
-  late final AudioCacheService _cacheService;
-
-  // Dynamic audio URL - use provided URL or default
-  String get _audioUrl =>
-      widget.audioUrl ?? "https://mirei-audio.netlify.app/NujabesLOFI.m4a";
-  bool _isLoading = false;
-  bool _isBuffering = false;
-
-  // Playlist management
-  int _currentPlaylistIndex = 0;
-  bool _isDraggingSeeker = false; // Track if user is seeking
-
-  // Current track info (updates when navigating playlist)
-  late String _currentTrackTitle;
-  late String _currentArtistName;
-  late String _currentAlbumArt;
-
-  // Cache for album art to prevent flickering
-  String? _cachedAlbumArtData;
-  Uint8List? _cachedImageBytes;
+  ImageProvider? _albumArtProvider;
+  String? _lastAlbumArt;
 
   @override
   void initState() {
     super.initState();
-
-    // Initialize optimized audio services
-    _cacheService = AudioCacheService();
-
-    _audioPlayer = AudioPlayer();
-    _currentPlaylistIndex =
-        widget.currentIndex ?? 0; // Initialize playlist index
-
-    // Initialize current track info
-    _currentTrackTitle = widget.trackTitle;
-    _currentArtistName = widget.artistName;
-    _currentAlbumArt = widget.albumArt;
 
     _albumRotationController = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -87,398 +56,119 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
       vsync: this,
     );
 
-    _initializeAudio();
+    _updateAlbumArtProvider(widget.albumArt);
+    print('\n🎬 MediaPlayerScreen initState called with:');
+    print('   - trackTitle: ${widget.trackTitle}');
+    print('   - artistName: ${widget.artistName}');
+    print('   - audioUrl: ${widget.audioUrl}');
+    print('   - playlist length: ${widget.playlist?.length ?? 0}');
+    print('   - currentIndex: ${widget.currentIndex}');
+    print('   - albumArt: ${widget.albumArt}');
+
+    final initializeEvent = Initialize(
+      trackTitle: widget.trackTitle,
+      artistName: widget.artistName,
+      albumArt: widget.albumArt,
+      audioUrl: widget.audioUrl,
+      playlist: widget.playlist,
+      currentIndex: widget.currentIndex,
+      autoPlay: true,
+    );
+
+    print('🚀 Adding Initialize event to MediaPlayerBloc with autoPlay: true');
+    context.read<MediaPlayerBloc>().add(initializeEvent);
+  }
+
+  @override
+  void didUpdateWidget(covariant MediaPlayerScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.albumArt != _lastAlbumArt) {
+      _updateAlbumArtProvider(widget.albumArt);
+    }
+  }
+
+  void _updateAlbumArtProvider(String albumArt) {
+    _lastAlbumArt = albumArt;
+    if (albumArt.startsWith('data:')) {
+      try {
+        final base64String = albumArt.split(',')[1];
+        final bytes = base64Decode(base64String);
+        _albumArtProvider = MemoryImage(bytes);
+      } catch (e) {
+        _albumArtProvider = null;
+      }
+    } else if (albumArt.startsWith('http')) {
+      _albumArtProvider = CachedNetworkImageProvider(albumArt);
+    } else if (albumArt.isNotEmpty) {
+      _albumArtProvider = AssetImage(albumArt);
+    } else {
+      _albumArtProvider = null;
+    }
   }
 
   @override
   void dispose() {
     _albumRotationController.dispose();
     _waveController.dispose();
-    _audioPlayer.dispose();
     super.dispose();
-  }
-
-  Future<void> _initializeAudio() async {
-    try {
-      setState(() {
-        _isLoading = true;
-      });
-
-      // Initialize audio session
-      try {
-        final session = await AudioSession.instance;
-        await session.configure(const AudioSessionConfiguration.music());
-      } catch (e) {
-        print("Audio session configuration failed: $e");
-      }
-
-      // Use cached audio loading for better performance
-      try {
-        // Ensure service is initialized
-        await _cacheService.ensureInitialized();
-        final cachedFile = await _cacheService.getAudioFile(_audioUrl);
-
-        if (cachedFile != null) {
-          // Use cached file for instant playback
-          await _audioPlayer.setFilePath(cachedFile.path);
-          print("Playing from cache: ${cachedFile.path}");
-        } else {
-          // Stream directly and cache in background
-          await _audioPlayer.setUrl(_audioUrl);
-          print("Streaming and caching: $_audioUrl");
-
-          // Cache for future use (don't wait for completion)
-          _cacheService.getAudioFile(_audioUrl);
-        }
-
-        // Preload next track if in playlist
-        if (widget.playlist != null &&
-            _currentPlaylistIndex + 1 < widget.playlist!.length) {
-          final nextTrack = widget.playlist![_currentPlaylistIndex + 1];
-          final nextUrl = nextTrack['url'] as String?;
-          if (nextUrl != null) {
-            // Start caching next track in background
-            _cacheService.getAudioFile(nextUrl);
-          }
-        }
-      } catch (e) {
-        print("Cached audio loading failed, falling back to direct URL: $e");
-        // Fallback to direct URL loading
-        await _audioPlayer.setUrl(_audioUrl);
-      }
-
-      // URL is set, ready to play but don't wait for full download
-      setState(() {
-        _isLoading = false;
-      });
-      // Auto-start playback for better UX
-      _audioPlayer.play();
-
-      // Listen to position changes
-      _audioPlayer.positionStream.listen((position) {
-        final duration = _audioPlayer.duration;
-        if (duration != null && duration.inMilliseconds > 0 && mounted) {
-          setState(() {
-            currentPosition = position.inMilliseconds / duration.inMilliseconds;
-          });
-        }
-      });
-
-      // Listen to player state changes
-      _audioPlayer.playerStateStream.listen((state) {
-        if (mounted) {
-          setState(() {
-            isPlaying = state.playing;
-          });
-
-          if (isPlaying) {
-            _albumRotationController.forward();
-            _waveController.repeat(reverse: true);
-          } else {
-            _albumRotationController.reverse();
-            _waveController.stop();
-          }
-        }
-      });
-
-      // Listen to buffering state for better UX
-      _audioPlayer.processingStateStream.listen((state) {
-        if (mounted) {
-          setState(() {
-            // Show buffering for buffering state, loading only for initial loading
-            _isBuffering = state == ProcessingState.buffering;
-            _isLoading =
-                state == ProcessingState.loading && !_audioPlayer.playing;
-          });
-
-          // Auto-play next song when current song completes
-          if (state == ProcessingState.completed) {
-            _handleSongCompletion();
-          }
-        }
-      });
-    } catch (e) {
-      print("Error initializing audio: $e");
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  void _togglePlayPause() async {
-    HapticFeedback.mediumImpact();
-
-    if (_audioPlayer.playing) {
-      await _audioPlayer.pause();
-    } else {
-      // Start playing immediately, even if still loading/buffering
-      try {
-        await _audioPlayer.play();
-      } catch (e) {
-        print("Error starting playback: $e");
-        // If there's an error, it might be because the URL isn't fully set yet
-        // The player will start automatically once the URL is loaded
-      }
-    }
-  }
-
-  void _handleSongCompletion() {
-    // Auto-advance to next song in playlist
-    if (widget.playlist != null &&
-        widget.playlist!.isNotEmpty &&
-        _currentPlaylistIndex < widget.playlist!.length - 1) {
-      _playTrackAtIndex(_currentPlaylistIndex + 1);
-    } else {
-      // End of playlist - stop playback
-      setState(() {
-        isPlaying = false;
-        currentPosition = 0.0;
-      });
-    }
-  }
-
-  void _skipToPrevious() {
-    HapticFeedback.lightImpact();
-    if (widget.playlist != null && widget.playlist!.isNotEmpty) {
-      // Navigate to previous track in playlist
-      if (_currentPlaylistIndex > 0) {
-        _playTrackAtIndex(_currentPlaylistIndex - 1);
-      }
-    } else {
-      // Skip backward 10 seconds if no playlist
-      _audioPlayer.seek(
-        Duration(
-          milliseconds: (_audioPlayer.position.inMilliseconds - 10000).clamp(
-            0,
-            _audioPlayer.duration?.inMilliseconds ?? 0,
-          ),
-        ),
-      );
-    }
-  }
-
-  void _skipToNext() {
-    HapticFeedback.lightImpact();
-    if (widget.playlist != null && widget.playlist!.isNotEmpty) {
-      // Navigate to next track in playlist
-      if (_currentPlaylistIndex < widget.playlist!.length - 1) {
-        _playTrackAtIndex(_currentPlaylistIndex + 1);
-      }
-    } else {
-      // Skip forward 10 seconds if no playlist
-      final currentPos = _audioPlayer.position.inMilliseconds;
-      final maxPos = _audioPlayer.duration?.inMilliseconds ?? currentPos;
-      _audioPlayer.seek(
-        Duration(milliseconds: (currentPos + 10000).clamp(0, maxPos)),
-      );
-    }
-  }
-
-  void _playTrackAtIndex(int index) async {
-    if (widget.playlist == null ||
-        index < 0 ||
-        index >= widget.playlist!.length)
-      return;
-
-    final track = widget.playlist![index];
-
-    setState(() {
-      _currentPlaylistIndex = index;
-      _isLoading = true;
-      // Update current track info
-      _currentTrackTitle = track['title'] ?? 'Unknown Title';
-      _currentArtistName = track['artist'] ?? 'Unknown Artist';
-      _currentAlbumArt = track['albumArt'] ?? widget.albumArt;
-
-      // Clear album art cache when changing tracks
-      _cachedAlbumArtData = null;
-      _cachedImageBytes = null;
-    });
-
-    final audioUrl = track['url'] as String?;
-
-    if (audioUrl != null) {
-      try {
-        setState(() {
-          _isLoading = true;
-        });
-
-        // Use cached audio loading for instant playback
-        await _cacheService.ensureInitialized();
-        final cachedFile = await _cacheService.getAudioFile(audioUrl);
-
-        if (cachedFile != null) {
-          // Use cached file for instant playback
-          await _audioPlayer.setFilePath(cachedFile.path);
-          print("Playing from cache: ${cachedFile.path}");
-        } else {
-          // Fallback to streaming while caching in background
-          await _audioPlayer.setUrl(audioUrl);
-          print("Streaming and caching: $audioUrl");
-
-          // Cache for future use (don't wait for completion)
-          _cacheService.getAudioFile(audioUrl);
-        }
-
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-
-        // Start playing immediately once URL/file is set
-        if (isPlaying) {
-          _audioPlayer.play();
-        }
-
-        // Preload next track for smooth transitions
-        if (widget.playlist != null &&
-            _currentPlaylistIndex + 1 < widget.playlist!.length) {
-          final nextTrack = widget.playlist![_currentPlaylistIndex + 1];
-          final nextUrl = nextTrack['url'] as String?;
-          if (nextUrl != null) {
-            // Start caching next track in background
-            _cacheService.getAudioFile(nextUrl);
-          }
-        }
-      } catch (e) {
-        print('Error loading track: $e');
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-
-        // Fallback to direct streaming on cache failure
-        try {
-          await _audioPlayer.setUrl(audioUrl);
-          if (isPlaying) {
-            _audioPlayer.play();
-          }
-        } catch (fallbackError) {
-          print('Fallback streaming also failed: $fallbackError');
-        }
-      }
-    }
-  }
-
-  void _seekFromProgressBar(dynamic details, Duration duration) {
-    if (duration.inMilliseconds == 0) return;
-
-    // Get the render box of the gesture detector
-    final RenderBox? box = context.findRenderObject() as RenderBox?;
-    if (box == null) return;
-
-    final Offset localPosition = box.globalToLocal(details.globalPosition);
-
-    // Calculate the progress bar's actual position and width within the widget tree
-    // The progress bar is inside the GestureDetector container with 24px horizontal padding
-    // and the container itself has some internal layout
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final double progressBarWidth =
-        screenWidth - (24 * 2); // Account for screen padding
-    final double progressBarLeft = 24; // Left padding
-
-    // Calculate relative position within the progress bar
-    final double relativePosition =
-        (localPosition.dx - progressBarLeft) / progressBarWidth;
-    final double clampedPosition = relativePosition.clamp(0.0, 1.0);
-
-    // Calculate and seek to the new position
-    final seekPosition = Duration(
-      milliseconds: (duration.inMilliseconds * clampedPosition).round(),
-    );
-
-    _audioPlayer.seek(seekPosition);
   }
 
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent, // Make transparent for modal
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color.fromARGB(255, 235, 215, 242), Color(0xFFF0EDF7)],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: screenSize.width * 0.08,
-              vertical: 20,
+    return BlocConsumer<MediaPlayerBloc, MediaPlayerState>(
+      listener: (context, state) {
+        if (state.isPlaying) {
+          _albumRotationController.forward();
+          _waveController.repeat(reverse: true);
+        } else {
+          _albumRotationController.reverse();
+          _waveController.stop();
+        }
+      },
+      builder: (context, state) {
+        // Update album art provider whenever state.albumArt changes
+        if (state.albumArt != _lastAlbumArt) {
+          _updateAlbumArtProvider(state.albumArt);
+        }
+        return Scaffold(
+          backgroundColor: Colors.transparent, // Make transparent for modal
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color.fromARGB(255, 235, 215, 242), Color(0xFFF0EDF7)],
+              ),
             ),
-            child: Column(
-              children: [
-                // Main content centered in available space
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildAlbumArt(),
-                      const SizedBox(height: 40),
-                      _buildTrackInfo(),
-                      const SizedBox(height: 30),
-                      _buildProgressBar(),
-                      const SizedBox(height: 20),
-                      _buildPlaybackControls(),
-                    ],
-                  ),
+            child: SafeArea(
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: screenSize.width * 0.08,
+                  vertical: 20,
                 ),
-                // Bottom actions pinned to bottom
-                _buildBottomActions(),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAlbumArt() {
-    return AnimatedBuilder(
-      animation: _albumRotationController,
-      builder: (context, child) {
-        return Transform.scale(
-          scale:
-              1.0 +
-              (_albumRotationController.value *
-                  0.05), // Scale up by 5% when playing
-          child: Container(
-            width: 280,
-            height: 280,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1), // Reduced from 0.2
-                  blurRadius: 15, // Reduced from 30
-                  offset: const Offset(0, 8), // Reduced offset
+                child: Column(
+                  children: [
+                    // Main content centered in available space
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildAlbumArt(state),
+                          const SizedBox(height: 40),
+                          _buildTrackInfo(state),
+                          const SizedBox(height: 30),
+                          _buildProgressBar(state),
+                          const SizedBox(height: 20),
+                          _buildPlaybackControls(state),
+                        ],
+                      ),
+                    ),
+                    // Bottom actions pinned to bottom
+                    _buildBottomActions(),
+                  ],
                 ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFFFF9A9E),
-                      Color(0xFFFECFEF),
-                      Color(0xFFFECFEF),
-                      Color(0xFFFF9A9E),
-                    ],
-                  ),
-                ),
-                child: _buildAlbumArtImage(),
               ),
             ),
           ),
@@ -487,136 +177,64 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
     );
   }
 
-  Widget _buildAlbumArtImage() {
-    if (_currentAlbumArt.isEmpty) {
-      return _buildDefaultAlbumArt();
-    }
-
-    // Check if it's a base64 data URI
-    if (_currentAlbumArt.startsWith('data:')) {
-      // Use cached image bytes if available and album art hasn't changed
-      if (_cachedAlbumArtData == _currentAlbumArt &&
-          _cachedImageBytes != null) {
-        return Image.memory(
-          _cachedImageBytes!,
-          fit: BoxFit.cover,
-          key: ValueKey(_currentAlbumArt), // Stable key to prevent rebuilds
-          errorBuilder: (context, error, stackTrace) {
-            return _buildDefaultAlbumArt();
-          },
+  Widget _buildAlbumArt(MediaPlayerState state) {
+    return AnimatedBuilder(
+      animation: _albumRotationController,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: 1.0 + (_albumRotationController.value * 0.05),
+          child: Container(
+            width: 280,
+            height: 280,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: _albumArtProvider != null
+                  ? Image(image: _albumArtProvider!, fit: BoxFit.cover)
+                  : const SizedBox(),
+            ),
+          ),
         );
-      }
-
-      try {
-        final base64String = _currentAlbumArt.split(
-          ',',
-        )[1]; // Remove data URI prefix
-        final bytes = base64Decode(base64String);
-
-        // Cache the decoded bytes
-        _cachedAlbumArtData = _currentAlbumArt;
-        _cachedImageBytes = bytes;
-
-        return Image.memory(
-          bytes,
-          fit: BoxFit.cover,
-          key: ValueKey(_currentAlbumArt), // Stable key to prevent rebuilds
-          errorBuilder: (context, error, stackTrace) {
-            return _buildDefaultAlbumArt();
-          },
-        );
-      } catch (e) {
-        print('Error loading embedded album art: $e');
-        return _buildDefaultAlbumArt();
-      }
-    }
-    // Check if it's a network URL
-    else if (_currentAlbumArt.startsWith('http://') ||
-        _currentAlbumArt.startsWith('https://')) {
-      return Image.network(
-        _currentAlbumArt,
-        fit: BoxFit.cover,
-        key: ValueKey(_currentAlbumArt), // Stable key to prevent rebuilds
-        errorBuilder: (context, error, stackTrace) {
-          return _buildDefaultAlbumArt();
-        },
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return _buildDefaultAlbumArt();
-        },
-      );
-    }
-    // Otherwise, treat it as an asset
-    else {
-      return Image.asset(
-        _currentAlbumArt,
-        fit: BoxFit.cover,
-        key: ValueKey(_currentAlbumArt), // Stable key to prevent rebuilds
-        errorBuilder: (context, error, stackTrace) {
-          return _buildDefaultAlbumArt();
-        },
-      );
-    }
-  }
-
-  Widget _buildDefaultAlbumArt() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFF9A9E),
-            Color(0xFFFECFEF),
-            Color(0xFFFECFEF),
-            Color(0xFFFF9A9E),
-          ],
-        ),
-      ),
-      child: Stack(
-        children: [
-          // Abstract shapes similar to the image
-          Positioned(
-            top: 40,
-            right: 60,
-            child: Container(
-              width: 80,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 80,
-            left: 40,
-            child: Container(
-              width: 120,
-              height: 60,
-              decoration: BoxDecoration(
-                color: const Color(0xFF9B59B6).withOpacity(0.4),
-                borderRadius: BorderRadius.circular(30),
-              ),
-            ),
-          ),
-          Center(
-            child: Icon(
-              Icons.music_note,
-              size: 60,
-              color: Colors.white.withOpacity(0.8),
-            ),
-          ),
-        ],
-      ),
+      },
     );
   }
 
-  Widget _buildTrackInfo() {
+  Widget _buildAlbumArtImage(MediaPlayerState state) {
+    if (state.albumArt.startsWith('data:')) {
+      try {
+        final base64String = state.albumArt.split(',')[1];
+        final bytes = base64Decode(base64String);
+        return Image.memory(bytes, fit: BoxFit.cover);
+      } catch (e) {
+        return const SizedBox(); // Handle error
+      }
+    } else if (state.albumArt.startsWith('http')) {
+      return CachedNetworkImage(
+        imageUrl: state.albumArt,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => const SizedBox(),
+        errorWidget: (context, url, error) => const SizedBox(),
+      );
+    } else if (state.albumArt.isNotEmpty) {
+      return Image.asset(state.albumArt, fit: BoxFit.cover);
+    }
+    return const SizedBox();
+  }
+
+  Widget _buildTrackInfo(MediaPlayerState state) {
     return Column(
       children: [
         Text(
-          _currentTrackTitle,
+          state.trackTitle,
           style: GoogleFonts.inter(
             fontSize: 24,
             fontWeight: FontWeight.w500,
@@ -626,7 +244,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
         ),
         const SizedBox(height: 8),
         Text(
-          _currentArtistName,
+          state.artistName,
           style: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w500,
@@ -638,140 +256,123 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
     );
   }
 
-  Widget _buildProgressBar() {
-    return StreamBuilder<Duration?>(
-      stream: _audioPlayer.durationStream,
-      builder: (context, durationSnapshot) {
-        return StreamBuilder<Duration>(
-          stream: _audioPlayer.positionStream,
-          builder: (context, positionSnapshot) {
-            final duration = durationSnapshot.data ?? Duration.zero;
-            final position = positionSnapshot.data ?? Duration.zero;
+  Widget _buildProgressBar(MediaPlayerState state) {
+    final position = state.position.inMilliseconds.toDouble();
+    final duration = state.duration.inMilliseconds.toDouble();
+    final progress = (duration > 0)
+        ? (position / duration).clamp(0.0, 1.0)
+        : 0.0;
 
-            final progress = duration.inMilliseconds > 0
-                ? position.inMilliseconds / duration.inMilliseconds
-                : 0.0;
-
-            return Column(
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              _formatDuration(state.position),
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF7B7B7B),
+              ),
+            ),
+            Row(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _formatDuration(position),
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF7B7B7B),
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        // Show buffering indicator in duration area when buffering
-                        if (_isBuffering)
-                          Container(
-                            margin: const EdgeInsets.only(right: 8),
-                            child: SizedBox(
-                              width: 12,
-                              height: 12,
-                              child: CircularProgressIndicator(
-                                color: const Color(0xFF7B7B7B),
-                                strokeWidth: 1,
-                              ),
-                            ),
-                          ),
-                        Text(
-                          _formatDuration(duration),
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF7B7B7B),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 0),
-                // Interactive Material 3 Linear Progress Indicator
-                GestureDetector(
-                  onTapDown: (details) {
-                    _seekFromProgressBar(details, duration);
-                  },
-                  onPanStart: (details) {
-                    _isDraggingSeeker = true;
-                    HapticFeedback.selectionClick();
-                  },
-                  onPanUpdate: (details) {
-                    if (_isDraggingSeeker) {
-                      _seekFromProgressBar(details, duration);
-                    }
-                  },
-                  onPanEnd: (details) {
-                    _isDraggingSeeker = false;
-                  },
-                  child: SizedBox(
-                    height: 44, // Larger touch target
-                    child: Center(
-                      child: SizedBox(
-                        height: 6,
-                        child: LinearProgressIndicator(
-                          value: progress, // Always show the actual progress
-                          backgroundColor: Colors.white.withOpacity(0.3),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Theme.of(context).colorScheme.primary,
-                          ),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
+                if (state.isBuffering)
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    child: const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF7B7B7B),
+                        strokeWidth: 1,
                       ),
                     ),
                   ),
+                Text(
+                  _formatDuration(state.duration),
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF7B7B7B),
+                  ),
                 ),
               ],
-            );
-          },
-        );
-      },
+            ),
+          ],
+        ),
+        const SizedBox(height: 0),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 6.0,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8.0),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16.0),
+            activeTrackColor: Theme.of(context).colorScheme.primary,
+            inactiveTrackColor: Colors.white.withOpacity(0.3),
+            thumbColor: Theme.of(context).colorScheme.primary,
+            trackShape: const RoundedRectSliderTrackShape(),
+          ),
+          child: Slider(
+            value: progress,
+            onChanged: (value) {
+              if (state.duration.inMilliseconds > 0) {
+                final seekPosition = Duration(
+                  milliseconds: (state.duration.inMilliseconds * value).round(),
+                );
+                context.read<MediaPlayerBloc>().add(Seek(seekPosition));
+              }
+            },
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildPlaybackControls() {
+  Widget _buildPlaybackControls(MediaPlayerState state) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         _buildControlButton(
           icon: Icons.skip_previous,
-          onTap: _skipToPrevious,
+          onTap: () =>
+              context.read<MediaPlayerBloc>().add(const SkipToPrevious()),
           size: 32,
         ),
-        _buildMainPlayButton(),
+        _buildMainPlayButton(state),
         _buildControlButton(
           icon: Icons.skip_next,
-          onTap: _skipToNext,
+          onTap: () => context.read<MediaPlayerBloc>().add(const SkipToNext()),
           size: 32,
         ),
       ],
     );
   }
 
-  Widget _buildMainPlayButton() {
+  Widget _buildMainPlayButton(MediaPlayerState state) {
     return SizedBox(
       width: 80,
       height: 80,
       child: FilledButton(
-        onPressed: _isLoading
+        onPressed: state.isLoading
             ? null
-            : _togglePlayPause, // Only disable during loading, not buffering
+            : () {
+                if (state.isPlaying) {
+                  context.read<MediaPlayerBloc>().add(const Pause());
+                } else {
+                  context.read<MediaPlayerBloc>().add(const Play());
+                }
+              },
         style: FilledButton.styleFrom(
           backgroundColor: Theme.of(context).colorScheme.primary,
           foregroundColor: Theme.of(context).colorScheme.onPrimary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          padding: EdgeInsets.zero, // Remove default padding
+          padding: EdgeInsets.zero,
         ),
         child: Center(
-          child: _isLoading
+          child: state.isLoading
               ? const SizedBox(
                   width: 24,
                   height: 24,
@@ -783,7 +384,10 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
               : Stack(
                   alignment: Alignment.center,
                   children: [
-                    Icon(isPlaying ? Icons.pause : Icons.play_arrow, size: 36),
+                    Icon(
+                      state.isPlaying ? Icons.pause : Icons.play_arrow,
+                      size: 36,
+                    ),
                   ],
                 ),
         ),
@@ -808,7 +412,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
             borderRadius: BorderRadius.circular(16),
           ),
           elevation: 1,
-          padding: EdgeInsets.zero, // Remove default padding
+          padding: EdgeInsets.zero,
         ),
         child: Center(child: Icon(icon, size: size)),
       ),
