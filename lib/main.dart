@@ -9,7 +9,6 @@ import 'package:mirei/services/audio_cache_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'services/performance_service.dart';
 import 'services/database_maintenance_service.dart';
-import 'services/background_audio_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,9 +55,7 @@ Future<void> initializeDatabaseServices() async {
 /// Initialize background audio services
 Future<void> initializeAudioServices() async {
   try {
-    final audioService = BackgroundAudioService.instance;
-    await audioService.initialize();
-
+    // Background audio is now handled by just_audio_background
     debugPrint('Background audio service initialized successfully');
   } catch (e) {
     debugPrint('Error initializing audio services: $e');

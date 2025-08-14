@@ -416,7 +416,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
               child: Container(
                 width: double.infinity,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFfaf6f1),
+                  color: Color(0xFFd7dfe5),
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(25),
                     topRight: Radius.circular(25),

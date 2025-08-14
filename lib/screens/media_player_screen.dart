@@ -257,11 +257,13 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
   }
 
   Widget _buildProgressBar(MediaPlayerState state) {
+    if (state.isLiveStream) {
+      return _buildLiveStreamIndicator(state);
+    }
+
     final position = state.position.inMilliseconds.toDouble();
     final duration = state.duration.inMilliseconds.toDouble();
-    final progress = (duration > 0)
-        ? (position / duration).clamp(0.0, 1.0)
-        : 0.0;
+    final progress = (duration > 0) ? (position / duration).clamp(0.0, 1.0) : 0.0;
 
     return Column(
       children: [
@@ -326,6 +328,32 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLiveStreamIndicator(MediaPlayerState state) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.podcasts, color: Colors.red, size: 18),
+          const SizedBox(width: 8),
+          Text(
+            'LIVE',
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

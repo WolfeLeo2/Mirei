@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../utils/media_player_modal.dart';
 import 'playlist_screen.dart';
-import '../services/youtube_live_audio_service.dart';
-import 'package:just_audio/just_audio.dart';
-import '../services/background_audio_service.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/media_player_bloc.dart';
 import '../bloc/media_player_event.dart';
+import '../bloc/media_player_state.dart';
 
 // Static data classes for better performance
 class _AlbumData {
@@ -60,72 +58,6 @@ class MediaScreen extends StatefulWidget {
 }
 
 class _MediaScreenState extends State<MediaScreen> {
-  final YouTubeLiveAudioService _ytAudioService = YouTubeLiveAudioService();
-  void _pauseOrResumeLiveRadio() async {
-    final bg = BackgroundAudioService.instance;
-    try {
-      if (isLiveRadioPaused) {
-        await bg.play();
-        setState(() {
-          isLiveRadioPaused = false;
-          isLiveRadioError = false;
-        });
-    } else {
-        await bg.pause();
-        setState(() {
-          isLiveRadioPaused = true;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        isLiveRadioError = true;
-      });
-    }
-  }
-
-  void _stopLiveRadio() async {
-    final bg = BackgroundAudioService.instance;
-    await bg.stop();
-    setState(() {
-      currentLiveStation = null;
-      isLiveRadioPaused = false;
-      isLiveRadioError = false;
-    });
-  }
-
-  late AudioPlayer _audioPlayer;
-  bool isLoadingLiveRadio = false;
-  String? currentLiveStation;
-  bool isLiveRadioPaused = false;
-  bool isLiveRadioError = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _audioPlayer = AudioPlayer();
-    _audioPlayer.playerStateStream.listen((state) {
-      setState(() {
-        if (state.playing) {
-          isLiveRadioPaused = false;
-          isLiveRadioError = false;
-          isLoadingLiveRadio =
-              false; // Stop showing loading spinner when playback starts
-        } else if (state.processingState == ProcessingState.ready &&
-            !state.playing) {
-          isLiveRadioPaused = true;
-        } else if (state.processingState == ProcessingState.idle) {
-          isLiveRadioError = true;
-        }
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
-  }
-
   // Static const data for better performance
   static const List<_AlbumData> _albumData = [
     _AlbumData(
@@ -222,72 +154,77 @@ class _MediaScreenState extends State<MediaScreen> {
     fontWeight: FontWeight.w400,
     letterSpacing: -0.2,
   );
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFfaf6f1),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFfaf6f1),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios,
-            color: Color(0xFF115e5a),
-            size: 20,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Media Library',
-          style: GoogleFonts.inter(
-            color: const Color(0xFF115e5a),
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Color(0xFF115e5a)),
-            onPressed: () {
-              // TODO: Implement search functionality
-            },
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        physics: const BouncingScrollPhysics(),
-        children: [
-          RepaintBoundary(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              child: Text('Live Radio', style: _sectionHeaderStyle),
+    return BlocBuilder<MediaPlayerBloc, MediaPlayerState>(
+      builder: (context, state) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFd7dfe5),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFFd7dfe5),
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios,
+                color: Color(0xFF115e5a),
+                size: 20,
+              ),
+              onPressed: () => Navigator.pop(context),
             ),
-          ),
-          const SizedBox(height: 16),
-          _buildLiveRadioCards(),
-          const SizedBox(height: 32),
-          RepaintBoundary(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-              child: Text('Top Picks', style: _sectionHeaderStyle),
+            title: Text(
+              'Media Library',
+              style: GoogleFonts.inter(
+                color: const Color(0xFF115e5a),
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
             ),
+            centerTitle: true,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.search, color: Color(0xFF115e5a)),
+                onPressed: () {
+                  // TODO: Implement search functionality
+                },
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          _buildAlbumCards(),
-          const SizedBox(height: 32),
-          RepaintBoundary(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-              child: Text('Your top mixes', style: _sectionHeaderStyle),
-            ),
+          body: ListView(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            physics: const BouncingScrollPhysics(),
+            children: [
+              RepaintBoundary(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Text('Live Radio', style: _sectionHeaderStyle),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildLiveRadioCards(state),
+              const SizedBox(height: 32),
+              RepaintBoundary(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                  child: Text('Top Picks', style: _sectionHeaderStyle),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildAlbumCards(),
+              const SizedBox(height: 32),
+              RepaintBoundary(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                  child: Text('Your top mixes', style: _sectionHeaderStyle),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildMixCards(),
+              const SizedBox(height: 60), // Space for the bottom nav bar
+            ],
           ),
-          const SizedBox(height: 16),
-          _buildMixCards(),
-          const SizedBox(height: 60), // Space for the bottom nav bar
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -352,7 +289,7 @@ class _MediaScreenState extends State<MediaScreen> {
     );
   }
 
-  Widget _buildLiveRadioCards() {
+  Widget _buildLiveRadioCards(MediaPlayerState state) {
     return RepaintBoundary(
       child: SizedBox(
         height: 260,
@@ -362,29 +299,30 @@ class _MediaScreenState extends State<MediaScreen> {
           itemCount: _liveRadioData.length,
           itemBuilder: (context, index) {
             final station = _liveRadioData[index];
-            final isCurrent = currentLiveStation == station.title;
-            final isPlaying =
-                isCurrent &&
-                !isLiveRadioPaused &&
-                !isLiveRadioError &&
-                !isLoadingLiveRadio;
-            final isPaused =
-                isCurrent &&
-                isLiveRadioPaused &&
-                !isLiveRadioError &&
-                !isLoadingLiveRadio;
-            final isError =
-                isCurrent && isLiveRadioError && !isLoadingLiveRadio;
-            final isLoading = isLoadingLiveRadio && isCurrent;
+            final isCurrent = state.isLiveStream && state.trackTitle == station.title;
+            final isLoading = (state.isLoading || state.isBuffering) && isCurrent;
+            final isPlaying = isCurrent && state.isPlaying;
+            final isPaused = isCurrent && !isPlaying && !isLoading && !state.hasError;
+
             return _LiveRadioCard(
               station: station,
               onTap: () => _handleLiveRadioTap(station),
               isPlaying: isPlaying,
               isPaused: isPaused,
-              isError: isError,
+              isError: isCurrent && state.hasError,
               isLoading: isLoading,
-              onPauseOrResume: isCurrent ? _pauseOrResumeLiveRadio : null,
-              onStop: isCurrent ? _stopLiveRadio : null,
+              onPauseOrResume: isCurrent
+                  ? () {
+                      if (state.isPlaying) {
+                        context.read<MediaPlayerBloc>().add(const Pause());
+                      } else {
+                        context.read<MediaPlayerBloc>().add(const Play());
+                      }
+                    }
+                  : null,
+              onStop: isCurrent
+                  ? () => context.read<MediaPlayerBloc>().add(const Pause()) // Using Pause as a Stop
+                  : null,
             );
           },
         ),
@@ -392,69 +330,16 @@ class _MediaScreenState extends State<MediaScreen> {
     );
   }
 
-  Future<void> _handleLiveRadioTap(_LiveRadioData station) async {
-    try {
-      setState(() {
-        isLoadingLiveRadio = true;
-        currentLiveStation = station.title;
-        isLiveRadioError = false;
-      });
-
-      // Ensure single-source playback: stop BLoC player if active
-      if (mounted) {
-        final bloc = context.read<MediaPlayerBloc>();
-        // Pause current playback if any
-        bloc.add(const Pause());
-      }
-
-      // Stop local AudioPlayer instance if playing anything
-      await _audioPlayer.stop();
-
-      // Map station to stream URL and metadata
-      String streamUrl = station.url;
-      if (station.title == 'Chillhop Radio') {
-        streamUrl = 'http://puma.streemlion.com:3620/stream';
-      } else if (station.title == 'LoFi Hip Hop Radio') {
-        streamUrl = 'http://manager.dhectar.fr:1480/stream';
-      }
-
-      // Use shared BackgroundAudioService for notifications and single session
-      final bg = BackgroundAudioService.instance;
-      await bg.initialize();
-      await bg.playLiveStream(
-        title: station.title,
-        artist: station.subtitle,
-        artUrl: 'asset://${station.imagePath}',
-        streamUrl: streamUrl,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Now playing: ${station.title}'),
-            backgroundColor: const Color(0xFF115e5a),
-            behavior: SnackBarBehavior.floating,
+  void _handleLiveRadioTap(_LiveRadioData station) {
+    context.read<MediaPlayerBloc>().add(
+          Initialize(
+            trackTitle: station.title,
+            artistName: station.subtitle,
+            albumArt: station.imagePath,
+            audioUrl: station.url,
+            autoPlay: true,
           ),
         );
-      }
-      } catch (e) {
-        setState(() {
-          isLiveRadioError = true;
-        });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to play ${station.title}: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } finally {
-      setState(() {
-        isLoadingLiveRadio = false;
-      });
-    }
   }
 }
 
@@ -649,7 +534,7 @@ class _LiveRadioCard extends StatelessWidget {
                             Container(
                               width: 6,
                               height: 6,
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 color: Colors.white,
                                 shape: BoxShape.circle,
                               ),
@@ -679,13 +564,23 @@ class _LiveRadioCard extends StatelessWidget {
                             color: const Color(0xFF115e5a),
                             shape: BoxShape.circle,
                           ),
-                          child: const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: const [
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 1,
+                                ),
+                              ),
+                              Icon(
+                                Icons.graphic_eq,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -729,43 +624,7 @@ class _LiveRadioCard extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            // Stop button
-                            GestureDetector(
-                              onTap: onStop,
-                              child: Container(
-                                width: 40,
-                                height: 40,
-                                margin: const EdgeInsets.only(left: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.stop,
-                                  color: Colors.white,
-                                  size: 22,
-                                ),
-                              ),
-                            ),
                           ],
-                        ),
-                      ),
-                    if (isPaused)
-                      Positioned(
-                        bottom: 12,
-                        right: 12,
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.orange,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.pause_circle_filled,
-                            color: Colors.white,
-                            size: 20,
-                          ),
                         ),
                       ),
                   ],

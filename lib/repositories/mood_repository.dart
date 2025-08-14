@@ -34,17 +34,16 @@ class RealmMoodRepository implements MoodRepository {
   @override
   Future<void> saveMood(String mood) async {
     try {
+      final realm = await _dbHelper.realm;
       final existingMood = await getTodaysMood();
 
       if (existingMood != null) {
-        // If a mood already exists for today, update it.
-        final updatedMood = MoodEntryRealm(
-          existingMood.id,
-          mood,
-          DateTime.now(),
-          note: existingMood.note,
-        );
-        await _dbHelper.updateMoodEntry(updatedMood);
+        // If a mood already exists for today, update it in a write transaction.
+        realm.write(() {
+          existingMood.mood = mood;
+          // Preserve the original creation date to keep it on the same day
+          existingMood.createdAt = existingMood.createdAt; 
+        });
       } else {
         // Otherwise, create a new entry.
         final newMood = MoodEntryRealm(ObjectId(), mood, DateTime.now());

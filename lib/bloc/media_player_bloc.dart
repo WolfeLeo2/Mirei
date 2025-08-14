@@ -5,20 +5,16 @@ import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:mirei/services/audio_cache_service.dart';
 import 'package:mirei/services/youtube_live_audio_service.dart';
-import 'package:mirei/services/background_audio_service.dart';
 import 'media_player_event.dart';
 import 'media_player_state.dart';
 import 'repeat_mode.dart';
+import 'package:mirei/bloc/media_player_event.dart';
 
 class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
   final AudioPlayer _audioPlayer;
   final AudioCacheService _cacheService;
   final YouTubeLiveAudioService _youtubeService = YouTubeLiveAudioService();
-  final BackgroundAudioService _backgroundAudioService =
-      BackgroundAudioService.instance;
   double _volumeBeforeMute = 0.7;
-  bool _useBackgroundService =
-      true; // Flag to enable/disable background service
 
   // Stream subscriptions for proper disposal
   late final StreamSubscription _positionSubscription;
@@ -40,9 +36,7 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
   final Duration _skipDebounceDelay = Duration(milliseconds: 150);
   int? _pendingSkipIndex;
 
-  // Default fallback URL - make this configurable if needed
-  static const String _defaultAudioUrl =
-      "https://mirei-audio.netlify.app/NujabesLOFI.m4a";
+  // Removed default fallback URL - tracks should provide their own URLs
 
   MediaPlayerBloc({
     required AudioPlayer audioPlayer,
@@ -182,6 +176,17 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
     Initialize event,
     Emitter<MediaPlayerState> emit,
   ) async {
+    // Check if we're trying to load the same track that's already loaded
+    final isSameTrack = state.trackTitle == event.trackTitle && 
+                       state.artistName == event.artistName &&
+                       state.albumArt == event.albumArt;
+    
+    if (isSameTrack && state.trackTitle.isNotEmpty) {
+      print('🔄 Same track already loaded, skipping reinitialization');
+      // Just show the current state without restarting
+      return;
+    }
+
     // Generate unique initialization ID to prevent race conditions
     final initId = DateTime.now().millisecondsSinceEpoch.toString();
     _currentInitializationId = initId;
@@ -213,41 +218,23 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
       return;
     }
 
-    // Initialize background audio service if enabled and has playlist
-    if (_useBackgroundService &&
-        event.playlist != null &&
-        event.playlist!.isNotEmpty) {
-      try {
-        print('🎵 Initializing background audio service...');
-        await _backgroundAudioService.initialize();
-
-        // Convert playlist to background service format
-        final backgroundPlaylist = event.playlist!
-            .map(
-              (track) => {
-                'title': track['title'] ?? event.trackTitle ?? 'Unknown Title',
-                'artist':
-                    track['artist'] ?? event.artistName ?? 'Unknown Artist',
-                'url': track['url'] ?? event.audioUrl ?? _defaultAudioUrl,
-                'albumArt': track['albumArt'] ?? event.albumArt,
-                'duration': track['duration'],
-              },
-            )
-            .toList();
-
-        await _backgroundAudioService.loadPlaylist(
-          backgroundPlaylist,
-          startIndex: event.currentIndex ?? 0,
-        );
-        print(
-          '✅ Background audio service initialized with ${backgroundPlaylist.length} tracks',
-        );
-      } catch (e) {
-        print('⚠️ Background service initialization failed: $e');
-        // Continue with regular audio player
-        _useBackgroundService = false;
-      }
+    // Validate that we have an audio URL - no fallback anymore
+    if (event.audioUrl == null || event.audioUrl!.isEmpty) {
+      print('❌ No audio URL provided, cannot initialize track');
+      emit(state.copyWith(
+        hasError: true,
+        error: 'No audio URL provided for this track',
+        isLoading: false,
+        isBuffering: false,
+      ));
+      return;
     }
+
+    // Determine if the new URL is a live stream (YouTube live or generic)
+    final urlForCheck = event.audioUrl!;
+    final isYouTubeForCheck = urlForCheck.contains('youtube.com') || urlForCheck.contains('youtu.be');
+    final isGenericLiveStreamForCheck = urlForCheck.contains('stream') || urlForCheck.contains('autodj');
+    final isLiveStreamInitial = isYouTubeForCheck || isGenericLiveStreamForCheck;
 
     // Update track info AND loading state together to prevent race condition
     final currentIndex = event.currentIndex ?? 0;
@@ -262,6 +249,7 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
         isBuffering: true, // Also set buffering for the new track
         hasError: false,
         error: null,
+        isLiveStream: isLiveStreamInitial, // Set true if this is a live stream
         // Reset playback state for new track
         isPlaying: false,
         position: Duration.zero,
@@ -269,6 +257,7 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
       ),
     );
 
+    final loadingStart = DateTime.now();
     try {
       print('🔄 Initializing cache service...');
       await _cacheService.ensureInitialized();
@@ -281,21 +270,41 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
         return;
       }
 
-      final url = event.audioUrl ?? _defaultAudioUrl;
+      final url = event.audioUrl!;
       print('📡 Audio URL to load: $url');
 
       Duration? newDuration;
+      bool isLiveStream = false;
       bool isYouTube = url.contains('youtube.com') || url.contains('youtu.be');
+
+      // Check for common live stream URL patterns
+      final isGenericLiveStream =
+          url.contains('stream') || url.contains('autodj');
+
       if (isYouTube) {
         print('🎥 Detected YouTube URL, using YouTubeLiveAudioService');
-        newDuration = await _youtubeService.playLiveAudio(url, _audioPlayer);
+        final result = await _youtubeService.playLiveAudio(url, _audioPlayer);
+        newDuration = result.duration;
+        isLiveStream = result.isLive;
+
+        if (isLiveStream) {
+          print('📻 It\'s a YouTube live stream, skipping cache.');
+        } else {
+          print('🎬 It\'s a YouTube VOD, attempting to cache in background.');
+          _cacheService.getAudioFile(url); // Fire-and-forget
+        }
+      } else if (isGenericLiveStream) {
+        print('📻 Detected generic live stream, skipping cache.');
+        isLiveStream = true;
+        newDuration = null; // Live streams don\'t have a fixed duration
+        await _audioPlayer.setUrl(url);
       } else {
+        // Handle standard, cacheable audio files
         final cachedFile = await _cacheService.getAudioFile(url);
         print(
           '💾 Cached file: ${cachedFile?.path ?? "null"} (${cachedFile != null ? "exists" : "not cached"})',
         );
 
-        // Check if still current after async operation
         if (_currentInitializationId != initId) {
           print(
             '🚫 Initialization $initId cancelled after cache lookup - superseded by ${_currentInitializationId}',
@@ -303,7 +312,6 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
           return;
         }
 
-        // Set new audio source
         if (cachedFile != null) {
           print('📁 Setting file path: ${cachedFile.path}');
           newDuration = await _audioPlayer.setFilePath(cachedFile.path);
@@ -321,6 +329,13 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
         return;
       }
 
+      // Ensure minimum loading spinner duration (500ms)
+      final elapsed = DateTime.now().difference(loadingStart);
+      const minLoading = Duration(milliseconds: 500);
+      if (elapsed < minLoading) {
+        await Future.delayed(minLoading - elapsed);
+      }
+
       print('📍 Track info updated, audio source set. Duration: $newDuration');
 
       // Update state with new duration and clear loading flags
@@ -331,6 +346,7 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
           isBuffering: false,
           hasError: false,
           error: null,
+          isLiveStream: isLiveStream,
         ),
       );
 
@@ -368,23 +384,9 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
   }
 
   Future<void> _onPlay(Play event, Emitter<MediaPlayerState> emit) async {
-    print('\n🎶 MediaPlayerBloc._onPlay called:');
-    print(
-      '   - Current audio source: ${_audioPlayer.audioSource?.toString() ?? "null"}',
-    );
-    print('   - Current position: ${_audioPlayer.position}');
-    print('   - Current state: ${_audioPlayer.playerState}');
-
     try {
-      if (_useBackgroundService) {
-        print('🎵 Using background audio service for play');
-        await _backgroundAudioService.play();
-      } else {
       await _audioPlayer.play();
-      }
-      print('✅ Play completed successfully');
     } catch (e) {
-      print('❌ Play failed: $e');
       emit(
         state.copyWith(
           hasError: true,
@@ -397,15 +399,8 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
 
   Future<void> _onPause(Pause event, Emitter<MediaPlayerState> emit) async {
     try {
-      if (_useBackgroundService) {
-        print('🎵 Using background audio service for pause');
-        await _backgroundAudioService.pause();
-      } else {
-    await _audioPlayer.pause();
-      }
-      print('✅ Pause completed successfully');
+      await _audioPlayer.pause();
     } catch (e) {
-      print('❌ Pause failed: $e');
       emit(
         state.copyWith(
           hasError: true,
@@ -424,18 +419,6 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
     Emitter<MediaPlayerState> emit,
   ) async {
     if (state.playlist.isEmpty) return;
-
-    // Use background service skip if available
-    if (_useBackgroundService) {
-      try {
-        print('🎵 Using background audio service for skip to next');
-        await _backgroundAudioService.skipToNext();
-        return;
-      } catch (e) {
-        print('❌ Background service skip to next failed: $e');
-        // Fall back to manual logic
-      }
-    }
 
     int nextIndex;
 
@@ -459,7 +442,6 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
             break;
           case RepeatMode.one:
           case RepeatMode.none:
-          default:
             return; // Don't skip
         }
       }
@@ -474,18 +456,6 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
     Emitter<MediaPlayerState> emit,
   ) async {
     if (state.playlist.isEmpty) return;
-
-    // Use background service skip if available
-    if (_useBackgroundService) {
-      try {
-        print('🎵 Using background audio service for skip to previous');
-        await _backgroundAudioService.skipToPrevious();
-        return;
-      } catch (e) {
-        print('❌ Background service skip to previous failed: $e');
-        // Fall back to manual logic
-      }
-    }
 
     int prevIndex;
 
@@ -509,7 +479,6 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
             break;
           case RepeatMode.one:
           case RepeatMode.none:
-          default:
             return; // Don't skip
         }
       }
@@ -618,7 +587,6 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
         break;
       case RepeatMode.all:
       case RepeatMode.none:
-      default:
         // Skip to next track (respects repeat all mode)
         add(const SkipToNext());
         break;

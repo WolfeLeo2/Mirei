@@ -3,7 +3,6 @@ description: "A Mental Wellness App"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
-
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
 # followed by an optional build number separated by a +.
@@ -34,12 +33,17 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  path_provider: ^2.1.4
+  http: ^1.2.2
+  audioplayers: ^6.1.0
+  icons_plus: ^5.0.0
+  flutter_swiper_view: ^1.1.8
+  glassmorphism: ^3.0.0
+  flutter_svg: ^2.2.0
   google_fonts: ^6.1.0
   just_audio_background: ^0.0.1-beta.17
   just_audio: ^0.10.4
-  audio_service: ^0.18.18
   audio_session: ^0.2.2
-  path_provider: ^2.0.15
   permission_handler: ^12.0.1
   flutter_media_metadata: ^1.0.0
   flutter_animate: ^4.5.2
@@ -48,8 +52,6 @@ dependencies:
   vector_math: ^2.1.4
   image_picker: ^1.1.2
   flutter_sound: ^9.28.0
-  icons_plus: ^5.0.0
-  flutter_svg: ^2.2.0
   # sqflite: ^2.3.0  # Removed - migrating to Realm
   flutter_staggered_grid_view: ^0.7.0
   animations: ^2.0.11
@@ -62,7 +64,7 @@ dependencies:
   equatable: ^2.0.5
   fl_chart: ^1.0.0
   freezed_annotation: ^3.1.0
-  
+
   # New dependencies for enhanced features
   realm: ^20.1.1  # Realm database replacement for SQLite
   dio: ^5.8.0+1  # Enhanced HTTP client with caching, pooling, interceptors
@@ -75,6 +77,8 @@ dependencies:
   crypto: ^3.0.3  # For cache key generation
   collection: ^1.18.0  # Additional collection utilities
   youtube_explode_dart: ^2.5.2
+  stacked_list_carousel: ^1.1.0
+  material_color_utilities: ^0.11.1
 
 dev_dependencies:
   flutter_test:
@@ -134,6 +138,11 @@ flutter:
     - assets/images/lofi_girl.jpeg
     - assets/images/lofi_cover.png
     - assets/images/rnb_cover.png
+    - assets/images/meditation.jpg
+    - assets/images/meditation.svg
+    - assets/images/lofi_cover.png
+    - assets/images/rnb_cover.png
+    - assets/images/lofi_girl.jpeg
 
     
   # assets:

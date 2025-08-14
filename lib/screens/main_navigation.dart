@@ -3,8 +3,10 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_floating_bottom_bar/flutter_floating_bottom_bar.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:mirei/screens/media_screen.dart';
+import 'package:mirei/widgets/mini_player.dart';
 import 'home_screen.dart';
 import 'mood_tracker.dart';
+import 'meditation_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -36,7 +38,7 @@ class _MainNavigationState extends State<MainNavigation>
     _screens = [
       const HomeScreenContent(),
       const MoodTrackerScreenContent(),
-      const CalendarScreen(),
+      const MeditationScreen(),
       const MediaScreenContent(),
     ];
 
@@ -54,59 +56,68 @@ class _MainNavigationState extends State<MainNavigation>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: BottomBar(
-        child: TabBar(
-          controller: _tabController,
-          indicatorColor: colors[_tabController.index],
-          dividerColor: Colors.transparent,
-          labelColor: colors[_tabController.index],
-          unselectedLabelColor: const Color.fromARGB(255, 21, 55, 26),
-          onTap: (index) {
-            _tabController.animateTo(index);
-          },
-          tabs: const [
-            Tab(icon: Icon(FontAwesome.house_chimney_solid, size: 24)),
-            Tab(icon: Icon(FontAwesome.book_journal_whills_solid, size: 24)),
-            Tab(icon: Icon(FontAwesome.spa_solid, size: 24)),
-            Tab(icon: Icon(FontAwesome.radio_solid, size: 24)),
-          ],
-        ),
-        fit: StackFit.expand,
-        icon: (width, height) => Center(
-          child: IconButton(
-            padding: EdgeInsets.zero,
-            onPressed: null,
-            icon: Icon(
-              Icons.arrow_upward_rounded,
-              color: Colors.black,
-              size: width,
+      body: Stack(
+        children: [
+          // Main content with bottom bar
+          BottomBar(
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: colors[_tabController.index],
+              dividerColor: Colors.transparent,
+              labelColor: colors[_tabController.index],
+              unselectedLabelColor: const Color.fromARGB(255, 21, 55, 26),
+              onTap: (index) {
+                _tabController.animateTo(index);
+              },
+              tabs: const [
+                Tab(icon: Icon(FontAwesome.house_chimney_solid, size: 24)),
+                Tab(icon: Icon(FontAwesome.book_journal_whills_solid, size: 24)),
+                Tab(icon: Icon(FontAwesome.spa_solid, size: 24)),
+                Tab(icon: Icon(FontAwesome.radio_solid, size: 24)),
+              ],
+            ),
+            fit: StackFit.expand,
+            icon: (width, height) => Center(
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                onPressed: null,
+                icon: Icon(
+                  Icons.arrow_upward_rounded,
+                  color: Colors.black,
+                  size: width,
+                ),
+              ),
+            ),
+            borderRadius: BorderRadius.circular(500),
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.decelerate,
+            showIcon: true,
+            width: MediaQuery.of(context).size.width * 0.6,
+            start: 2,
+            end: 0,
+            offset: 10,
+            barAlignment: Alignment.bottomCenter,
+            iconHeight: 35,
+            iconWidth: 35,
+            barColor: const Color.fromARGB(212, 255, 255, 255),
+            hideOnScroll: true,
+            scrollOpposite: false,
+            body: (context, controller) => TabBarView(
+              controller: _tabController,
+              dragStartBehavior: DragStartBehavior.down,
+              physics: const BouncingScrollPhysics(),
+              children: _screens,
             ),
           ),
-        ),
-        borderRadius: BorderRadius.circular(500),
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.decelerate,
-        showIcon: true,
-        width: MediaQuery.of(context).size.width * 0.6,
-        start: 2,
-        end: 0,
-        offset: 10,
-        barAlignment: Alignment.bottomCenter,
-        iconHeight: 35,
-        iconWidth: 35,
-        barColor: const Color.fromARGB(212, 255, 255, 255),
-        hideOnScroll: true,
-        scrollOpposite: false,
-        onBottomBarHidden: () {},
-        onBottomBarShown: () {},
-        body: (context, controller) => TabBarView(
-          controller: _tabController,
-          dragStartBehavior: DragStartBehavior.down,
-          physics: const BouncingScrollPhysics(),
-          children: _screens
-              .map((screen) => RepaintBoundary(child: screen))
-              .toList(),
-        ),
+          
+          // Mini player positioned above the floating bottom bar
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 100, // Position above the floating bottom bar
+            child: const MiniPlayer(),
+          ),
+        ],
       ),
     );
   }
@@ -153,6 +164,27 @@ class _MoodTrackerScreenContentState extends State<MoodTrackerScreenContent>
   }
 }
 
+// Content-only version of MeditationScreen (without its own navigation)
+class MeditationScreenContent extends StatefulWidget {
+  const MeditationScreenContent({super.key});
+
+  @override
+  State<MeditationScreenContent> createState() =>
+      _MeditationScreenContentState();
+}
+
+class _MeditationScreenContentState extends State<MeditationScreenContent>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return const MeditationScreen();
+  }
+}
+
 // Content-only version of MediaScreen (without its own navigation)
 class MediaScreenContent extends StatefulWidget {
   const MediaScreenContent({super.key});
@@ -170,35 +202,5 @@ class _MediaScreenContentState extends State<MediaScreenContent>
   Widget build(BuildContext context) {
     super.build(context);
     return const MediaScreen();
-  }
-}
-
-// Placeholder screens
-class CalendarScreen extends StatefulWidget {
-  const CalendarScreen({super.key});
-
-  @override
-  State<CalendarScreen> createState() => _CalendarScreenState();
-}
-
-class _CalendarScreenState extends State<CalendarScreen>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return Container(
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: const SafeArea(
-        child: Center(
-          child: Text(
-            'Meditation Screen',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-    );
   }
 }

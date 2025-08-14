@@ -168,16 +168,26 @@ class RealmDatabaseHelper {
   }
 
   Future<MoodEntryRealm?> getTodaysMoodEntry() async {
-    final realmDb = await realm;
     final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day);
-    final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    // Use the new method to get moods for the current date
+    return getMoodsForDate(now);
+  }
 
+  /// Retrieves the first mood entry for a specific date.
+  Future<MoodEntryRealm?> getMoodsForDate(DateTime date) async {
+    final realmDb = await realm;
+    
+    // Normalize the date to the start and end of the day in UTC
+    final startOfDay = DateTime.utc(date.year, date.month, date.day);
+    final endOfDay = DateTime.utc(date.year, date.month, date.day, 23, 59, 59, 999);
+
+    // Query for entries within the specified day
     final results = realmDb.all<MoodEntryRealm>().query(
-      'createdAt >= \$0 AND createdAt <= \$1 SORT(createdAt DESC) LIMIT(1)',
+      'createdAt >= \$0 AND createdAt <= \$1',
       [startOfDay, endOfDay],
     );
     
+    // Return the first result if available, otherwise null
     return results.isEmpty ? null : results.first;
   }
 

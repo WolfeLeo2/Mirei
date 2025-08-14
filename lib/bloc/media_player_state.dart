@@ -19,6 +19,7 @@ class MediaPlayerState {
   final bool hasError;
   final ProcessingState? processingState;
   final String? error;
+  final bool isLiveStream;
 
   const MediaPlayerState({
     required this.trackTitle,
@@ -38,6 +39,7 @@ class MediaPlayerState {
     this.hasError = false,
     this.processingState,
     this.error,
+    this.isLiveStream = false,
   });
 
   factory MediaPlayerState.initial() => const MediaPlayerState(
@@ -56,6 +58,7 @@ class MediaPlayerState {
         isShuffleEnabled: false,
         repeatMode: RepeatMode.none,
         hasError: false,
+        isLiveStream: false,
       );
 
   MediaPlayerState copyWith({
@@ -76,6 +79,7 @@ class MediaPlayerState {
     bool? hasError,
     ProcessingState? processingState,
     String? error,
+    bool? isLiveStream,
   }) {
     return MediaPlayerState(
       trackTitle: trackTitle ?? this.trackTitle,
@@ -95,6 +99,7 @@ class MediaPlayerState {
       hasError: hasError ?? this.hasError,
       processingState: processingState ?? this.processingState,
       error: error ?? this.error,
+      isLiveStream: isLiveStream ?? this.isLiveStream,
     );
   }
 
@@ -117,7 +122,8 @@ class MediaPlayerState {
         other.repeatMode == repeatMode &&
         other.hasError == hasError &&
         other.processingState == processingState &&
-        other.error == error;
+        other.error == error &&
+        other.isLiveStream == isLiveStream;
   }
 
   @override
@@ -140,6 +146,7 @@ class MediaPlayerState {
       hasError,
       processingState,
       error,
+      isLiveStream,
     );
   }
 
@@ -162,7 +169,8 @@ class MediaPlayerState {
         'repeatMode: $repeatMode, '
         'hasError: $hasError, '
         'processingState: $processingState, '
-        'error: $error'
+        'error: $error, '
+        'isLiveStream: $isLiveStream'
         ')';
   }
 }
