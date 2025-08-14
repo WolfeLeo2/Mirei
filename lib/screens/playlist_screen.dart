@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../utils/media_player_modal.dart';
 import '../services/audio_cache_service.dart';
 import '../services/network_optimizer.dart';
+import '../utils/performance_mixins.dart'; // Add performance mixins
 
 class PlaylistScreen extends StatefulWidget {
   final String playlistTitle;
@@ -23,7 +24,8 @@ class PlaylistScreen extends StatefulWidget {
   _PlaylistScreenState createState() => _PlaylistScreenState();
 }
 
-class _PlaylistScreenState extends State<PlaylistScreen> {
+class _PlaylistScreenState extends State<PlaylistScreen>
+    with PerformanceOptimizedStateMixin { // Add performance mixin
   List<Map<String, dynamic>> songs = [];
   bool isInitialLoading = true;
   bool isLoadingMore = false;
@@ -40,19 +42,19 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
   static final TextStyle _songTitleStyle = GoogleFonts.inter(
     fontSize: 16,
     fontWeight: FontWeight.w500,
-    color: const Color(0xFF115e5a),
+    color: Colors.black87,
   );
 
   static final TextStyle _songArtistStyle = GoogleFonts.inter(
     fontSize: 14,
-    color: const Color(0xFF115e5a).withValues(alpha: 0.7),
+    color: Colors.black87.withOpacity(0.7),
   );
 
   static final TextStyle _errorTextStyle = GoogleFonts.inter(fontSize: 16);
 
   // Const colors for better performance
-  static const Color primaryColor = Color(0xFF115e5a);
-  static const Color backgroundColor = Color(0xFFfaf6f1);
+  static const Color primaryColor = Colors.black87;
+  static const Color backgroundColor = Color(0xFFd7dfe5);
   static const Color primaryColorLight = Color.fromRGBO(17, 94, 90, 0.7);
   static const Color primaryColorVeryLight = Color.fromRGBO(17, 94, 90, 0.2);
   static const Color primaryColorUltraLight = Color.fromRGBO(17, 94, 90, 0.1);
@@ -81,15 +83,14 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
     try {
       await _cacheService.ensureInitialized();
       await _networkOptimizer.ensureInitialized();
-      print('Caching services initialized successfully');
     } catch (e) {
-      print('Failed to initialize caching services: $e');
+      // Silently handle initialization errors
     }
   }
 
   Future<void> _loadPlaylist() async {
     try {
-      setState(() {
+      safeSetState(() {
         isLoadingMore = true;
         isLoadingFromCache = true;
         error = null;
@@ -100,17 +101,11 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
       final apiUrl =
           'https://wolfeleo2.github.io/audio-cdn/api/$playlistName.json';
 
-      print('Loading playlist: $apiUrl'); // Debug log
-
       // Use persistent database caching via AudioCacheService
       final jsonData = await _cacheService.getPlaylistWithCache(apiUrl);
 
       if (jsonData != null) {
-        print(
-          'Loaded playlist data with ${jsonData['tracks']?.length ?? 0} tracks',
-        );
-
-        setState(() {
+        safeSetState(() {
           isLoadingFromCache = false;
         });
 
@@ -122,15 +117,14 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
         throw Exception('Failed to load playlist data from cache or network');
       }
     } catch (e) {
-      print('Error loading playlist: $e'); // Debug log
       if (mounted) {
-        setState(() {
+        safeSetState(() {
           error = 'Failed to load playlist: $e';
         });
       }
     } finally {
       if (mounted) {
-        setState(() {
+        safeSetState(() {
           isInitialLoading = false;
           isLoadingMore = false;
           isLoadingFromCache = false;
@@ -154,11 +148,8 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
         maxPreload: 3,
         currentIndex: currentIndex,
       );
-
-      print('Adaptively preloaded playlist from index $currentIndex');
     } catch (e) {
-      print('Failed to preload playlist audio: $e');
-      // Don't show error to user for preloading failures
+      // Silently handle preloading errors
     }
   }
 
@@ -481,22 +472,6 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
   }
 
   void _playSong(Map<String, dynamic> song, int index) {
-    print('\n🎵 PlaylistScreen._playSong called:');
-    print('   - Song index: $index');
-    print('   - Song title: ${song['title']}');
-    print('   - Song artist: ${song['artist']}');
-    print('   - Song URL: ${song['url']}');
-    print('   - Playlist length: ${songs.length}');
-    print('   - Album art: ${song['albumArt'] ?? widget.albumArt}');
-
-    // Verify the song data structure
-    print('\n🔍 Song data structure:');
-    song.forEach((key, value) {
-      print(
-        '   - $key: ${value.toString().length > 50 ? '${value.toString().substring(0, 50)}...' : value}',
-      );
-    });
-
     showMediaPlayerModal(
       context: context,
       trackTitle: song['title'] ?? 'Unknown Title',
@@ -506,8 +481,6 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
       playlist: songs, // Pass the entire playlist
       currentIndex: index, // Pass the current song index
     );
-
-    print('✅ showMediaPlayerModal called successfully\n');
   }
 }
 

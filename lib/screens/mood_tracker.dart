@@ -12,6 +12,7 @@ import '../utils/performance_mixins.dart';
 import 'progress.dart';
 import 'journal_list.dart';
 import 'media_screen.dart';
+import 'package:lottie/lottie.dart';
 
 // Const widgets for static decorative elements
 class _EmphasisIcon extends StatelessWidget {
@@ -53,6 +54,16 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     with PerformanceOptimizedStateMixin {
   int selectedMoodIndex = 1;
   
+  // Lottie overlay state
+  bool _showMoodAnimation = false;
+  int _animationKey = 0; // Forces replay when set
+  static const String _moodLottieAsset = 'assets/animations/Bubble Explosion.json';
+  
+  // GlobalKeys for tracking mood button positions
+  final List<GlobalKey> _moodButtonKeys = List.generate(9, (index) => GlobalKey());
+  Offset? _animationPosition;
+  Size? _animationSize;
+
   // Make Moods list const for better performance
   static const List<String> Moods = [
     'Angelic',
@@ -191,12 +202,50 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     }
   }
 
+  void _playMoodAnimation() {
+    // Get the position of the selected mood button
+    final selectedKey = _moodButtonKeys[selectedMoodIndex];
+    final RenderBox? renderBox = selectedKey.currentContext?.findRenderObject() as RenderBox?;
+    
+    if (renderBox != null) {
+      final position = renderBox.localToGlobal(Offset.zero);
+      final size = renderBox.size;
+      
+      setState(() {
+        _animationPosition = Offset(
+          position.dx + size.width / 2, // Center horizontally on the button
+          position.dy + size.height / 2, // Center vertically on the button
+        );
+        _animationSize = Size(size.width * 1.5, size.height * 1.5); // Make animation slightly larger than button
+        _showMoodAnimation = true;
+        _animationKey++; 
+      });
+    } else {
+      // Fallback to center if position can't be determined
+      setState(() {
+        _animationPosition = null;
+        _animationSize = null;
+        _showMoodAnimation = true;
+        _animationKey++; 
+      });
+    }
+  }
+
   void _onMoodSelected(int index, String mood) {
     // Material 3 Expressive haptic feedback for selection
     HapticFeedback.selectionClick();
     safeSetState(() {
       selectedMoodIndex = index;
     });
+    
+    // Add a small delay to ensure the UI has rendered before getting button position
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (mounted) {
+        // Play lottie overlay animation
+        _playMoodAnimation();
+      }
+    });
+    
     // Save the mood immediately on selection
     _saveMoodSelection(mood);
   }
@@ -205,6 +254,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
   Widget _buildMoodButton(int index) {
     final config = MoodConfigs[index];
     return MoodButton(
+      key: _moodButtonKeys[index], // Add the GlobalKey here
       Mood: config['Mood']!,
       svgPath: config['svgPath']!,
       isSelected: selectedMoodIndex == index,
@@ -307,243 +357,277 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF115e5a),
-      body: Column(
+      body: Stack(
         children: [
-          Container(
-            color: const Color(0xFF115e5a),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 60, 20, 0),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            children: [
+              Container(
+                color: const Color(0xFF115e5a),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 60, 20, 0),
+                  child: Column(
                     children: [
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          RepaintBoundary(
-                            child: CircleAvatar(
-                              radius: 28,
-                              backgroundImage: NetworkImage(_user.avatarUrl),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          Row(
                             children: [
-                              Text(
-                                _user.name,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: '.SF Pro Display',
+                              RepaintBoundary(
+                                child: CircleAvatar(
+                                  radius: 28,
+                                  backgroundImage: NetworkImage(_user.avatarUrl),
                                 ),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _user.email,
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w400,
-                                  fontFamily: '.SF Pro Text',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      // Use const hamburger menu for better performance
-                      _hamburgerMenuIcon,
-                    ],
-                  ),
-                  const SizedBox(height: 40),
-                  RepaintBoundary(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      clipBehavior: Clip.none,
-                      children: [
-                        Text(
-                          'Hi, How do you\nfeel today?',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 36,
-                            fontWeight: FontWeight.w900,
-                            height: 1.2,
-                            fontFamily: GoogleFonts.inter().fontFamily,
-                          ),
-                        ),
-                        const Positioned(
-                          top: -10,
-                          left: -20,
-                          child: _EmphasisIcon(),
-                        ),
-                        const Positioned(
-                          bottom: -10,
-                          right: 50,
-                          child: _UnderlineIcon(),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _subtitleText,
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ),
-          Container(
-            color: const Color(0xFF115e5a),
-            child: RepaintBoundary(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Row(
-                  children: List.generate(
-                    MoodConfigs.length,
-                    (index) => _buildMoodButton(index),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 30),
-          Expanded(
-            child: RepaintBoundary(
-              child: Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFd7dfe5),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(25),
-                    topRight: Radius.circular(25),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    // Hook/Handle component - make it const
-                    Container(
-                      margin: const EdgeInsets.only(top: 8, bottom: 8),
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF115e5a).withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          20,
-                          12,
-                          18,
-                          100,
-                        ), // Added bottom padding for nav bar
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            RepaintBoundary(
-                              child: RichText(
-                                text: TextSpan(
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w700,
-                                    height: 1.3,
-                                    fontFamily: GoogleFonts.inter().fontFamily,
-                                  ),
-                                  children: [
-                                    const TextSpan(
-                                      text: 'Do You know?\n3 Days Your',
-                                    ),
-                                    WidgetSpan(
-                                      alignment: PlaceholderAlignment.middle,
-                                      child: RepaintBoundary(
-                                        child: Stack(
-                                          alignment: Alignment.center,
-                                          children: [
-                                            SvgPicture.asset(
-                                              'assets/icons/circle.svg',
-                                              width: 50,
-                                              height: 35,
-                                              color: const Color.fromARGB(
-                                                255,
-                                                180,
-                                                235,
-                                                117,
-                                              ),
-                                            ),
-                                            Text(
-                                              'Happiness',
-                                              style: TextStyle(
-                                                color: const Color.fromARGB(
-                                                  255,
-                                                  17,
-                                                  84,
-                                                  70,
-                                                ),
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 22,
-                                                fontFamily:
-                                                    GoogleFonts.inter().fontFamily,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            RepaintBoundary(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              const SizedBox(width: 16),
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      'Some things you might be\ninterested in doing',
-                                      style: TextStyle(
-                                        color: Colors.black54,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w400,
-                                        height: 1.4,
-                                        fontFamily:
-                                            GoogleFonts.inter().fontFamily,
-                                      ),
+                                  Text(
+                                    _user.name,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                      fontFamily: '.SF Pro Display',
                                     ),
                                   ),
-                                  const Text(
-                                    'View More',
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _user.email,
                                     style: TextStyle(
-                                      color: Color(0xFF115e5a),
+                                      color: Colors.white.withOpacity(0.7),
                                       fontSize: 14,
-                                      fontWeight: FontWeight.w600,
+                                      fontWeight: FontWeight.w400,
                                       fontFamily: '.SF Pro Text',
                                     ),
                                   ),
                                 ],
                               ),
+                            ],
+                          ),
+                          // Use const hamburger menu for better performance
+                          _hamburgerMenuIcon,
+                        ],
+                      ),
+                      const SizedBox(height: 40),
+                      RepaintBoundary(
+                        child: Stack(
+                          alignment: Alignment.center,
+                          clipBehavior: Clip.none,
+                          children: [
+                            Text(
+                              'Hi, How do you\nfeel today?',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 36,
+                                fontWeight: FontWeight.w900,
+                                height: 1.2,
+                                fontFamily: GoogleFonts.inter().fontFamily,
+                              ),
                             ),
-                            const SizedBox(height: 32),
-                            _buildActivityIcons(context),
-                            const SizedBox(height: 24),
+                            const Positioned(
+                              top: -10,
+                              left: -20,
+                              child: _EmphasisIcon(),
+                            ),
+                            const Positioned(
+                              bottom: -10,
+                              right: 50,
+                              child: _UnderlineIcon(),
+                            ),
                           ],
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      _subtitleText,
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                color: const Color(0xFF115e5a),
+                child: RepaintBoundary(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                      children: List.generate(
+                        MoodConfigs.length,
+                        (index) => _buildMoodButton(index),
+                      ),
                     ),
                   ),
-                ],
+                ),
+              ),
+              const SizedBox(height: 30),
+              Expanded(
+                child: RepaintBoundary(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: Color.fromARGB(255, 251, 245, 240),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(25),
+                        topRight: Radius.circular(25),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        // Hook/Handle component - make it const
+                        Container(
+                          margin: const EdgeInsets.only(top: 8, bottom: 8),
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF115e5a).withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              20,
+                              12,
+                              18,
+                              100,
+                            ), // Added bottom padding for nav bar
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                RepaintBoundary(
+                                  child: RichText(
+                                    text: TextSpan(
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w700,
+                                        height: 1.3,
+                                        fontFamily: GoogleFonts.inter().fontFamily,
+                                      ),
+                                      children: [
+                                        const TextSpan(
+                                          text: 'Do You know?\n3 Days Your',
+                                        ),
+                                        WidgetSpan(
+                                          alignment: PlaceholderAlignment.middle,
+                                          child: RepaintBoundary(
+                                            child: Stack(
+                                              alignment: Alignment.center,
+                                              children: [
+                                                SvgPicture.asset(
+                                                  'assets/icons/circle.svg',
+                                                  width: 50,
+                                                  height: 35,
+                                                  color: const Color.fromARGB(
+                                                    255,
+                                                    180,
+                                                    235,
+                                                    117,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  'Happiness',
+                                                  style: TextStyle(
+                                                    color: const Color.fromARGB(
+                                                      255,
+                                                      17,
+                                                      84,
+                                                      70,
+                                                    ),
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 22,
+                                                    fontFamily:
+                                                        GoogleFonts.inter().fontFamily,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                RepaintBoundary(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Some things you might be\ninterested in doing',
+                                          style: TextStyle(
+                                            color: Colors.black54,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w400,
+                                            height: 1.4,
+                                            fontFamily:
+                                                GoogleFonts.inter().fontFamily,
+                                          ),
+                                        ),
+                                      ),
+                                      const Text(
+                                        'View More',
+                                        style: TextStyle(
+                                          color: Color(0xFF115e5a),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          fontFamily: '.SF Pro Text',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 32),
+                                _buildActivityIcons(context),
+                                const SizedBox(height: 24),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              ),
+            ],
+          ),
+
+          // Lottie overlay (ignores touches)
+          if (_showMoodAnimation)
+            Positioned(
+              left: _animationPosition != null 
+                ? _animationPosition!.dx - (_animationSize?.width ?? 100) / 2
+                : MediaQuery.of(context).size.width / 2 - 100,
+              top: _animationPosition != null 
+                ? _animationPosition!.dy - (_animationSize?.height ?? 100) / 2
+                : MediaQuery.of(context).size.height / 2 - 100,
+              child: IgnorePointer(
+                ignoring: true,
+                child: Lottie.asset(
+                  _moodLottieAsset,
+                  key: ValueKey(_animationKey),
+                  repeat: false,
+                  onLoaded: (composition) {
+                    // Auto-hide when finished
+                    Future.delayed(composition.duration, () {
+                      if (mounted) {
+                        setState(() => _showMoodAnimation = false);
+                      }
+                    });
+                  },
+                  width: _animationSize?.width ?? 200,
+                  height: _animationSize?.height ?? 200,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
-          ),
-          ),
         ],
       ),
     );

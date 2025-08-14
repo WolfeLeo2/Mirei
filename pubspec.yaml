@@ -35,15 +35,14 @@ dependencies:
   cupertino_icons: ^1.0.8
   path_provider: ^2.1.4
   http: ^1.2.2
-  audioplayers: ^6.1.0
   icons_plus: ^5.0.0
   flutter_swiper_view: ^1.1.8
   glassmorphism: ^3.0.0
   flutter_svg: ^2.2.0
   google_fonts: ^6.1.0
   just_audio_background: ^0.0.1-beta.17
-  just_audio: ^0.10.4
-  audio_session: ^0.2.2
+  just_audio: ^0.9.45
+  audio_session: ^0.1.24
   permission_handler: ^12.0.1
   flutter_media_metadata: ^1.0.0
   flutter_animate: ^4.5.2
@@ -79,6 +78,7 @@ dependencies:
   youtube_explode_dart: ^2.5.2
   stacked_list_carousel: ^1.1.0
   material_color_utilities: ^0.11.1
+  lottie: ^3.1.0
 
 dev_dependencies:
   flutter_test:
@@ -135,14 +135,16 @@ flutter:
     - assets/icons/Stress.svg
     - assets/images/lofi.png
     - assets/images/color.jpg
-    - assets/images/lofi_girl.jpeg
     - assets/images/lofi_cover.png
     - assets/images/rnb_cover.png
     - assets/images/meditation.jpg
     - assets/images/meditation.svg
     - assets/images/lofi_cover.png
     - assets/images/rnb_cover.png
-    - assets/images/lofi_girl.jpeg
+    - assets/animations/Bubble Explosion.json
+    - assets/images/window.jpg
+    - assets/images/moody.jpg
+    - assets/images/walking.png
 
     
   # assets:

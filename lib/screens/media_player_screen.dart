@@ -1,26 +1,20 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'package:just_audio/just_audio.dart';
-import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:convert';
-// import 'dart:typed_data';
 import '../bloc/media_player_bloc.dart';
 import '../bloc/media_player_event.dart';
 import '../bloc/media_player_state.dart';
-
-ImageProvider? _albumArtProvider;
-String? _lastAlbumArt;
+import '../widgets/mini_player.dart'; // Import for MediaPlayerColors
 
 class MediaPlayerScreen extends StatefulWidget {
   final String trackTitle;
   final String artistName;
   final String albumArt;
-  final String? audioUrl; // Optional custom audio URL
-  final List<Map<String, dynamic>>? playlist; // Optional playlist
-  final int? currentIndex; // Optional current song index
+  final String? audioUrl;
+  final List<Map<String, dynamic>>? playlist;
+  final int? currentIndex;
 
   const MediaPlayerScreen({
     super.key,
@@ -33,11 +27,11 @@ class MediaPlayerScreen extends StatefulWidget {
   });
 
   @override
-  _MediaPlayerScreenState createState() => _MediaPlayerScreenState();
+  State<MediaPlayerScreen> createState() => _MediaPlayerScreenState();
 }
 
 class _MediaPlayerScreenState extends State<MediaPlayerScreen>
-    with TickerProviderStateMixin {
+with TickerProviderStateMixin {
   late AnimationController _albumRotationController;
   late AnimationController _waveController;
   ImageProvider? _albumArtProvider;
@@ -89,6 +83,14 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
 
   void _updateAlbumArtProvider(String albumArt) {
     _lastAlbumArt = albumArt;
+    
+    // Check MediaPlayerColors cache first to prevent recreating providers
+    final cached = MediaPlayerColors.getCachedImageProvider(albumArt);
+    if (cached != null) {
+      _albumArtProvider = cached;
+      return;
+    }
+    
     if (albumArt.startsWith('data:')) {
       try {
         final base64String = albumArt.split(',')[1];
@@ -103,6 +105,11 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
       _albumArtProvider = AssetImage(albumArt);
     } else {
       _albumArtProvider = null;
+    }
+    
+    // Cache the provider in MediaPlayerColors
+    if (_albumArtProvider != null) {
+      MediaPlayerColors.cacheImageProvider(albumArt, _albumArtProvider!);
     }
   }
 
@@ -132,14 +139,22 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
         if (state.albumArt != _lastAlbumArt) {
           _updateAlbumArtProvider(state.albumArt);
         }
+        
+        // Get dynamic colors from MediaPlayerColors
+        final dominantColor = MediaPlayerColors.dominantColor;
+        final accentColor = MediaPlayerColors.accentColor;
+        
         return Scaffold(
           backgroundColor: Colors.transparent, // Make transparent for modal
           body: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color.fromARGB(255, 235, 215, 242), Color(0xFFF0EDF7)],
+                colors: [
+                  dominantColor.withOpacity(0.4), // Use dynamic dominant color
+                  accentColor.withOpacity(0.2), // Lighter version for gradient
+                ],
               ),
             ),
             child: SafeArea(
@@ -159,9 +174,9 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
                           const SizedBox(height: 40),
                           _buildTrackInfo(state),
                           const SizedBox(height: 30),
-                          _buildProgressBar(state),
+                          _buildProgressBar(state, accentColor),
                           const SizedBox(height: 20),
-                          _buildPlaybackControls(state),
+                          _buildPlaybackControls(state, accentColor),
                         ],
                       ),
                     ),
@@ -190,7 +205,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: MediaPlayerColors.dominantColor.withOpacity(0.3), // Dynamic shadow color
                   blurRadius: 15,
                   offset: const Offset(0, 8),
                 ),
@@ -199,8 +214,21 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: _albumArtProvider != null
-                  ? Image(image: _albumArtProvider!, fit: BoxFit.cover)
-                  : const SizedBox(),
+                  ? Image(
+                      image: _albumArtProvider!, 
+                      fit: BoxFit.cover,
+                      gaplessPlayback: true, // Prevent flickering during image changes
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.music_note, color: Colors.grey, size: 80),
+                        );
+                      },
+                    )
+                  : Container(
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.music_note, color: Colors.grey, size: 80),
+                    ),
             ),
           ),
         );
@@ -231,6 +259,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
   }
 
   Widget _buildTrackInfo(MediaPlayerState state) {
+    
     return Column(
       children: [
         Text(
@@ -238,7 +267,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
           style: GoogleFonts.inter(
             fontSize: 24,
             fontWeight: FontWeight.w500,
-            color: const Color(0xFF2D2D2D),
+            color: MediaPlayerColors.dominantColor, // Dynamic text color
           ),
           textAlign: TextAlign.center,
         ),
@@ -246,9 +275,9 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
         Text(
           state.artistName,
           style: GoogleFonts.inter(
-            fontSize: 16,
+            fontSize: 18,
             fontWeight: FontWeight.w500,
-            color: const Color(0xFF7B7B7B),
+            color: MediaPlayerColors.dominantColor.withOpacity(0.8), // Dynamic subtitle color
           ),
           textAlign: TextAlign.center,
         ),
@@ -256,14 +285,15 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
     );
   }
 
-  Widget _buildProgressBar(MediaPlayerState state) {
+  Widget _buildProgressBar(MediaPlayerState state, Color accentColor) {
     if (state.isLiveStream) {
       return _buildLiveStreamIndicator(state);
     }
 
-    final position = state.position.inMilliseconds.toDouble();
-    final duration = state.duration.inMilliseconds.toDouble();
-    final progress = (duration > 0) ? (position / duration).clamp(0.0, 1.0) : 0.0;
+    final progress = state.duration.inMilliseconds > 0
+        ? (state.position.inMilliseconds / state.duration.inMilliseconds)
+            .clamp(0.0, 1.0)
+        : 0.0;
 
     return Column(
       children: [
@@ -275,7 +305,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
               style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF7B7B7B),
+                color: MediaPlayerColors.dominantColor.withOpacity(0.7), // Dynamic time color
               ),
             ),
             Row(
@@ -283,11 +313,11 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
                 if (state.isBuffering)
                   Container(
                     margin: const EdgeInsets.only(right: 8),
-                    child: const SizedBox(
+                    child: SizedBox(
                       width: 12,
                       height: 12,
                       child: CircularProgressIndicator(
-                        color: Color(0xFF7B7B7B),
+                        color: accentColor, // Dynamic buffering color
                         strokeWidth: 1,
                       ),
                     ),
@@ -297,7 +327,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF7B7B7B),
+                    color: MediaPlayerColors.dominantColor.withOpacity(0.7), // Dynamic time color
                   ),
                 ),
               ],
@@ -307,12 +337,12 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
         const SizedBox(height: 0),
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
-            trackHeight: 6.0,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8.0),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16.0),
-            activeTrackColor: Theme.of(context).colorScheme.primary,
-            inactiveTrackColor: Colors.white.withOpacity(0.3),
-            thumbColor: Theme.of(context).colorScheme.primary,
+            trackHeight: 3.0, // Reduced from 6.0 to 3.0 for thinner progress bar
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), // Reduced thumb size
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0), // Reduced overlay size
+            activeTrackColor: accentColor, // Dynamic active track color
+            inactiveTrackColor: MediaPlayerColors.dominantColor.withOpacity(0.2), // Dynamic inactive track color
+            thumbColor: accentColor, // Dynamic thumb color
             trackShape: const RoundedRectSliderTrackShape(),
           ),
           child: Slider(
@@ -357,7 +387,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
     );
   }
 
-  Widget _buildPlaybackControls(MediaPlayerState state) {
+  Widget _buildPlaybackControls(MediaPlayerState state, Color accentColor) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -366,18 +396,20 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
           onTap: () =>
               context.read<MediaPlayerBloc>().add(const SkipToPrevious()),
           size: 32,
+          color: MediaPlayerColors.dominantColor, // Dynamic control button color
         ),
-        _buildMainPlayButton(state),
+        _buildMainPlayButton(state, accentColor),
         _buildControlButton(
           icon: Icons.skip_next,
           onTap: () => context.read<MediaPlayerBloc>().add(const SkipToNext()),
           size: 32,
+          color: MediaPlayerColors.dominantColor, // Dynamic control button color
         ),
       ],
     );
   }
 
-  Widget _buildMainPlayButton(MediaPlayerState state) {
+  Widget _buildMainPlayButton(MediaPlayerState state, Color accentColor) {
     return SizedBox(
       width: 80,
       height: 80,
@@ -392,8 +424,8 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
                 }
               },
         style: FilledButton.styleFrom(
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          foregroundColor: Theme.of(context).colorScheme.onPrimary,
+          backgroundColor: accentColor, // Dynamic main button color
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -427,22 +459,26 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
     required IconData icon,
     required VoidCallback onTap,
     required double size,
+    Color? color,
   }) {
-    return SizedBox(
-      width: 64,
-      height: 64,
-      child: FilledButton.tonal(
-        onPressed: onTap,
-        style: FilledButton.styleFrom(
-          backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-          foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        color: (color ?? MediaPlayerColors.dominantColor).withOpacity(0.1), // Dynamic button background
+        borderRadius: BorderRadius.circular(25),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(25),
+          onTap: onTap,
+          child: Icon(
+            icon,
+            size: size,
+            color: color ?? MediaPlayerColors.dominantColor, // Dynamic icon color
           ),
-          elevation: 1,
-          padding: EdgeInsets.zero,
         ),
-        child: Center(child: Icon(icon, size: size)),
       ),
     );
   }
@@ -458,7 +494,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildBottomButton(icon: Icons.speaker, label: 'Living room'),
+        _buildBottomButton(icon: Icons.lyrics, label: 'Lyrics'),
         _buildBottomButton(icon: Icons.queue_music, label: 'Queue'),
       ],
     );

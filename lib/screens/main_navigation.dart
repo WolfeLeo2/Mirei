@@ -114,7 +114,7 @@ class _MainNavigationState extends State<MainNavigation>
           Positioned(
             left: 0,
             right: 0,
-            bottom: 100, // Position above the floating bottom bar
+            bottom: 60, // Move lower but keep above the floating bottom bar
             child: const MiniPlayer(),
           ),
         ],

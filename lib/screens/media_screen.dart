@@ -6,6 +6,7 @@ import 'playlist_screen.dart';
 import '../bloc/media_player_bloc.dart';
 import '../bloc/media_player_event.dart';
 import '../bloc/media_player_state.dart';
+import '../utils/performance_mixins.dart'; // Add this import
 
 // Static data classes for better performance
 class _AlbumData {
@@ -61,10 +62,10 @@ class _MediaScreenState extends State<MediaScreen> {
   // Static const data for better performance
   static const List<_AlbumData> _albumData = [
     _AlbumData(
-      title: 'Lofi Mix',
-      subtitle: 'Kick back and relax',
-      imagePath: 'assets/images/lofi_girl.jpeg',
-      url: 'https://youtu.be/AMcVJmb5mvk?list=RDAMcVJmb5mvk',
+      title: 'You Need to sleep',
+      subtitle: "Nothing's going to change",
+      imagePath: 'assets/images/window.jpg',
+      url: 'https://wolfeleo2.github.io/audio-cdn/picks/Shiloh.m4a',
     ),
     _AlbumData(
       title: 'Ocean Waves',
@@ -88,6 +89,12 @@ class _MediaScreenState extends State<MediaScreen> {
       url: 'https://wolfeleo2.github.io/audio-cdn/bedroompop/',
     ),
     _MixData(
+      title: 'Moody Mix',
+      subtitle: 'Moody atmosphere',
+      imagePath: 'assets/images/moody.jpg',
+      url: 'https://wolfeleo2.github.io/audio-cdn/moody/',
+    ),
+    _MixData(
       title: 'Soul Mix',
       subtitle: 'Deep soul vibes',
       imagePath: 'assets/images/bg-morning.jpg',
@@ -105,12 +112,7 @@ class _MediaScreenState extends State<MediaScreen> {
       imagePath: 'assets/images/bg-evening.jpg',
       url: 'https://wolfeleo2.github.io/audio-cdn/chill/',
     ),
-    _MixData(
-      title: 'Moody Mix',
-      subtitle: 'Moody atmosphere',
-      imagePath: 'assets/images/gradient.png',
-      url: 'https://wolfeleo2.github.io/audio-cdn/moody/',
-    ),
+    
   ];
 
   static const List<_LiveRadioData> _liveRadioData = [
@@ -142,14 +144,14 @@ class _MediaScreenState extends State<MediaScreen> {
   );
 
   static final TextStyle _cardTitleStyle = GoogleFonts.inter(
-    color: const Color(0xFF115e5a),
+    color: Colors.black87,
     fontWeight: FontWeight.bold,
     fontSize: 16,
     letterSpacing: -0.3,
   );
 
   static final TextStyle _cardSubtitleStyle = GoogleFonts.inter(
-    color: const Color(0xFF115e5a).withValues(alpha: 0.6),
+    color: Colors.black87.withOpacity(0.6),
     fontSize: 13,
     fontWeight: FontWeight.w400,
     letterSpacing: -0.2,
@@ -170,7 +172,7 @@ class _MediaScreenState extends State<MediaScreen> {
                 color: Color(0xFF115e5a),
                 size: 20,
               ),
-              onPressed: () => Navigator.pop(context),
+              //onPressed: () => Navigator.pop(context)),
             ),
             title: Text(
               'Media Library',

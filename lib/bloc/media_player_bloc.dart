@@ -8,7 +8,6 @@ import 'package:mirei/services/youtube_live_audio_service.dart';
 import 'media_player_event.dart';
 import 'media_player_state.dart';
 import 'repeat_mode.dart';
-import 'package:mirei/bloc/media_player_event.dart';
 
 class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
   final AudioPlayer _audioPlayer;

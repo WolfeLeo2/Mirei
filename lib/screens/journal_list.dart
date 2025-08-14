@@ -74,9 +74,9 @@ class _JournalListScreenState extends State<JournalListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFfaf6f1),
+      backgroundColor: const Color(0xFFd7dfe5),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFfaf6f1),
+        backgroundColor: const Color(0xFFd7dfe5),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(
@@ -212,6 +212,7 @@ class _JournalListScreenState extends State<JournalListScreen> {
       margin: const EdgeInsets.symmetric(vertical: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 4,
+      color: Colors.white, // Ensure white background
       child: InkWell(
         onTap: () => _viewJournalEntry(journal),
         borderRadius: BorderRadius.circular(16),

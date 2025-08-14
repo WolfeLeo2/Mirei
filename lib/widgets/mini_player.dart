@@ -3,12 +3,77 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import '../bloc/media_player_bloc.dart';
 import '../bloc/media_player_event.dart';
 import '../bloc/media_player_state.dart';
 import '../utils/media_player_modal.dart';
+
+// Global color state for sharing between mini player and full player
+class MediaPlayerColors {
+  static Color? _dominantColor;
+  static Color? _accentColor;
+  static String? _lastAlbumArt;
+  static Map<String, ImageProvider> _imageProviderCache = {};
+  static Map<String, _ColorPalette> _colorCache = {};
+  
+  static Color get dominantColor => _dominantColor ?? const Color(0xFF2A4A3A);
+  static Color get accentColor => _accentColor ?? const Color(0xFF4ADE80);
+  
+  static void updateColors({
+    required Color? dominantColor,
+    required Color? accentColor,
+    required String albumArt,
+  }) {
+    _dominantColor = dominantColor;
+    _accentColor = accentColor;
+    _lastAlbumArt = albumArt;
+    
+    // Cache the color result
+    if (albumArt.isNotEmpty && dominantColor != null && accentColor != null) {
+      _colorCache[albumArt] = _ColorPalette(dominantColor, accentColor);
+    }
+  }
+  
+  static bool shouldExtractColors(String albumArt) {
+    return _lastAlbumArt != albumArt;
+  }
+  
+  static bool hasColorsInCache(String albumArt) {
+    return _colorCache.containsKey(albumArt);
+  }
+  
+  static void loadColorsFromCache(String albumArt) {
+    final cached = _colorCache[albumArt];
+    if (cached != null) {
+      _dominantColor = cached.dominant;
+      _accentColor = cached.accent;
+      _lastAlbumArt = albumArt;
+    }
+  }
+  
+  static ImageProvider? getCachedImageProvider(String albumArt) {
+    return _imageProviderCache[albumArt];
+  }
+  
+  static void cacheImageProvider(String albumArt, ImageProvider provider) {
+    _imageProviderCache[albumArt] = provider;
+  }
+  
+  static void clearCache() {
+    _imageProviderCache.clear();
+    _colorCache.clear();
+  }
+}
+
+class _ColorPalette {
+  final Color dominant;
+  final Color accent;
+  
+  _ColorPalette(this.dominant, this.accent);
+}
 
 class MiniPlayer extends StatefulWidget {
   const MiniPlayer({super.key});
@@ -25,9 +90,8 @@ class _MiniPlayerState extends State<MiniPlayer>
   bool _isExpanded = false;
   
   // Color palette extraction
-  Color? _dominantColor;
-  Color? _accentColor;
   bool _isExtractingColors = false;
+  String _currentAlbumArt = '';
 
   @override
   void initState() {
@@ -69,39 +133,127 @@ class _MiniPlayerState extends State<MiniPlayer>
     });
   }
 
-  // Extract color palette from album art
+  // Create the proper ImageProvider based on album art format with caching
+  ImageProvider? _getAlbumArtProvider(String albumArt) {
+    if (albumArt.isEmpty) return null;
+    
+    // Check cache first
+    final cached = MediaPlayerColors.getCachedImageProvider(albumArt);
+    if (cached != null) {
+      return cached;
+    }
+    
+    ImageProvider? provider;
+    
+    if (albumArt.startsWith('data:')) {
+      try {
+        final base64String = albumArt.split(',')[1];
+        final bytes = base64Decode(base64String);
+        provider = MemoryImage(bytes);
+      } catch (e) {
+        return null;
+      }
+    } else if (albumArt.startsWith('http')) {
+      provider = CachedNetworkImageProvider(albumArt);
+    } else {
+      provider = AssetImage(albumArt);
+    }
+    
+    // Cache the provider
+    if (provider != null) {
+      MediaPlayerColors.cacheImageProvider(albumArt, provider);
+    }
+    
+    return provider;
+  }
+
+  // Fast color extraction with caching and optimization
   Future<void> _extractColorsFromAlbumArt(String albumArtUrl) async {
-    if (albumArtUrl.isEmpty || _isExtractingColors) return;
+    if (albumArtUrl.isEmpty || _isExtractingColors) {
+      return;
+    }
+    
+    // Check if colors are already cached
+    if (MediaPlayerColors.hasColorsInCache(albumArtUrl)) {
+      MediaPlayerColors.loadColorsFromCache(albumArtUrl);
+      if (mounted) setState(() {});
+      return;
+    }
+    
+    if (!MediaPlayerColors.shouldExtractColors(albumArtUrl)) {
+      return;
+    }
     
     setState(() {
       _isExtractingColors = true;
     });
 
     try {
-      // Load the image
-      final imageProvider = CachedNetworkImageProvider(albumArtUrl);
-      final imageStream = imageProvider.resolve(const ImageConfiguration());
+      ui.Image? image;
       
-      final completer = Completer<ui.Image>();
-      imageStream.addListener(ImageStreamListener((ImageInfo info, bool _) {
-        completer.complete(info.image);
-      }));
+      if (albumArtUrl.startsWith('data:')) {
+        // Handle base64 data URI
+        final base64String = albumArtUrl.split(',')[1];
+        final bytes = base64Decode(base64String);
+        final codec = await ui.instantiateImageCodec(
+          bytes,
+          targetWidth: 100, // Reduce image size for faster processing
+          targetHeight: 100,
+        );
+        final frame = await codec.getNextFrame();
+        image = frame.image;
+      } else if (albumArtUrl.startsWith('http')) {
+        // Handle network image
+        final imageProvider = CachedNetworkImageProvider(albumArtUrl);
+        final imageStream = imageProvider.resolve(const ImageConfiguration(
+          size: const Size(100, 100), // Smaller size for faster processing
+        ));
+        
+        final completer = Completer<ui.Image>();
+        late ImageStreamListener listener;
+        listener = ImageStreamListener((ImageInfo info, bool _) {
+          imageStream.removeListener(listener);
+          completer.complete(info.image);
+        });
+        imageStream.addListener(listener);
+        
+        image = await completer.future.timeout(
+          const Duration(seconds: 2), // Add timeout to prevent hanging
+          onTimeout: () => throw TimeoutException('Image loading timeout'),
+        );
+      } else if (albumArtUrl.isNotEmpty) {
+        // Handle asset image
+        final imageProvider = AssetImage(albumArtUrl);
+        final imageStream = imageProvider.resolve(const ImageConfiguration(
+          size: const Size(100, 100),
+        ));
+        
+        final completer = Completer<ui.Image>();
+        late ImageStreamListener listener;
+        listener = ImageStreamListener((ImageInfo info, bool _) {
+          imageStream.removeListener(listener);
+          completer.complete(info.image);
+        });
+        imageStream.addListener(listener);
+        
+        image = await completer.future;
+      }
       
-      final image = await completer.future;
+      if (image == null || !mounted) return;
       
-      // Convert to bytes
+      // Convert to bytes with reduced quality for faster processing
       final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
       if (byteData == null) return;
       
       final pixels = byteData.buffer.asUint8List();
       
-      // Extract colors using material_color_utilities
+      // Extract colors using material_color_utilities with reduced color count
       final quantizerResult = await QuantizerCelebi().quantize(
         _rgbaToArgb(pixels),
-        16, // Number of colors to extract
+        8, // Reduced from 16 to 8 for faster processing
       );
       
-      if (quantizerResult.colorToCount.isNotEmpty) {
+      if (quantizerResult.colorToCount.isNotEmpty && mounted) {
         // Get the most prominent colors
         final rankedColors = Score.score(quantizerResult.colorToCount);
         
@@ -113,38 +265,57 @@ class _MiniPlayerState extends State<MiniPlayer>
             contrastLevel: 0.0,
           );
           
-          setState(() {
-            _dominantColor = Color(scheme.primary);
-            _accentColor = Color(scheme.secondary);
-          });
+          final dominantColor = Color(scheme.primary);
+          final accentColor = Color(scheme.secondary);
+          
+          // Update global color state
+          MediaPlayerColors.updateColors(
+            dominantColor: dominantColor,
+            accentColor: accentColor,
+            albumArt: albumArtUrl,
+          );
+          
+          if (mounted) {
+            setState(() {
+              // This will trigger a rebuild with new colors
+            });
+          }
         }
       }
     } catch (e) {
       print('Error extracting colors from album art: $e');
       // Fallback to default colors on error
-      setState(() {
-        _dominantColor = const Color(0xFF2A4A3A);
-        _accentColor = const Color(0xFF4ADE80);
-      });
+      if (mounted) {
+        MediaPlayerColors.updateColors(
+          dominantColor: const Color(0xFF2A4A3A),
+          accentColor: const Color(0xFF4ADE80),
+          albumArt: albumArtUrl,
+        );
+      }
     } finally {
-      setState(() {
-        _isExtractingColors = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isExtractingColors = false;
+        });
+      }
     }
   }
 
   // Helper function to convert RGBA to ARGB format
   List<int> _rgbaToArgb(Uint8List pixels) {
     final List<int> result = [];
-    for (int i = 0; i < pixels.length; i += 4) {
-      final r = pixels[i];
-      final g = pixels[i + 1];
-      final b = pixels[i + 2];
-      final a = pixels[i + 3];
-      
-      // Convert RGBA to ARGB
-      final argb = (a << 24) | (r << 16) | (g << 8) | b;
-      result.add(argb);
+    // Process every 4th pixel for faster processing
+    for (int i = 0; i < pixels.length; i += 16) { // Skip more pixels for speed
+      if (i + 3 < pixels.length) {
+        final r = pixels[i];
+        final g = pixels[i + 1];
+        final b = pixels[i + 2];
+        final a = pixels[i + 3];
+        
+        // Convert RGBA to ARGB
+        final argb = (a << 24) | (r << 16) | (g << 8) | b;
+        result.add(argb);
+      }
     }
     return result;
   }
@@ -158,16 +329,18 @@ class _MiniPlayerState extends State<MiniPlayer>
           return const SizedBox.shrink();
         }
 
-        // Extract colors when album art changes
-        if (state.albumArt.isNotEmpty && !_isExtractingColors) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _extractColorsFromAlbumArt(state.albumArt);
-          });
+        // Check if album art changed and handle color extraction
+        if (state.albumArt != _currentAlbumArt) {
+          _currentAlbumArt = state.albumArt;
+          if (state.albumArt.isNotEmpty && !_isExtractingColors) {
+            // Use microtask to avoid calling setState during build
+            Future.microtask(() => _extractColorsFromAlbumArt(state.albumArt));
+          }
         }
 
         // Use extracted colors or fallback to default
-        final backgroundColor = _dominantColor ?? const Color(0xFF2A4A3A);
-        final accentColor = _accentColor ?? const Color(0xFF4ADE80);
+        final backgroundColor = MediaPlayerColors.dominantColor;
+        final accentColor = MediaPlayerColors.accentColor;
 
         return AnimatedBuilder(
           animation: _expandAnimation,
@@ -243,6 +416,8 @@ class _MiniPlayerState extends State<MiniPlayer>
   }
 
   Widget _buildAlbumArt(MediaPlayerState state) {
+    final albumArtProvider = _getAlbumArtProvider(state.albumArt);
+    
     return Container(
       width: 45,
       height: 45,
@@ -252,18 +427,17 @@ class _MiniPlayerState extends State<MiniPlayer>
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: state.albumArt.isNotEmpty
-            ? CachedNetworkImage(
-                imageUrl: state.albumArt,
+        child: albumArtProvider != null
+            ? Image(
+                image: albumArtProvider,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.music_note, color: Colors.grey),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.music_note, color: Colors.grey),
-                ),
+                gaplessPlayback: true, // Prevent flickering during image changes
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.music_note, color: Colors.grey),
+                  );
+                },
               )
             : Container(
                 color: Colors.grey[300],
@@ -320,7 +494,7 @@ class _MiniPlayerState extends State<MiniPlayer>
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(1.5),
-            color: accentColor, // Dynamic accent color from album art
+            color: Colors.white, // Dynamic accent color from album art
           ),
         ),
       ),
@@ -376,7 +550,7 @@ class _MiniPlayerState extends State<MiniPlayer>
               return Transform.rotate(
                 angle: _expandController.value * 3.14159, // 180 degrees rotation
                 child: Icon(
-                  _isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
+                  _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_up,
                   color: Colors.white,
                   size: 20,
                 ),

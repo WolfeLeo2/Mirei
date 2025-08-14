@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 /// Enhanced Performance Service for comprehensive app optimization
 class PerformanceService {
@@ -22,18 +23,15 @@ class PerformanceService {
   int _frameCount = 0;
   double _currentFps = 0.0;
   Timer? _fpsTimer;
+  bool _isFrameMonitoringActive = false;
 
   /// Initialize the performance service
   Future<void> initialize() async {
-    debugPrint('PerformanceService: Initializing performance monitoring');
-    
     // Start frame rate monitoring
     _startFrameRateMonitoring();
     
     // Set up memory management
     _setupMemoryManagement();
-    
-    debugPrint('PerformanceService: Initialization complete');
   }
 
   /// Start performance monitoring
@@ -44,8 +42,6 @@ class PerformanceService {
     _monitoringTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       _collectPerformanceMetrics();
     });
-    
-    debugPrint('PerformanceService: Performance monitoring started');
   }
 
   /// Stop performance monitoring
@@ -53,22 +49,27 @@ class PerformanceService {
     _isMonitoring = false;
     _monitoringTimer?.cancel();
     _fpsTimer?.cancel();
-    debugPrint('PerformanceService: Performance monitoring stopped');
+    _isFrameMonitoringActive = false;
   }
 
-  /// Start frame rate monitoring
+  /// Start frame rate monitoring with proper continuous callback
   void _startFrameRateMonitoring() {
     _fpsTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       _currentFps = _frameCount.toDouble();
       _frameCount = 0;
     });
     
-    // Hook into frame callbacks
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _isFrameMonitoringActive = true;
+    _scheduleFrameCallback();
+  }
+
+  /// Schedule continuous frame callbacks
+  void _scheduleFrameCallback() {
+    if (!_isFrameMonitoringActive) return;
+    
+    SchedulerBinding.instance.addPostFrameCallback((_) {
       _frameCount++;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _frameCount++;
-      });
+      _scheduleFrameCallback(); // Schedule next frame callback
     });
   }
 
@@ -96,9 +97,11 @@ class PerformanceService {
       _performanceMetrics.removeAt(0);
     }
     
-    // Log performance warnings
-    if (_currentFps < 50) {
-      debugPrint('PerformanceService: Low frame rate detected: ${_currentFps.toStringAsFixed(1)} FPS');
+    // Only warn for very low frame rates (below 30 FPS) and when actually rendering
+    if (_currentFps > 0 && _currentFps < 30) {
+      if (kDebugMode) {
+        print('PerformanceService: Low frame rate detected: ${_currentFps.toStringAsFixed(1)} FPS');
+      }
     }
   }
 
@@ -114,7 +117,9 @@ class PerformanceService {
 
   /// Log performance event
   void logEvent(String event, Map<String, dynamic> data) {
-    debugPrint('PerformanceService: $event - $data');
+    if (kDebugMode) {
+      print('PerformanceService: $event - $data');
+    }
   }
 
   /// Cache management
@@ -156,8 +161,6 @@ class PerformanceService {
       _cache.remove(key);
       _cacheTimestamps.remove(key);
     }
-    
-    debugPrint('PerformanceService: Cache cleanup completed. Removed ${keysToRemove.length} expired items.');
   }
 
   static int _getCacheSize() {
@@ -185,6 +188,5 @@ class PerformanceService {
     stopMonitoring();
     _cache.clear();
     _cacheTimestamps.clear();
-    debugPrint('PerformanceService: Disposed');
   }
 }

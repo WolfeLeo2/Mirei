@@ -38,10 +38,11 @@ class YouTubeLiveAudioService {
       }
 
       // Select a medium bitrate stream for balanced quality and performance
+      // Select the highest quality audio-only stream
       final sortedStreams = audioStreams.toList()
-        ..sort((a, b) => a.bitrate.compareTo(b.bitrate));
-      final mediumStream = sortedStreams[sortedStreams.length ~/ 2];
-      final streamUrl = mediumStream.url.toString();
+        ..sort((a, b) => b.bitrate.compareTo(a.bitrate));
+      final maxBitrateStream = sortedStreams.first;
+      final streamUrl = maxBitrateStream.url.toString();
 
       // Set the audio source
       await player.setAudioSource(AudioSource.uri(Uri.parse(streamUrl)));
