@@ -22,7 +22,7 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
   late final StreamSubscription _processingStateSubscription;
 
   // Track initialization state to prevent stream override issues
-  bool _isInitializing = false;
+  final bool _isInitializing = false;
 
   // Track current initialization to prevent race conditions
   String? _currentInitializationId;

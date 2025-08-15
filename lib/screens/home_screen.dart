@@ -3,7 +3,6 @@ import '../components/main_card.dart';
 import '../components/horizontal_card_list.dart';
 import '../components/section_header.dart';
 import '../components/top_bar.dart';
-import '../models/user.dart';
 import '../models/card_data.dart'; // Add missing import
 import '../models/session_info.dart'; // Add missing import
 import '../utils/performance_mixins.dart'; // Add performance mixins

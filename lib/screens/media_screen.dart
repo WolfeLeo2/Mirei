@@ -6,7 +6,6 @@ import 'playlist_screen.dart';
 import '../bloc/media_player_bloc.dart';
 import '../bloc/media_player_event.dart';
 import '../bloc/media_player_state.dart';
-import '../utils/performance_mixins.dart'; // Add this import
 
 // Static data classes for better performance
 class _AlbumData {
