@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../models/meditation.dart';
+import 'package:flutter/cupertino.dart';
 
 class MeditationPlayerScreen extends StatefulWidget {
   final Meditation meditation;
@@ -102,12 +103,6 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
     final screenHeight = MediaQuery.of(context).size.height;
     final textColor = _getTextColor(widget.meditation.color);
     final secondaryColor = _getSecondaryColor(widget.meditation.color);
-
-    // Generate Material You color scheme from meditation color (only for buttons and progress bar)
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: widget.meditation.color,
-      brightness: textColor == Colors.white ? Brightness.dark : Brightness.light,
-    );
 
     return Scaffold(
       backgroundColor: widget.meditation.color,
@@ -225,7 +220,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
 
               SizedBox(height: screenHeight * 0.06),
 
-              // Progress bar with times (Material You progress bar only)
+              // Progress bar with times (simple design)
               Column(
                 children: [
                   // Time, Progress Bar, and Duration in one row
@@ -241,22 +236,22 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                         ),
                       ),
                       
-                      // Progress bar (expanded) - Material You design
+                      // Progress bar (expanded) - Simple design
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: SliderTheme(
                             data: SliderTheme.of(context).copyWith(
-                              activeTrackColor: colorScheme.primary,
-                              inactiveTrackColor: colorScheme.surfaceContainer.withOpacity(0.5),
-                              thumbColor: colorScheme.primary,
-                              overlayColor: colorScheme.primary.withOpacity(0.2),
-                              trackHeight: 6,
-                              thumbShape: RoundSliderThumbShape(
-                                enabledThumbRadius: 8,
-                                elevation: 2,
-                                pressedElevation: 4,
-                              ),
+                              activeTrackColor: textColor == Colors.white ? Colors.white : Colors.black,
+                              inactiveTrackColor: textColor == Colors.white 
+                                  ? Colors.white.withOpacity(0.3) 
+                                  : Colors.black.withOpacity(0.3),
+                              thumbColor: textColor == Colors.white ? Colors.white : Colors.black,
+                              overlayColor: textColor == Colors.white 
+                                  ? Colors.white.withOpacity(0.2) 
+                                  : Colors.black.withOpacity(0.2),
+                              trackHeight: 4,
+                              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
                               overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
                             ),
                             child: Slider(
@@ -286,36 +281,34 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                   
                   const SizedBox(height: 32),
                   
-                  // Control buttons - Material You design only
+                  // Control buttons - Simple design like in image
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // Skip backward button
                       _Controls(
                         onPressed: _skipBackward,
-                        icon: Icons.replay_10,
-                        colorScheme: colorScheme,
-                        isSecondary: true,
+                        icon: CupertinoIcons.backward_fill,
+                        isDark: textColor == Colors.white,
                       ),
                       
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 40),
                       
-                      // Play/Pause button (styled like in image)
+                      // Play/Pause button
                       _Controls(
                         onPressed: _togglePlayPause,
-                        icon: isPlaying ? Icons.pause : Icons.play_arrow,
-                        colorScheme: colorScheme,
-                        isSecondary: false,
+                        icon: isPlaying ? CupertinoIcons.pause_solid : CupertinoIcons.play_arrow_solid,
+                        isDark: textColor == Colors.white,
+                        isMain: true,
                       ),
                       
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 40),
                       
                       // Skip forward button
                       _Controls(
                         onPressed: _skipForward,
-                        icon: Icons.forward_10,
-                        colorScheme: colorScheme,
-                        isSecondary: true,
+                        icon: CupertinoIcons.forward_fill,
+                        isDark: textColor == Colors.white,
                       ),
                     ],
                   ),
@@ -341,57 +334,29 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
 class _Controls extends StatelessWidget {
   final VoidCallback onPressed;
   final IconData icon;
-  final ColorScheme colorScheme;
-  final bool isSecondary;
+  final bool isDark;
+  final bool isMain;
 
   const _Controls({
     required this.onPressed,
     required this.icon,
-    required this.colorScheme,
-    required this.isSecondary,
+    required this.isDark,
+    this.isMain = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(16),
-        splashColor: colorScheme.primary.withOpacity(0.2),
-        highlightColor: colorScheme.primary.withOpacity(0.1),
-        child: Container(
-          width: isSecondary ? 80 : 100,
-          height: isSecondary ? 60 : 70,
-          decoration: BoxDecoration(
-            color: isSecondary 
-                ? colorScheme.surfaceContainerHighest.withOpacity(0.7)
-                : colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: colorScheme.outline.withOpacity(0.2),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.shadow.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Icon(
-            icon,
-            color: isSecondary 
-                ? colorScheme.onSurface
-                : colorScheme.onPrimaryContainer,
-            size: isSecondary ? 32 : 40,
-          ),
-        ),
+    return GestureDetector(
+      onTap: onPressed,
+      child: Icon(
+        icon,
+        color: isDark ? Colors.white : Colors.black54,
+        size: isMain ? 48 : 40,
       ),
     );
   }
 }
+
 
 class WavePainter extends CustomPainter {
   final Animation<double> animation;
