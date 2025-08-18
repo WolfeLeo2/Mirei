@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/realm_models.dart';
 import '../utils/realm_database_helper.dart';
 import 'journal_writing.dart';
 import 'journal_view.dart';
+import 'package:icons_plus/icons_plus.dart';
 import '../utils/emotion_colors.dart';
-import 'package:animations/animations.dart';
 
 class JournalListScreen extends StatefulWidget {
   const JournalListScreen({super.key});
@@ -16,15 +15,27 @@ class JournalListScreen extends StatefulWidget {
   _JournalListScreenState createState() => _JournalListScreenState();
 }
 
-class _JournalListScreenState extends State<JournalListScreen> {
+class _JournalListScreenState extends State<JournalListScreen> with TickerProviderStateMixin {
   List<JournalEntryRealm> journals = [];
   Map<String, MoodEntryRealm?> dailyMoods = {};
   bool isLoading = true;
+  Map<String, List<JournalEntryRealm>> journalsByMonth = {};
+  Map<String, bool> expandedFolders = {};
+  Map<String, AnimationController> animationControllers = {};
 
   @override
   void initState() {
     super.initState();
     _loadJournals();
+  }
+
+  @override
+  void dispose() {
+    // Dispose all animation controllers
+    for (var controller in animationControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 
   Future<void> _loadJournals() async {
@@ -36,13 +47,44 @@ class _JournalListScreenState extends State<JournalListScreen> {
       final moodMap = <String, MoodEntryRealm>{};
       for (var mood in moodEntries) {
         final dateKey = DateFormat('yyyy-MM-dd').format(mood.createdAt);
-        // Always store the most recent mood for the day
         moodMap[dateKey] = mood;
+      }
+
+      // Group journals by month/year
+      final groupedJournals = <String, List<JournalEntryRealm>>{};
+      for (var journal in loadedJournals) {
+        final monthKey = DateFormat('MMMM yyyy').format(journal.createdAt);
+        if (!groupedJournals.containsKey(monthKey)) {
+          groupedJournals[monthKey] = [];
+          // Create animation controller for this month
+          animationControllers[monthKey] = AnimationController(
+            duration: const Duration(milliseconds: 400),
+            vsync: this,
+          );
+          expandedFolders[monthKey] = false;
+        }
+        groupedJournals[monthKey]!.add(journal);
+      }
+
+      // Sort months in descending order (newest first)
+      final sortedKeys = groupedJournals.keys.toList()
+        ..sort((a, b) {
+          final dateA = DateFormat('MMMM yyyy').parse(a);
+          final dateB = DateFormat('MMMM yyyy').parse(b);
+          return dateB.compareTo(dateA);
+        });
+
+      final sortedGroupedJournals = <String, List<JournalEntryRealm>>{};
+      for (var key in sortedKeys) {
+        sortedGroupedJournals[key] = groupedJournals[key]!;
+        // Sort entries within each month by date (newest first)
+        sortedGroupedJournals[key]!.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       }
 
       setState(() {
         journals = loadedJournals;
         dailyMoods = moodMap;
+        journalsByMonth = sortedGroupedJournals;
         isLoading = false;
       });
     } catch (e) {
@@ -67,7 +109,22 @@ class _JournalListScreenState extends State<JournalListScreen> {
     );
 
     if (result == true) {
-      _loadJournals(); // Reload journals if something was saved
+      _loadJournals();
+    }
+  }
+
+  void _toggleFolder(String monthKey) {
+    final controller = animationControllers[monthKey]!;
+    final isExpanded = expandedFolders[monthKey] ?? false;
+    
+    setState(() {
+      expandedFolders[monthKey] = !isExpanded;
+    });
+
+    if (!isExpanded) {
+      controller.forward();
+    } else {
+      controller.reverse();
     }
   }
 
@@ -99,91 +156,57 @@ class _JournalListScreenState extends State<JournalListScreen> {
       ),
       body: isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF115e5a)),
+              child: CircularProgressIndicator(
+                color: Color(0xFF115e5a),
+              ),
             )
           : journals.isEmpty
-          ? _buildEmptyState()
-          : _buildJournalList(),
-      floatingActionButton: _buildFloatingActionButton(),
-    );
-  }
-
-  Widget _buildFloatingActionButton() {
-    if (journals.isEmpty) {
-      return const SizedBox.shrink(); // Hide FAB if no entries
-    }
-    return OpenContainer(
-      closedShape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30),
+              ? _buildEmptyState()
+              : _buildJournalFolders(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _navigateToJournalWriting,
+        backgroundColor: const Color(0xFF115e5a),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
-      transitionType: ContainerTransitionType.fade,
-      openShape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30),
-      ),
-      closedColor: const Color(0xFF115e5a),
-      closedBuilder: (context, openContainer) => Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          color: const Color(0xFF115e5a),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: IconButton(
-          onPressed: openContainer,
-          icon: const Icon(Icons.add, color: Colors.white, size: 28),
-        ),
-      ),
-      openBuilder: (context, closeContainer) => const JournalWritingScreen(),
-      transitionDuration: const Duration(milliseconds: 500),
     );
   }
 
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(40),
+        padding: const EdgeInsets.all(32.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SvgPicture.asset('assets/icons/Stress.svg', height: 200),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                Icons.folder_open,
+                size: 64,
+                color: Colors.grey[400],
+              ),
+            ),
             const SizedBox(height: 24),
             Text(
-              'Start keeping track of your days',
-              style: TextStyle(
+              'No journal entries yet',
+              style: GoogleFonts.inter(
                 fontSize: 24,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF115e5a),
-                fontFamily: GoogleFonts.inter().fontFamily,
               ),
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text(
-              'Capture your thoughts, feelings, and memories.\nYour personal space to reflect and grow.',
-              style: TextStyle(
+              'Start writing your thoughts and memories',
+              style: GoogleFonts.inter(
                 fontSize: 16,
-                color: Colors.black54,
-                fontFamily: GoogleFonts.inter().fontFamily,
-                height: 1.4,
+                color: Colors.grey[600],
               ),
               textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 40),
-            GestureDetector(
-              onTap: _navigateToJournalWriting,
-              child: Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF115e5a),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Icon(
-                  Icons.arrow_forward_ios,
-                  color: Colors.white,
-                  size: 30,
-                ),
-              ),
             ),
           ],
         ),
@@ -191,49 +214,180 @@ class _JournalListScreenState extends State<JournalListScreen> {
     );
   }
 
-  Widget _buildJournalList() {
+  Widget _buildJournalFolders() {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: journals.length,
+      itemCount: journalsByMonth.keys.length,
       itemBuilder: (context, index) {
-        final journal = journals[index];
-        return _buildJournalCard(journal);
+        final monthKey = journalsByMonth.keys.elementAt(index);
+        final entries = journalsByMonth[monthKey]!;
+        final isExpanded = expandedFolders[monthKey] ?? false;
+        final controller = animationControllers[monthKey]!;
+
+        return _buildMonthFolder(monthKey, entries, isExpanded, controller);
       },
     );
   }
 
-  Widget _buildJournalCard(JournalEntryRealm journal) {
+  Widget _buildMonthFolder(String monthKey, List<JournalEntryRealm> entries, 
+                          bool isExpanded, AnimationController controller) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        children: [
+          // Folder Header
+          GestureDetector(
+            onTap: () => _toggleFolder(monthKey),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  // Folder Icon
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF115e5a).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      isExpanded ? FontAwesome.folder_open : FontAwesome.folder_closed,
+                      color: const Color(0xFF115e5a),
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Month/Year Text
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          monthKey,
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF115e5a),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${entries.length} ${entries.length == 1 ? 'entry' : 'entries'}',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Expand/Collapse Arrow
+                  AnimatedRotation(
+                    turns: isExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 300),
+                    child: Icon(
+                      Icons.keyboard_arrow_down,
+                      color: const Color(0xFF115e5a),
+                      size: 24,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Animated Entries Container
+          AnimatedBuilder(
+            animation: controller,
+            builder: (context, child) {
+              return ClipRect(
+                child: Align(
+                  heightFactor: controller.value,
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    child: _buildEntriesList(entries, controller.value),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEntriesList(List<JournalEntryRealm> entries, double animationValue) {
+    return Column(
+      children: entries.asMap().entries.map((entry) {
+        final index = entry.key;
+        final journal = entry.value;
+        
+        // Stagger the animation for each entry
+        final delay = index * 0.1;
+        final entryAnimation = Tween<double>(
+          begin: 0.0,
+          end: 1.0,
+        ).animate(CurvedAnimation(
+          parent: animationControllers[DateFormat('MMMM yyyy').format(journal.createdAt)]!,
+          curve: Interval(delay, 1.0, curve: Curves.easeOutCubic),
+        ));
+
+        return AnimatedBuilder(
+          animation: entryAnimation,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(0, 20 * (1 - entryAnimation.value)),
+              child: Opacity(
+                opacity: entryAnimation.value,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: _buildJournalEntryCard(journal),
+                ),
+              ),
+            );
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildJournalEntryCard(JournalEntryRealm journal) {
     final dateKey = DateFormat('yyyy-MM-dd').format(journal.createdAt);
     final mood = dailyMoods[dateKey];
     final emotion = mood?.mood ?? 'Neutral';
     final color = getEmotionColor(emotion);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 4,
-      color: Colors.white, // Ensure white background
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: InkWell(
         onTap: () => _viewJournalEntry(journal),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Date and Mood Row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    DateFormat('MMMM d, yyyy').format(journal.createdAt),
+                    DateFormat('EEEE, MMM d').format(journal.createdAt),
                     style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[600],
                     ),
                   ),
                   Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       _buildEmotionChip(emotion, color),
                       const SizedBox(width: 8),
@@ -256,14 +410,12 @@ class _JournalListScreenState extends State<JournalListScreen> {
                                 const Icon(
                                   Icons.visibility,
                                   color: Color(0xFF115e5a),
-                                  size: 20,
+                                  size: 18,
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'View Entry',
-                                  style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                  'View',
+                                  style: GoogleFonts.inter(fontSize: 14),
                                 ),
                               ],
                             ),
@@ -275,13 +427,13 @@ class _JournalListScreenState extends State<JournalListScreen> {
                                 const Icon(
                                   Icons.delete,
                                   color: Colors.red,
-                                  size: 20,
+                                  size: 18,
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'Delete Entry',
+                                  'Delete',
                                   style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w500,
+                                    fontSize: 14,
                                     color: Colors.red,
                                   ),
                                 ),
@@ -291,8 +443,8 @@ class _JournalListScreenState extends State<JournalListScreen> {
                         ],
                         icon: Icon(
                           Icons.more_vert,
-                          color: Colors.grey[600],
-                          size: 20,
+                          color: Colors.grey[400],
+                          size: 18,
                         ),
                       ),
                     ],
@@ -300,26 +452,83 @@ class _JournalListScreenState extends State<JournalListScreen> {
                 ],
               ),
               const SizedBox(height: 12),
+              // Title (if exists)
               if (journal.title.isNotEmpty) ...[
                 Text(
                   journal.title,
                   style: GoogleFonts.inter(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF115e5a),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
               ],
+              // Content Preview
               Text(
                 journal.content,
-                maxLines: 3,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.inter(
                   fontSize: 14,
-                  color: Colors.black54,
-                  height: 1.5,
+                  color: Colors.grey[700],
+                  height: 1.4,
                 ),
               ),
+              // Media indicators
+              if (journal.imagePaths.isNotEmpty || journal.audioRecordings.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    if (journal.imagePaths.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.image, size: 14, color: Colors.blue[600]),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${journal.imagePaths.length}',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: Colors.blue[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (journal.imagePaths.isNotEmpty && journal.audioRecordings.isNotEmpty)
+                      const SizedBox(width: 8),
+                    if (journal.audioRecordings.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.mic, size: 14, color: Colors.orange[600]),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${journal.audioRecordings.length}',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: Colors.orange[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -329,14 +538,18 @@ class _JournalListScreenState extends State<JournalListScreen> {
 
   Widget _buildEmotionChip(String emotion, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(20),
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         emotion,
-        style: GoogleFonts.inter(color: color, fontWeight: FontWeight.w600),
+        style: GoogleFonts.inter(
+          color: color,
+          fontWeight: FontWeight.w500,
+          fontSize: 12,
+        ),
       ),
     );
   }
@@ -346,6 +559,7 @@ class _JournalListScreenState extends State<JournalListScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(
             'Delete Journal Entry',
             style: GoogleFonts.inter(
@@ -400,7 +614,6 @@ class _JournalListScreenState extends State<JournalListScreen> {
             ),
           );
 
-          // Reload the journals
           _loadJournals();
         }
       } catch (e) {

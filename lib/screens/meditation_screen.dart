@@ -3,6 +3,8 @@ import 'package:flutter_swiper_view/flutter_swiper_view.dart';
 import 'package:glassmorphism/glassmorphism.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mirei/models/meditation.dart';
+import 'package:animations/animations.dart';
+import 'meditation_player_screen.dart';
 
 class MeditationScreen extends StatefulWidget {
   const MeditationScreen({super.key});
@@ -145,79 +147,97 @@ class _MeditationScreenState extends State<MeditationScreen> {
     // Pre-calculate text color once
     final textColor = _getTextColor(meditation.color);
     
-    return RepaintBoundary( // Add RepaintBoundary for better performance
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: Stack(
-            children: [
-              // Solid pastel color background (no image)
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
-                    color: meditation.color, // Pure solid color
-                  ),
-                ),
-              ),
-              
-              // SVG/Image overlay on top of the card (centered)
-              Center(
-                child: RepaintBoundary(
-                  child: SvgPicture.asset(
-                    meditation.imagePath,
-                    width: 80,
-                    height: 80,
-                    colorFilter: ColorFilter.mode(
-                      textColor.withOpacity(0.3),
-                      BlendMode.srcIn,
+    return OpenContainer(
+      transitionType: ContainerTransitionType.fade,
+      transitionDuration: const Duration(milliseconds: 500),
+      closedElevation: 0,
+      openElevation: 0,
+      closedShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(30),
+      ),
+      openShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(0),
+      ),
+      closedColor: meditation.color,
+      openColor: meditation.color,
+      middleColor: meditation.color,
+      closedBuilder: (context, openContainer) => RepaintBoundary( // Add RepaintBoundary for better performance
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: Stack(
+              children: [
+                // Solid pastel color background (no image)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      color: meditation.color, // Pure solid color
                     ),
                   ),
                 ),
-              ),
-              
-              // Glass heart icon (top-right)
-              Positioned(
-                top: 25,
-                right: 25,
-                child: RepaintBoundary(
-                  child: _GlassHeartIcon(),
-                ),
-              ),
-              
-              // Title at top-left
-              Positioned(
-                left: 25,
-                top: 25,
-                child: RepaintBoundary(
-                  child: Text(
-                    meditation.title,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
+                
+                // SVG/Image overlay on top of the card (centered)
+                Center(
+                  child: RepaintBoundary(
+                    child: SvgPicture.asset(
+                      meditation.imagePath,
+                      width: 80,
+                      height: 80,
+                      colorFilter: ColorFilter.mode(
+                        textColor.withOpacity(0.3),
+                        BlendMode.srcIn,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              
-              // Glass timer widget at bottom-left
-              Positioned(
-                bottom: 25,
-                left: 25,
-                child: RepaintBoundary(
-                  child: _GlassTimer(
-                    duration: meditation.duration,
-                    textColor: textColor,
+                
+                // Glass heart icon (top-right)
+                Positioned(
+                  top: 25,
+                  right: 25,
+                  child: RepaintBoundary(
+                    child: _GlassHeartIcon(),
                   ),
                 ),
-              ),
-            ],
+                
+                // Title at top-left
+                Positioned(
+                  left: 25,
+                  top: 25,
+                  child: RepaintBoundary(
+                    child: Text(
+                      meditation.title,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Glass timer widget at bottom-left
+                Positioned(
+                  bottom: 25,
+                  left: 25,
+                  child: RepaintBoundary(
+                    child: _GlassTimer(
+                      duration: meditation.duration,
+                      textColor: textColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+      openBuilder: (context, closeContainer) => MeditationPlayerScreen(
+        meditation: meditation,
       ),
     );
   }

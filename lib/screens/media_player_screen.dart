@@ -181,7 +181,6 @@ with TickerProviderStateMixin {
                       ),
                     ),
                     // Bottom actions pinned to bottom
-                    _buildBottomActions(),
                   ],
                 ),
               ),
@@ -236,44 +235,27 @@ with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildAlbumArtImage(MediaPlayerState state) {
-    if (state.albumArt.startsWith('data:')) {
-      try {
-        final base64String = state.albumArt.split(',')[1];
-        final bytes = base64Decode(base64String);
-        return Image.memory(bytes, fit: BoxFit.cover);
-      } catch (e) {
-        return const SizedBox(); // Handle error
-      }
-    } else if (state.albumArt.startsWith('http')) {
-      return CachedNetworkImage(
-        imageUrl: state.albumArt,
-        fit: BoxFit.cover,
-        placeholder: (context, url) => const SizedBox(),
-        errorWidget: (context, url, error) => const SizedBox(),
-      );
-    } else if (state.albumArt.isNotEmpty) {
-      return Image.asset(state.albumArt, fit: BoxFit.cover);
-    }
-    return const SizedBox();
-  }
-
   Widget _buildTrackInfo(MediaPlayerState state) {
     
     return Column(
       children: [
         Text(
           state.trackTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: GoogleFonts.inter(
             fontSize: 24,
             fontWeight: FontWeight.w500,
-            color: MediaPlayerColors.dominantColor, // Dynamic text color
+            color: MediaPlayerColors.dominantColor,
+            // Dynamic text color
           ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
         Text(
           state.artistName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: GoogleFonts.inter(
             fontSize: 18,
             fontWeight: FontWeight.w500,
@@ -488,40 +470,5 @@ with TickerProviderStateMixin {
     final minutes = twoDigits(duration.inMinutes);
     final seconds = twoDigits(duration.inSeconds.remainder(60));
     return '$minutes:$seconds';
-  }
-
-  Widget _buildBottomActions() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _buildBottomButton(icon: Icons.lyrics, label: 'Lyrics'),
-        _buildBottomButton(icon: Icons.queue_music, label: 'Queue'),
-      ],
-    );
-  }
-
-  Widget _buildBottomButton({required IconData icon, required String label}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: const Color(0xFF7B7B7B), size: 18),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF7B7B7B),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
