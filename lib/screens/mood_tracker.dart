@@ -11,6 +11,7 @@ import '../utils/realm_database_helper.dart';
 import '../utils/performance_mixins.dart';
 import 'progress.dart';
 import 'journal_list.dart';
+import 'journal_list_new.dart';
 import 'media_screen.dart';
 import 'package:lottie/lottie.dart';
 
@@ -50,17 +51,21 @@ class MoodTrackerScreen extends StatefulWidget {
   _MoodTrackerScreenState createState() => _MoodTrackerScreenState();
 }
 
-class _MoodTrackerScreenState extends State<MoodTrackerScreen> 
+class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     with PerformanceOptimizedStateMixin {
   int selectedMoodIndex = 1;
-  
+
   // Lottie overlay state
   bool _showMoodAnimation = false;
   int _animationKey = 0; // Forces replay when set
-  static const String _moodLottieAsset = 'assets/animations/Bubble Explosion.json';
-  
+  static const String _moodLottieAsset =
+      'assets/animations/Bubble Explosion.json';
+
   // GlobalKeys for tracking mood button positions
-  final List<GlobalKey> _moodButtonKeys = List.generate(9, (index) => GlobalKey());
+  final List<GlobalKey> _moodButtonKeys = List.generate(
+    9,
+    (index) => GlobalKey(),
+  );
   Offset? _animationPosition;
   Size? _animationSize;
 
@@ -122,7 +127,8 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
   Future<void> _saveMoodSelection(String mood) async {
     try {
       // Check if there's already a mood entry for today
-      final existingMoodEntry = await RealmDatabaseHelper().getTodaysMoodEntry();
+      final existingMoodEntry = await RealmDatabaseHelper()
+          .getTodaysMoodEntry();
 
       if (existingMoodEntry != null) {
         // Update existing mood entry with current timestamp
@@ -205,20 +211,24 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
   void _playMoodAnimation() {
     // Get the position of the selected mood button
     final selectedKey = _moodButtonKeys[selectedMoodIndex];
-    final RenderBox? renderBox = selectedKey.currentContext?.findRenderObject() as RenderBox?;
-    
+    final RenderBox? renderBox =
+        selectedKey.currentContext?.findRenderObject() as RenderBox?;
+
     if (renderBox != null) {
       final position = renderBox.localToGlobal(Offset.zero);
       final size = renderBox.size;
-      
+
       setState(() {
         _animationPosition = Offset(
           position.dx + size.width / 2, // Center horizontally on the button
           position.dy + size.height / 2, // Center vertically on the button
         );
-        _animationSize = Size(size.width * 1.5, size.height * 1.5); // Make animation slightly larger than button
+        _animationSize = Size(
+          size.width * 1.5,
+          size.height * 1.5,
+        ); // Make animation slightly larger than button
         _showMoodAnimation = true;
-        _animationKey++; 
+        _animationKey++;
       });
     } else {
       // Fallback to center if position can't be determined
@@ -226,7 +236,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
         _animationPosition = null;
         _animationSize = null;
         _showMoodAnimation = true;
-        _animationKey++; 
+        _animationKey++;
       });
     }
   }
@@ -237,7 +247,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     safeSetState(() {
       selectedMoodIndex = index;
     });
-    
+
     // Add a small delay to ensure the UI has rendered before getting button position
     Future.delayed(const Duration(milliseconds: 50), () {
       if (mounted) {
@@ -245,7 +255,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
         _playMoodAnimation();
       }
     });
-    
+
     // Save the mood immediately on selection
     _saveMoodSelection(mood);
   }
@@ -299,7 +309,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const JournalListScreen(),
+                    builder: (context) => const JournalListScreenNew(),
                   ),
                 );
               },
@@ -335,9 +345,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const MediaScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const MediaScreen()),
                 );
               },
               child: const ActivityIcon(
@@ -375,7 +383,9 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                               RepaintBoundary(
                                 child: CircleAvatar(
                                   radius: 28,
-                                  backgroundImage: NetworkImage(_user.avatarUrl),
+                                  backgroundImage: NetworkImage(
+                                    _user.avatarUrl,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -486,115 +496,122 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(
-                              20,
-                              12,
-                              18,
-                              100,
-                            ), // Added bottom padding for nav bar
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                RepaintBoundary(
-                                  child: RichText(
-                                    text: TextSpan(
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w700,
-                                        height: 1.3,
-                                        fontFamily: GoogleFonts.inter().fontFamily,
-                                      ),
-                                      children: [
-                                        const TextSpan(
-                                          text: 'Do You know?\n3 Days Your',
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                12,
+                                18,
+                                100,
+                              ), // Added bottom padding for nav bar
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  RepaintBoundary(
+                                    child: RichText(
+                                      text: TextSpan(
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.w700,
+                                          height: 1.3,
+                                          fontFamily:
+                                              GoogleFonts.inter().fontFamily,
                                         ),
-                                        WidgetSpan(
-                                          alignment: PlaceholderAlignment.middle,
-                                          child: RepaintBoundary(
-                                            child: Stack(
-                                              alignment: Alignment.center,
-                                              children: [
-                                                SvgPicture.asset(
-                                                  'assets/icons/circle.svg',
-                                                  width: 50,
-                                                  height: 35,
-                                                  color: const Color.fromARGB(
-                                                    255,
-                                                    180,
-                                                    235,
-                                                    117,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  'Happiness',
-                                                  style: TextStyle(
+                                        children: [
+                                          const TextSpan(
+                                            text: 'Do You know?\n3 Days Your',
+                                          ),
+                                          WidgetSpan(
+                                            alignment:
+                                                PlaceholderAlignment.middle,
+                                            child: RepaintBoundary(
+                                              child: Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  SvgPicture.asset(
+                                                    'assets/icons/circle.svg',
+                                                    width: 50,
+                                                    height: 35,
                                                     color: const Color.fromARGB(
                                                       255,
-                                                      17,
-                                                      84,
-                                                      70,
+                                                      180,
+                                                      235,
+                                                      117,
                                                     ),
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 22,
-                                                    fontFamily:
-                                                        GoogleFonts.inter().fontFamily,
                                                   ),
-                                                ),
-                                              ],
+                                                  Text(
+                                                    'Happiness',
+                                                    style: TextStyle(
+                                                      color:
+                                                          const Color.fromARGB(
+                                                            255,
+                                                            17,
+                                                            84,
+                                                            70,
+                                                          ),
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 22,
+                                                      fontFamily:
+                                                          GoogleFonts.inter()
+                                                              .fontFamily,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  RepaintBoundary(
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            'Some things you might be\ninterested in doing',
+                                            style: TextStyle(
+                                              color: Colors.black54,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w400,
+                                              height: 1.4,
+                                              fontFamily: GoogleFonts.inter()
+                                                  .fontFamily,
+                                            ),
+                                          ),
+                                        ),
+                                        const Text(
+                                          'View More',
+                                          style: TextStyle(
+                                            color: Color(0xFF115e5a),
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            fontFamily: '.SF Pro Text',
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 16),
-                                RepaintBoundary(
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          'Some things you might be\ninterested in doing',
-                                          style: TextStyle(
-                                            color: Colors.black54,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w400,
-                                            height: 1.4,
-                                            fontFamily:
-                                                GoogleFonts.inter().fontFamily,
-                                          ),
-                                        ),
-                                      ),
-                                      const Text(
-                                        'View More',
-                                        style: TextStyle(
-                                          color: Color(0xFF115e5a),
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          fontFamily: '.SF Pro Text',
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 32),
-                                _buildActivityIcons(context),
-                                const SizedBox(height: 24),
-                              ],
+                                  const SizedBox(height: 32),
+                                  _buildActivityIcons(context),
+                                  const SizedBox(height: 24),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
               ),
             ],
           ),
@@ -602,12 +619,12 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
           // Lottie overlay (ignores touches)
           if (_showMoodAnimation)
             Positioned(
-              left: _animationPosition != null 
-                ? _animationPosition!.dx - (_animationSize?.width ?? 100) / 2
-                : MediaQuery.of(context).size.width / 2 - 100,
-              top: _animationPosition != null 
-                ? _animationPosition!.dy - (_animationSize?.height ?? 100) / 2
-                : MediaQuery.of(context).size.height / 2 - 100,
+              left: _animationPosition != null
+                  ? _animationPosition!.dx - (_animationSize?.width ?? 100) / 2
+                  : MediaQuery.of(context).size.width / 2 - 100,
+              top: _animationPosition != null
+                  ? _animationPosition!.dy - (_animationSize?.height ?? 100) / 2
+                  : MediaQuery.of(context).size.height / 2 - 100,
               child: IgnorePointer(
                 ignoring: true,
                 child: Lottie.asset(

@@ -2,7 +2,7 @@ name: mirei
 description: "A Mental Wellness App"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
 # followed by an optional build number separated by a +.
@@ -39,7 +39,7 @@ dependencies:
   flutter_swiper_view: ^1.1.8
   glassmorphism: ^3.0.0
   flutter_svg: ^2.2.0
-  google_fonts: ^6.1.0
+  google_fonts: ^6.2.1
   just_audio_background: ^0.0.1-beta.17
   just_audio: ^0.9.45
   audio_session: ^0.1.24
@@ -62,25 +62,28 @@ dependencies:
   freezed_annotation: ^3.1.0
 
   # New dependencies for enhanced features
-  realm: ^20.1.1  # Realm database replacement for SQLite
-  dio: ^5.8.0+1  # Enhanced HTTP client with caching, pooling, interceptors
-  dio_cache_interceptor: ^3.5.0  # HTTP caching for audio streams
-  dio_cache_interceptor_hive_store: ^4.0.0  # Hive-based cache storage
-  hive: ^2.2.3  # Fast key-value database for caching
-  hive_flutter: ^1.1.0  # Flutter integration for Hive
-  connectivity_plus: ^6.0.5  # Network connectivity monitoring
-  cached_network_image: ^3.4.1  # Image caching
-  crypto: ^3.0.3  # For cache key generation
-  collection: ^1.18.0  # Additional collection utilities
+  realm: ^20.1.1 # Realm database replacement for SQLite
+  dio: ^5.8.0+1 # Enhanced HTTP client with caching, pooling, interceptors
+  dio_cache_interceptor: ^3.5.0 # HTTP caching for audio streams
+  dio_cache_interceptor_hive_store: ^4.0.0 # Hive-based cache storage
+  hive: ^2.2.3 # Fast key-value database for caching
+  hive_flutter: ^1.1.0 # Flutter integration for Hive
+  connectivity_plus: ^6.0.5 # Network connectivity monitoring
+  cached_network_image: ^3.4.1 # Image caching
+  crypto: ^3.0.3 # For cache key generation
+  collection: ^1.18.0 # Additional collection utilities
   youtube_explode_dart: ^2.5.2
   stacked_list_carousel: ^1.1.0
   material_color_utilities: ^0.11.1
   lottie: ^3.1.0
+  flutter_shaders: ^0.1.3
+  hyper_effects: ^0.3.0+1
+  flutter_animate: ^4.5.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  
+
   build_runner: ^2.4.11
   freezed: ^3.1.0
 
@@ -96,11 +99,15 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Shader assets for custom effects (temporarily disabled)
+  # shaders:
+  #   - shaders/custom_blur.frag
+  #   - shaders/morph_transition.frag
 
   # To add assets to your application, add an assets section, like this:
   assets:
@@ -143,7 +150,6 @@ flutter:
     - assets/images/moody.jpg
     - assets/images/walking.png
 
-    
   # assets:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
@@ -160,9 +166,9 @@ flutter:
   # list giving the asset and other descriptors for the font. For
   # example:
   fonts:
-    - family:  MyFlutterApp
+    - family: MyFlutterApp
       fonts:
-       - asset: assets/fonts/MyFlutterApp.ttf
+        - asset: assets/fonts/MyFlutterApp.ttf
   #   - family: Schyler
   #     fonts:
   #       - asset: fonts/Schyler-Regular.ttf
