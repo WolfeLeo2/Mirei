@@ -10,7 +10,6 @@ import '../models/realm_models.dart';
 import '../utils/realm_database_helper.dart';
 import '../utils/performance_mixins.dart';
 import 'progress.dart';
-import 'journal_list.dart';
 import 'journal_list_new.dart';
 import 'media_screen.dart';
 import 'package:lottie/lottie.dart';
@@ -52,7 +51,7 @@ class MoodTrackerScreen extends StatefulWidget {
 }
 
 class _MoodTrackerScreenState extends State<MoodTrackerScreen>
-    with PerformanceOptimizedStateMixin {
+    with PerformanceOptimizedStateMixin, TickerProviderStateMixin {
   int selectedMoodIndex = 1;
 
   // Lottie overlay state
@@ -68,6 +67,26 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
   );
   Offset? _animationPosition;
   Size? _animationSize;
+
+  // Color spreading animation state
+  late AnimationController _colorSpreadController;
+  late Animation<double> _colorSpreadAnimation;
+  bool _showColorSpread = false;
+  Offset? _spreadOrigin;
+  Color? _spreadColor;
+
+  // Mood accent colors for the ripple effect
+  static const Map<String, Color> moodAccentColors = {
+    'Angelic': Color(0xFF1976D2), // Blue
+    'Sorry': Color(0xFF616161), // Gray
+    'Excited': Color(0xFFFF9800), // Orange
+    'Embarrassed': Color(0xFFE91E63), // Pink
+    'Happy': Color(0xFFFFC107), // Yellow
+    'Romantic': Color(0xFFE53935), // Red
+    'Neutral': Color(0xFF9E9E9E), // Neutral
+    'Sad': Color(0xFF0277BD), // Blue
+    'Silly': Color(0xFF9C27B0), // Purple
+  };
 
   // Make Moods list const for better performance
   static const List<String> Moods = [
@@ -105,6 +124,62 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
   void initState() {
     super.initState();
     _loadTodaysMood();
+    _initializeColorSpreadAnimation();
+  }
+
+  void _initializeColorSpreadAnimation() {
+    _colorSpreadController = AnimationController(
+      duration: const Duration(milliseconds: 800), // 0.8 second spreading effect
+      vsync: this,
+    );
+
+    _colorSpreadAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _colorSpreadController,
+      curve: Curves.easeOutCirc, // Smooth circular expansion
+    ));
+
+    _colorSpreadAnimation.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        // Hide the spreading overlay after animation completes
+        setState(() {
+          _showColorSpread = false;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _colorSpreadController.dispose();
+    super.dispose();
+  }
+
+  // Custom painter for the color spreading effect
+  Widget _buildColorSpreadOverlay() {
+    if (!_showColorSpread || _spreadOrigin == null || _spreadColor == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: _colorSpreadAnimation,
+          builder: (context, child) {
+            return CustomPaint(
+              painter: ColorSpreadPainter(
+                origin: _spreadOrigin!,
+                progress: _colorSpreadAnimation.value,
+                color: _spreadColor!,
+                screenSize: MediaQuery.of(context).size,
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   Future<void> _loadTodaysMood() async {
@@ -251,7 +326,33 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     // Add a small delay to ensure the UI has rendered before getting button position
     Future.delayed(const Duration(milliseconds: 50), () {
       if (mounted) {
-        // Play lottie overlay animation
+        // Get the position of the selected mood button for color spreading
+        final selectedKey = _moodButtonKeys[index];
+        final RenderBox? renderBox =
+            selectedKey.currentContext?.findRenderObject() as RenderBox?;
+
+        if (renderBox != null) {
+          final position = renderBox.localToGlobal(Offset.zero);
+          final size = renderBox.size;
+          
+          // Set up color spreading animation
+          final spreadCenter = Offset(
+            position.dx + size.width / 2,
+            position.dy + size.height / 2,
+          );
+          
+          setState(() {
+            _spreadOrigin = spreadCenter;
+            _spreadColor = moodAccentColors[mood] ?? moodAccentColors['Neutral']!;
+            _showColorSpread = true;
+          });
+
+          // Start the color spreading animation
+          _colorSpreadController.reset();
+          _colorSpreadController.forward();
+        }
+
+        // Play lottie overlay animation (existing)
         _playMoodAnimation();
       }
     });
@@ -405,7 +506,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                                   Text(
                                     _user.email,
                                     style: TextStyle(
-                                      color: Colors.white.withOpacity(0.7),
+                                      color: Colors.white.withValues(alpha: 0.7),
                                       fontSize: 14,
                                       fontWeight: FontWeight.w400,
                                       fontFamily: '.SF Pro Text',
@@ -492,7 +593,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                           width: 40,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF115e5a).withOpacity(0.6),
+                            color: const Color(0xFF115e5a).withValues(alpha: 0.6),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -616,6 +717,9 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
             ],
           ),
 
+          // Color spreading overlay
+          _buildColorSpreadOverlay(),
+
           // Lottie overlay (ignores touches)
           if (_showMoodAnimation)
             Positioned(
@@ -648,5 +752,80 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
         ],
       ),
     );
+  }
+}
+
+// Custom painter for the color spreading effect
+class ColorSpreadPainter extends CustomPainter {
+  final Offset origin;
+  final double progress;
+  final Color color;
+  final Size screenSize;
+
+  ColorSpreadPainter({
+    required this.origin,
+    required this.progress,
+    required this.color,
+    required this.screenSize,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Calculate the maximum radius needed to cover the entire screen
+    final maxRadius = _calculateMaxRadius();
+    
+    // Current radius based on animation progress
+    final currentRadius = maxRadius * progress;
+    
+    // Create the spreading circle with gradient fade
+    final Paint paint = Paint()
+      ..shader = RadialGradient(
+        center: Alignment.center,
+        colors: [
+          color.withValues(alpha: 0.7 * (1.0 - progress * 0.5)), // More opaque at center
+          color.withValues(alpha: 0.3 * (1.0 - progress * 0.8)), // Fade at edges
+          Colors.transparent,
+        ],
+        stops: const [0.0, 0.7, 1.0],
+      ).createShader(Rect.fromCircle(center: origin, radius: currentRadius))
+      ..style = PaintingStyle.fill;
+
+    // Draw the spreading circle
+    canvas.drawCircle(origin, currentRadius, paint);
+
+    // Add a subtle ring effect at the edge
+    final ringPaint = Paint()
+      ..color = color.withValues(alpha: 0.4 * (1.0 - progress))
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    canvas.drawCircle(origin, currentRadius * 0.95, ringPaint);
+  }
+
+  double _calculateMaxRadius() {
+    // Calculate distance to all corners and take the maximum
+    final corners = [
+      Offset.zero,
+      Offset(screenSize.width, 0),
+      Offset(0, screenSize.height),
+      Offset(screenSize.width, screenSize.height),
+    ];
+
+    double maxDistance = 0;
+    for (final corner in corners) {
+      final distance = (corner - origin).distance;
+      if (distance > maxDistance) {
+        maxDistance = distance;
+      }
+    }
+
+    return maxDistance * 1.2; // Add some extra to ensure full coverage
+  }
+
+  @override
+  bool shouldRepaint(ColorSpreadPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+           oldDelegate.origin != origin ||
+           oldDelegate.color != color;
   }
 }
