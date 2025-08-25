@@ -1,17 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:realm/realm.dart';
 import 'package:mirei/bloc/media_player_bloc.dart';
 import 'package:mirei/bloc/mood_bloc.dart';
 import 'package:mirei/repositories/mood_repository.dart';
 import 'package:mirei/screens/main_navigation.dart';
 import 'package:mirei/services/audio_cache_service.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'services/performance_service.dart';
 import 'services/database_maintenance_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  try {
+    await dotenv.load(fileName: ".env");
+    print('✅ Environment variables loaded successfully');
+  } catch (e) {
+    print('⚠️ Warning: Could not load .env file: $e');
+    print('📝 Make sure you have a .env file with your Spotify credentials');
+  }
 
   // Initialize services in parallel for faster startup
   await Future.wait([
@@ -79,9 +90,7 @@ class MyApp extends StatelessWidget {
         title: 'Mirei',
         theme: ThemeData(
           textTheme: GoogleFonts.interTextTheme(),
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.black87
-          ),
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.black87),
           useMaterial3: true,
         ),
         home: const MainNavigation(),

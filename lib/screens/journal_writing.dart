@@ -5,11 +5,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
+import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:realm/realm.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../models/realm_models.dart';
 import '../utils/realm_database_helper.dart';
 import 'journal_list.dart';
@@ -21,7 +24,8 @@ class JournalWritingScreen extends StatefulWidget {
   _JournalWritingScreenState createState() => _JournalWritingScreenState();
 }
 
-class _JournalWritingScreenState extends State<JournalWritingScreen> {
+class _JournalWritingScreenState extends State<JournalWritingScreen>
+    with TickerProviderStateMixin {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
   final FocusNode _titleFocusNode = FocusNode();
@@ -37,13 +41,92 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
   final List<Map<String, dynamic>> _audioRecordings = [];
   final List<PlayerController> _waveformControllers =
       []; // For managing waveform players
-  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _recordingSnackBar;
+
+  // Real-time sound wave visualization
+  late AnimationController _waveAnimationController;
+  late List<AnimationController> _waveBarControllers;
+  late List<Animation<double>> _waveBarAnimations;
+  final int _numberOfWaveBars = 20;
+  List<double> _currentAmplitudes = [];
+  bool _showWaveVisualization = false;
+  Timer? _waveUpdateTimer;
+
+  // Recording timer
+  DateTime? _recordingStartTime;
+  Duration _recordingDuration = Duration.zero;
+  Timer? _recordingTimer;
 
   @override
   void initState() {
     super.initState();
     _initializeRecorder();
     _checkPermissions();
+    _initializeWaveAnimations();
+  }
+
+  void _initializeWaveAnimations() {
+    _waveAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 100),
+      vsync: this,
+    );
+
+    _waveBarControllers = List.generate(
+      _numberOfWaveBars,
+      (index) => AnimationController(
+        duration: Duration(
+          milliseconds: 150 + (index * 50),
+        ), // Staggered timing
+        vsync: this,
+      ),
+    );
+
+    _waveBarAnimations = _waveBarControllers.map((controller) {
+      return Tween<double>(
+        begin: 0.1,
+        end: 1.0,
+      ).animate(CurvedAnimation(parent: controller, curve: Curves.easeInOut));
+    }).toList();
+
+    _currentAmplitudes = List.filled(_numberOfWaveBars, 0.1);
+
+    // Start continuous wave animation when recording
+    _waveAnimationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed && _isRecording) {
+        _updateWaveAmplitudes();
+        _waveAnimationController.reset();
+        _waveAnimationController.forward();
+      }
+    });
+  }
+
+  void _updateWaveAmplitudes() {
+    if (_recorderController == null || !_isRecording) return;
+
+    final waveData = _recorderController!.waveData;
+    if (waveData.isEmpty) {
+      _currentAmplitudes = List.filled(_numberOfWaveBars, 0.1);
+      return;
+    }
+
+    // Sample recent waveform data
+    final recentData = waveData.length > 50
+        ? waveData.sublist(waveData.length - 50)
+        : waveData;
+
+    // Generate random-ish amplitudes based on actual data for visual appeal
+    final random = math.Random();
+    _currentAmplitudes = List.generate(_numberOfWaveBars, (i) {
+      final baseAmplitude = recentData.isNotEmpty
+          ? recentData[i % recentData.length].abs()
+          : 0.1;
+      final randomVariation = 0.2 + (random.nextDouble() * 0.8);
+      return (baseAmplitude * randomVariation).clamp(0.1, 1.0);
+    });
+
+    // Update individual bar animations
+    for (int i = 0; i < _waveBarControllers.length; i++) {
+      _waveBarControllers[i].animateTo(_currentAmplitudes[i]);
+    }
   }
 
   Future<void> _initializeRecorder() async {
@@ -74,16 +157,26 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
   @override
   void dispose() {
     _recorderController?.dispose();
+    _audioPlayer?.dispose();
+    _recorder?.closeRecorder();
     _titleController.dispose();
     _contentController.dispose();
     _titleFocusNode.dispose();
     _contentFocusNode.dispose();
-    _recorder?.closeRecorder();
-    _recorder = null;
-    _audioPlayer?.dispose();
     for (var controller in _waveformControllers) {
       controller.dispose();
     }
+
+    // Dispose wave animation controllers
+    _waveAnimationController.dispose();
+    for (var controller in _waveBarControllers) {
+      controller.dispose();
+    }
+
+    // Cancel any running timers
+    _waveUpdateTimer?.cancel();
+    _recordingTimer?.cancel();
+
     super.dispose();
   }
 
@@ -341,6 +434,17 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
                 ),
                 const SizedBox(height: 16),
 
+                // Real-time wave visualization during recording
+                if (_showWaveVisualization)
+                  _buildWaveVisualization()
+                      .animate()
+                      .scale(
+                        begin: const Offset(0.8, 0.8),
+                        duration: 200.ms,
+                        curve: Curves.easeOut,
+                      )
+                      .fadeIn(duration: 200.ms),
+
                 // Media grid
                 if (_selectedImages.isNotEmpty || _audioRecordings.isNotEmpty)
                   _buildMediaGrid(),
@@ -487,60 +591,44 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
 
       setState(() {
         _isRecording = true;
+        _showWaveVisualization = true;
+        _recordingStartTime = DateTime.now();
+        _recordingDuration = Duration.zero;
       });
 
-      // Show persistent recording indicator
-      _showPersistentRecordingSnackBar();
+      // Start wave animation
+      _waveAnimationController.forward();
+
+      // Start periodic wave updates
+      _waveUpdateTimer = Timer.periodic(const Duration(milliseconds: 100), (
+        timer,
+      ) {
+        if (_isRecording && mounted) {
+          _updateWaveAmplitudes();
+        }
+      });
+
+      // Start recording timer
+      _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (_isRecording && _recordingStartTime != null && mounted) {
+          setState(() {
+            _recordingDuration = DateTime.now().difference(
+              _recordingStartTime!,
+            );
+          });
+        }
+      });
+
+      // Removed persistent recording snackbar - it's no longer needed
     } catch (e) {
       print('Error starting recording: $e');
       _showErrorSnackBar('Error starting recording: $e');
     }
   }
 
-  void _showPersistentRecordingSnackBar() {
-    if (!mounted) return;
-
-    _recordingSnackBar = ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Container(
-              width: 12,
-              height: 12,
-              decoration: const BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text('Recording voice note...'),
-            const Spacer(),
-            TextButton(
-              onPressed: _stopRecording,
-              child: const Text(
-                'STOP',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: const Color(0xFF115e5a),
-        duration: const Duration(days: 1), // Persist until manually closed
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
-
   Future<void> _stopRecording() async {
     try {
       if (_recorder == null || !_isRecording) return;
-
-      // Close the persistent SnackBar
-      _recordingSnackBar?.close();
 
       // Stop both recorders
       final audioPath = await _recorder!.stopRecorder();
@@ -573,7 +661,25 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
           });
           _waveformControllers.add(playerController);
           _isRecording = false;
+          _showWaveVisualization = false;
         });
+
+        // Stop wave animation
+        _waveAnimationController.stop();
+        _waveAnimationController.reset();
+        for (var controller in _waveBarControllers) {
+          controller.reset();
+        }
+
+        // Cancel wave update timer
+        _waveUpdateTimer?.cancel();
+        _waveUpdateTimer = null;
+
+        // Stop recording timer
+        _recordingTimer?.cancel();
+        _recordingTimer = null;
+        _recordingStartTime = null;
+        _recordingDuration = Duration.zero;
 
         // Show success message
         if (mounted) {
@@ -591,13 +697,41 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
       } else {
         setState(() {
           _isRecording = false;
+          _showWaveVisualization = false;
         });
+
+        // Stop wave animation on error
+        _waveAnimationController.stop();
+        _waveAnimationController.reset();
+
+        // Cancel wave update timer
+        _waveUpdateTimer?.cancel();
+        _waveUpdateTimer = null;
+
+        // Stop recording timer
+        _recordingTimer?.cancel();
+        _recordingTimer = null;
+
         _showErrorSnackBar('Failed to save recording');
       }
     } catch (e) {
       setState(() {
         _isRecording = false;
+        _showWaveVisualization = false;
       });
+
+      // Stop wave animation on error
+      _waveAnimationController.stop();
+      _waveAnimationController.reset();
+
+      // Cancel wave update timer
+      _waveUpdateTimer?.cancel();
+      _waveUpdateTimer = null;
+
+      // Stop recording timer
+      _recordingTimer?.cancel();
+      _recordingTimer = null;
+
       print('Error stopping recording: $e');
       _showErrorSnackBar('Error stopping recording: $e');
     }
@@ -968,11 +1102,156 @@ class _JournalWritingScreenState extends State<JournalWritingScreen> {
   }
 
   String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
     if (duration.inHours > 0) {
       return "${duration.inHours}:${twoDigits(duration.inMinutes.remainder(60))}:${twoDigits(duration.inSeconds.remainder(60))}";
     }
     return "${duration.inMinutes}:${twoDigits(duration.inSeconds.remainder(60))}";
+  }
+
+  Widget _buildWaveVisualization() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF115e5a), Color(0xFF0d4a47)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF115e5a).withValues(alpha: 0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Recording indicator
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                    width: 12,
+                    height: 12,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  )
+                  .animate(onPlay: (controller) => controller.repeat())
+                  .scale(
+                    begin: const Offset(1.0, 1.0),
+                    end: const Offset(1.2, 1.2),
+                  )
+                  .then()
+                  .scale(
+                    begin: const Offset(1.2, 1.2),
+                    end: const Offset(1.0, 1.0),
+                  ),
+              const SizedBox(width: 12),
+              Column(
+                children: [
+                  Text(
+                    'Recording...',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: GoogleFonts.inter().fontFamily,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatDuration(_recordingDuration),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: GoogleFonts.inter().fontFamily,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Real-time wave bars
+          SizedBox(
+            height: 60,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(_numberOfWaveBars, (index) {
+                return AnimatedBuilder(
+                  animation: _waveBarAnimations[index],
+                  builder: (context, child) {
+                    return Container(
+                      width: 3,
+                      height: 60 * _waveBarAnimations[index].value,
+                      margin: const EdgeInsets.symmetric(horizontal: 1),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    );
+                  },
+                );
+              }),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Recording time and stop button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Tap anywhere to stop',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: 12,
+                  fontFamily: GoogleFonts.inter().fontFamily,
+                ),
+              ),
+              GestureDetector(
+                onTap: _stopRecording,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.stop, color: Colors.white, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Stop',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: GoogleFonts.inter().fontFamily,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   void _showPermissionDialog() {

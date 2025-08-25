@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -9,7 +10,7 @@ import 'dart:ui' as ui;
 import '../bloc/media_player_bloc.dart';
 import '../bloc/media_player_event.dart';
 import '../bloc/media_player_state.dart';
-import '../utils/media_player_modal.dart';
+import '../utils/new_media_player_modal.dart';
 
 // Global color state for sharing between mini player and full player
 class MediaPlayerColors {
@@ -18,10 +19,10 @@ class MediaPlayerColors {
   static String? _lastAlbumArt;
   static Map<String, ImageProvider> _imageProviderCache = {};
   static Map<String, _ColorPalette> _colorCache = {};
-  
+
   static Color get dominantColor => _dominantColor ?? const Color(0xFF2A4A3A);
   static Color get accentColor => _accentColor ?? const Color(0xFF4ADE80);
-  
+
   static void updateColors({
     required Color? dominantColor,
     required Color? accentColor,
@@ -30,21 +31,21 @@ class MediaPlayerColors {
     _dominantColor = dominantColor;
     _accentColor = accentColor;
     _lastAlbumArt = albumArt;
-    
+
     // Cache the color result
     if (albumArt.isNotEmpty && dominantColor != null && accentColor != null) {
       _colorCache[albumArt] = _ColorPalette(dominantColor, accentColor);
     }
   }
-  
+
   static bool shouldExtractColors(String albumArt) {
     return _lastAlbumArt != albumArt;
   }
-  
+
   static bool hasColorsInCache(String albumArt) {
     return _colorCache.containsKey(albumArt);
   }
-  
+
   static void loadColorsFromCache(String albumArt) {
     final cached = _colorCache[albumArt];
     if (cached != null) {
@@ -53,15 +54,15 @@ class MediaPlayerColors {
       _lastAlbumArt = albumArt;
     }
   }
-  
+
   static ImageProvider? getCachedImageProvider(String albumArt) {
     return _imageProviderCache[albumArt];
   }
-  
+
   static void cacheImageProvider(String albumArt, ImageProvider provider) {
     _imageProviderCache[albumArt] = provider;
   }
-  
+
   static void clearCache() {
     _imageProviderCache.clear();
     _colorCache.clear();
@@ -71,7 +72,7 @@ class MediaPlayerColors {
 class _ColorPalette {
   final Color dominant;
   final Color accent;
-  
+
   _ColorPalette(this.dominant, this.accent);
 }
 
@@ -82,16 +83,29 @@ class MiniPlayer extends StatefulWidget {
   State<MiniPlayer> createState() => _MiniPlayerState();
 }
 
-class _MiniPlayerState extends State<MiniPlayer>
-    with TickerProviderStateMixin {
+class _MiniPlayerState extends State<MiniPlayer> with TickerProviderStateMixin {
   late AnimationController _expandController;
   late Animation<double> _expandAnimation;
   late Animation<double> _fadeAnimation;
   bool _isExpanded = false;
-  
+
   // Color palette extraction
   bool _isExtractingColors = false;
   String _currentAlbumArt = '';
+
+  // Swipe gesture variables
+  late AnimationController _swipeController;
+  late AnimationController _feedbackController;
+  late Animation<double> _swipeAnimation;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnimation;
+
+  String _swipeDirection = '';
+  bool _isSwipeActive = false;
+
+  // Track cumulative swipe distance for better detection
+  double _cumulativeHorizontalDelta = 0.0;
+  Offset _swipeStartPosition = Offset.zero;
 
   @override
   void initState() {
@@ -100,25 +114,45 @@ class _MiniPlayerState extends State<MiniPlayer>
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    _expandAnimation = Tween<double>(
-      begin: 69.0, // Collapsed height
-      end: 120.0, // Expanded height
-    ).animate(CurvedAnimation(
-      parent: _expandController,
-      curve: Curves.easeInOut,
-    ));
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _expandController,
-      curve: Curves.easeInOut,
-    ));
+    _expandAnimation =
+        Tween<double>(
+          begin: 69.0, // Collapsed height
+          end: 120.0, // Expanded height
+        ).animate(
+          CurvedAnimation(parent: _expandController, curve: Curves.easeInOut),
+        );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _expandController, curve: Curves.easeInOut),
+    );
+
+    // Initialize swipe animation controllers
+    _swipeController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _feedbackController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+
+    _swipeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _swipeController, curve: Curves.easeOutCubic),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _feedbackController, curve: Curves.easeInOut),
+    );
+
+    _opacityAnimation = Tween<double>(begin: 1.0, end: 0.8).animate(
+      CurvedAnimation(parent: _feedbackController, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
     _expandController.dispose();
+    _swipeController.dispose();
+    _feedbackController.dispose();
     super.dispose();
   }
 
@@ -133,18 +167,96 @@ class _MiniPlayerState extends State<MiniPlayer>
     });
   }
 
+  // Swipe gesture handlers
+  void _onPanStart(DragStartDetails details) {
+    _isSwipeActive = true;
+    _feedbackController.forward();
+    _cumulativeHorizontalDelta = 0.0;
+    _swipeStartPosition = details.localPosition;
+  }
+
+  void _onPanUpdate(DragUpdateDetails details, MediaPlayerState state) {
+    if (!_isSwipeActive) return;
+
+    // Track cumulative horizontal movement from start position
+    _cumulativeHorizontalDelta =
+        details.localPosition.dx - _swipeStartPosition.dx;
+
+    setState(() {
+      // _swipeOffset = details.delta.dx; // Removed unused variable
+    });
+
+    // Only check horizontal swipes (removed up/down detection)
+    if (_cumulativeHorizontalDelta.abs() > 20) {
+      // Threshold to detect meaningful swipe
+      if (_cumulativeHorizontalDelta > 0) {
+        setState(() => _swipeDirection = 'next');
+      } else {
+        setState(() => _swipeDirection = 'previous');
+      }
+    }
+  }
+
+  void _onPanEnd(
+    DragEndDetails details,
+    BuildContext context,
+    MediaPlayerState state,
+  ) {
+    _isSwipeActive = false;
+    _feedbackController.reverse();
+
+    final velocity = details.velocity.pixelsPerSecond;
+    final pixelsPerSecond =
+        velocity.distance; // Use distance for overall velocity magnitude
+
+    // Execute action based on swipe direction, velocity, and cumulative distance
+    if (pixelsPerSecond > 300 && _cumulativeHorizontalDelta.abs() > 50) {
+      // Lowered velocity threshold and added distance check
+      switch (_swipeDirection) {
+        case 'next':
+          _animateSkipNext(context);
+          break;
+        case 'previous':
+          _animateSkipPrevious(context);
+          break;
+        // Removed 'up' and 'down' cases
+      }
+    }
+
+    // Reset swipe state
+    setState(() {
+      // _swipeOffset = 0.0; // Removed unused variable
+      _swipeDirection = '';
+      _cumulativeHorizontalDelta = 0.0;
+    });
+  }
+
+  void _animateSkipNext(BuildContext context) {
+    _swipeController.forward().then((_) {
+      context.read<MediaPlayerBloc>().add(const SkipToNext());
+      _swipeController.reverse();
+    });
+  }
+
+  void _animateSkipPrevious(BuildContext context) {
+    _swipeController.forward().then((_) {
+      context.read<MediaPlayerBloc>().add(const SkipToPrevious());
+      _swipeController.reverse();
+    });
+  }
+
   // Create the proper ImageProvider based on album art format with caching
   ImageProvider? _getAlbumArtProvider(String albumArt) {
     if (albumArt.isEmpty) return null;
-    
+
     // Check cache first
     final cached = MediaPlayerColors.getCachedImageProvider(albumArt);
     if (cached != null) {
       return cached;
     }
-    
+
     ImageProvider? provider;
-    
+
     if (albumArt.startsWith('data:')) {
       try {
         final base64String = albumArt.split(',')[1];
@@ -158,12 +270,12 @@ class _MiniPlayerState extends State<MiniPlayer>
     } else {
       provider = AssetImage(albumArt);
     }
-    
+
     // Cache the provider
     if (provider != null) {
       MediaPlayerColors.cacheImageProvider(albumArt, provider);
     }
-    
+
     return provider;
   }
 
@@ -172,25 +284,25 @@ class _MiniPlayerState extends State<MiniPlayer>
     if (albumArtUrl.isEmpty || _isExtractingColors) {
       return;
     }
-    
+
     // Check if colors are already cached
     if (MediaPlayerColors.hasColorsInCache(albumArtUrl)) {
       MediaPlayerColors.loadColorsFromCache(albumArtUrl);
       if (mounted) setState(() {});
       return;
     }
-    
+
     if (!MediaPlayerColors.shouldExtractColors(albumArtUrl)) {
       return;
     }
-    
+
     setState(() {
       _isExtractingColors = true;
     });
 
     try {
       ui.Image? image;
-      
+
       if (albumArtUrl.startsWith('data:')) {
         // Handle base64 data URI
         final base64String = albumArtUrl.split(',')[1];
@@ -205,10 +317,12 @@ class _MiniPlayerState extends State<MiniPlayer>
       } else if (albumArtUrl.startsWith('http')) {
         // Handle network image
         final imageProvider = CachedNetworkImageProvider(albumArtUrl);
-        final imageStream = imageProvider.resolve(const ImageConfiguration(
-          size: const Size(100, 100), // Smaller size for faster processing
-        ));
-        
+        final imageStream = imageProvider.resolve(
+          ImageConfiguration(
+            size: Size(100, 100), // Smaller size for faster processing
+          ),
+        );
+
         final completer = Completer<ui.Image>();
         late ImageStreamListener listener;
         listener = ImageStreamListener((ImageInfo info, bool _) {
@@ -216,7 +330,7 @@ class _MiniPlayerState extends State<MiniPlayer>
           completer.complete(info.image);
         });
         imageStream.addListener(listener);
-        
+
         image = await completer.future.timeout(
           const Duration(seconds: 2), // Add timeout to prevent hanging
           onTimeout: () => throw TimeoutException('Image loading timeout'),
@@ -224,10 +338,10 @@ class _MiniPlayerState extends State<MiniPlayer>
       } else if (albumArtUrl.isNotEmpty) {
         // Handle asset image
         final imageProvider = AssetImage(albumArtUrl);
-        final imageStream = imageProvider.resolve(const ImageConfiguration(
-          size: const Size(100, 100),
-        ));
-        
+        final imageStream = imageProvider.resolve(
+          ImageConfiguration(size: Size(100, 100)),
+        );
+
         final completer = Completer<ui.Image>();
         late ImageStreamListener listener;
         listener = ImageStreamListener((ImageInfo info, bool _) {
@@ -235,28 +349,30 @@ class _MiniPlayerState extends State<MiniPlayer>
           completer.complete(info.image);
         });
         imageStream.addListener(listener);
-        
+
         image = await completer.future;
       }
-      
+
       if (image == null || !mounted) return;
-      
+
       // Convert to bytes with reduced quality for faster processing
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final byteData = await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      );
       if (byteData == null) return;
-      
+
       final pixels = byteData.buffer.asUint8List();
-      
+
       // Extract colors using material_color_utilities with reduced color count
       final quantizerResult = await QuantizerCelebi().quantize(
         _rgbaToArgb(pixels),
         8, // Reduced from 16 to 8 for faster processing
       );
-      
+
       if (quantizerResult.colorToCount.isNotEmpty && mounted) {
         // Get the most prominent colors
         final rankedColors = Score.score(quantizerResult.colorToCount);
-        
+
         if (rankedColors.isNotEmpty) {
           final primaryArgb = rankedColors.first;
           final scheme = SchemeTonalSpot(
@@ -264,17 +380,17 @@ class _MiniPlayerState extends State<MiniPlayer>
             isDark: Theme.of(context).brightness == Brightness.dark,
             contrastLevel: 0.0,
           );
-          
+
           final dominantColor = Color(scheme.primary);
           final accentColor = Color(scheme.secondary);
-          
+
           // Update global color state
           MediaPlayerColors.updateColors(
             dominantColor: dominantColor,
             accentColor: accentColor,
             albumArt: albumArtUrl,
           );
-          
+
           if (mounted) {
             setState(() {
               // This will trigger a rebuild with new colors
@@ -305,13 +421,14 @@ class _MiniPlayerState extends State<MiniPlayer>
   List<int> _rgbaToArgb(Uint8List pixels) {
     final List<int> result = [];
     // Process every 4th pixel for faster processing
-    for (int i = 0; i < pixels.length; i += 16) { // Skip more pixels for speed
+    for (int i = 0; i < pixels.length; i += 16) {
+      // Skip more pixels for speed
       if (i + 3 < pixels.length) {
         final r = pixels[i];
         final g = pixels[i + 1];
         final b = pixels[i + 2];
         final a = pixels[i + 3];
-        
+
         // Convert RGBA to ARGB
         final argb = (a << 24) | (r << 16) | (g << 8) | b;
         result.add(argb);
@@ -324,7 +441,7 @@ class _MiniPlayerState extends State<MiniPlayer>
   Widget build(BuildContext context) {
     return BlocBuilder<MediaPlayerBloc, MediaPlayerState>(
       builder: (context, state) {
-        // Only show mini player if there's a track loaded
+        // Only show mini player if there's a track loaded and it's visible
         if (state.trackTitle.isEmpty) {
           return const SizedBox.shrink();
         }
@@ -343,66 +460,102 @@ class _MiniPlayerState extends State<MiniPlayer>
         final accentColor = MediaPlayerColors.accentColor;
 
         return AnimatedBuilder(
-          animation: _expandAnimation,
+          animation: Listenable.merge([
+            _expandAnimation,
+            _scaleAnimation,
+            _opacityAnimation,
+            _swipeAnimation,
+          ]),
           builder: (context, child) {
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              height: _expandAnimation.value,
-              decoration: BoxDecoration(
-                color: backgroundColor, // Dynamic background color from album art
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: backgroundColor.withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(25),
-                  onTap: () => _expandToFullPlayer(context, state),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
+            return Transform.scale(
+              scale: _scaleAnimation.value,
+              child: Opacity(
+                opacity: _opacityAnimation.value,
+                child: GestureDetector(
+                  onPanStart: _onPanStart,
+                  onPanUpdate: (details) => _onPanUpdate(details, state),
+                  onPanEnd: (details) => _onPanEnd(details, context, state),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    height: _expandAnimation.value,
+                    decoration: BoxDecoration(
+                      color:
+                          backgroundColor, // Dynamic background color from album art
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: backgroundColor.withValues(alpha: 0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Stack(
                       children: [
-                        // Main mini player row
-                        Row(
-                          children: [
-                            // Album art
-                            _buildAlbumArt(state),
-                            const SizedBox(width: 12),
-                            
-                            // Track info and progress
-                            Expanded(
+                        // Swipe direction indicator
+                        if (_isSwipeActive && _swipeDirection.isNotEmpty)
+                          _buildSwipeIndicator(accentColor),
+
+                        // Main mini player content
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(25),
+                            onTap: () => _expandToFullPlayer(context, state),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  _buildTrackInfo(state),
-                                  const SizedBox(height: 4),
-                                  _buildProgressBar(state, accentColor),
+                                  // Main mini player row
+                                  Row(
+                                    children: [
+                                      // Album art
+                                      _buildAlbumArt(state),
+                                      const SizedBox(width: 12),
+
+                                      // Track info and progress
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            _buildTrackInfo(state),
+                                            const SizedBox(height: 4),
+                                            _buildProgressBar(
+                                              state,
+                                              accentColor,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      // Play/pause button
+                                      _buildPlayPauseButton(context, state),
+                                      const SizedBox(width: 8),
+
+                                      // Expand/Contract FAB
+                                      _buildExpandFAB(accentColor),
+                                    ],
+                                  ),
+
+                                  // Expanded content
+                                  if (_isExpanded)
+                                    FadeTransition(
+                                      opacity: _fadeAnimation,
+                                      child: _buildExpandedContent(
+                                        context,
+                                        state,
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
-                            
-                            // Play/pause button
-                            _buildPlayPauseButton(context, state),
-                            const SizedBox(width: 8),
-                            
-                            // Expand/Contract FAB
-                            _buildExpandFAB(accentColor),
-                          ],
-                        ),
-                        
-                        // Expanded content
-                        if (_isExpanded)
-                          FadeTransition(
-                            opacity: _fadeAnimation,
-                            child: _buildExpandedContent(context, state),
                           ),
+                        ),
                       ],
                     ),
                   ),
@@ -417,7 +570,7 @@ class _MiniPlayerState extends State<MiniPlayer>
 
   Widget _buildAlbumArt(MediaPlayerState state) {
     final albumArtProvider = _getAlbumArtProvider(state.albumArt);
-    
+
     return Container(
       width: 45,
       height: 45,
@@ -431,7 +584,8 @@ class _MiniPlayerState extends State<MiniPlayer>
             ? Image(
                 image: albumArtProvider,
                 fit: BoxFit.cover,
-                gaplessPlayback: true, // Prevent flickering during image changes
+                gaplessPlayback:
+                    true, // Prevent flickering during image changes
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
                     color: Colors.grey[300],
@@ -456,7 +610,7 @@ class _MiniPlayerState extends State<MiniPlayer>
         Text(
           state.artistName.isNotEmpty ? state.artistName : 'Unknown Artist',
           style: TextStyle(
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
             fontSize: 11,
             fontWeight: FontWeight.w400,
           ),
@@ -486,7 +640,7 @@ class _MiniPlayerState extends State<MiniPlayer>
       height: 3,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(1.5),
-        color: Colors.white.withOpacity(0.3),
+        color: Colors.white.withValues(alpha: 0.3),
       ),
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
@@ -506,7 +660,7 @@ class _MiniPlayerState extends State<MiniPlayer>
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Material(
@@ -533,7 +687,7 @@ class _MiniPlayerState extends State<MiniPlayer>
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.3),
+            color: accentColor.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -548,9 +702,12 @@ class _MiniPlayerState extends State<MiniPlayer>
             animation: _expandController,
             builder: (context, child) {
               return Transform.rotate(
-                angle: _expandController.value * 3.14159, // 180 degrees rotation
+                angle:
+                    _expandController.value * 3.14159, // 180 degrees rotation
                 child: Icon(
-                  _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_up,
+                  _isExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_up,
                   color: Colors.white,
                   size: 20,
                 ),
@@ -571,27 +728,29 @@ class _MiniPlayerState extends State<MiniPlayer>
           // Previous button
           _buildControlButton(
             icon: Icons.skip_previous,
-            onTap: () => context.read<MediaPlayerBloc>().add(const SkipToPrevious()),
+            onTap: () =>
+                context.read<MediaPlayerBloc>().add(const SkipToPrevious()),
           ),
-          
+
           // Volume down
           _buildControlButton(
             icon: Icons.volume_down,
             onTap: () => _adjustVolume(context, state, -0.1),
           ),
-          
+
           // Volume up
           _buildControlButton(
             icon: Icons.volume_up,
             onTap: () => _adjustVolume(context, state, 0.1),
           ),
-          
+
           // Next button
           _buildControlButton(
             icon: Icons.skip_next,
-            onTap: () => context.read<MediaPlayerBloc>().add(const SkipToNext()),
+            onTap: () =>
+                context.read<MediaPlayerBloc>().add(const SkipToNext()),
           ),
-          
+
           // Full player button
           _buildControlButton(
             icon: Icons.open_in_full,
@@ -610,7 +769,7 @@ class _MiniPlayerState extends State<MiniPlayer>
       width: 32,
       height: 32,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Material(
@@ -618,17 +777,17 @@ class _MiniPlayerState extends State<MiniPlayer>
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: 16,
-          ),
+          child: Icon(icon, color: Colors.white, size: 16),
         ),
       ),
     );
   }
 
-  void _adjustVolume(BuildContext context, MediaPlayerState state, double delta) {
+  void _adjustVolume(
+    BuildContext context,
+    MediaPlayerState state,
+    double delta,
+  ) {
     final newVolume = (state.volume + delta).clamp(0.0, 1.0);
     context.read<MediaPlayerBloc>().add(SetVolume(newVolume));
   }
@@ -642,13 +801,66 @@ class _MiniPlayerState extends State<MiniPlayer>
   }
 
   void _expandToFullPlayer(BuildContext context, MediaPlayerState state) {
-    showMediaPlayerModal(
-      context: context,
-      trackTitle: state.trackTitle,
-      artistName: state.artistName,
+    // NEW SYSTEM: Use unified modal!
+    showLocalPlayerModal(
+      context,
+      title: state.trackTitle,
+      artist: state.artistName,
+      audioUrl: '', // Mini player doesn't need URL, it's already playing
       albumArt: state.albumArt,
-      playlist: state.playlist,
-      currentIndex: state.currentIndex,
+    );
+  }
+
+  Widget _buildSwipeIndicator(Color accentColor) {
+    IconData icon;
+    String text;
+
+    switch (_swipeDirection) {
+      case 'next':
+        icon = Icons.skip_next;
+        text = 'Next Track';
+        break;
+      case 'previous':
+        icon = Icons.skip_previous;
+        text = 'Previous Track';
+        break;
+      default:
+        return const SizedBox.shrink();
+    }
+
+    return Positioned(
+      top: 8,
+      right: 16,
+      child:
+          Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, color: Colors.white, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      text,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+              .animate()
+              .fadeIn(duration: 150.ms)
+              .scale(
+                begin: const Offset(0.8, 0.8),
+                end: const Offset(1.0, 1.0),
+                duration: 150.ms,
+              ),
     );
   }
 }

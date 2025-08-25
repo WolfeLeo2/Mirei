@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
-import '../utils/media_player_modal.dart';
+import '../utils/new_media_player_modal.dart';
 import '../services/audio_cache_service.dart';
 import '../services/network_optimizer.dart';
 import '../utils/performance_mixins.dart'; // Add performance mixins
@@ -25,7 +25,8 @@ class PlaylistScreen extends StatefulWidget {
 }
 
 class _PlaylistScreenState extends State<PlaylistScreen>
-    with PerformanceOptimizedStateMixin { // Add performance mixin
+    with PerformanceOptimizedStateMixin {
+  // Add performance mixin
   List<Map<String, dynamic>> songs = [];
   bool isInitialLoading = true;
   bool isLoadingMore = false;
@@ -459,26 +460,28 @@ class _PlaylistScreenState extends State<PlaylistScreen>
       // Play the first song from the shuffled list
       final firstShuffledSong = shuffledSongs[0];
 
-      showMediaPlayerModal(
-        context: context,
-        trackTitle: firstShuffledSong['title'] ?? 'Unknown Title',
-        artistName: firstShuffledSong['artist'] ?? 'Unknown Artist',
+      // NEW SYSTEM: Use unified modal with FULL playlist for skip functionality!
+      showLocalPlayerModal(
+        context,
+        title: firstShuffledSong['title'] ?? 'Unknown Title',
+        artist: firstShuffledSong['artist'] ?? 'Unknown Artist',
+        audioUrl: firstShuffledSong['url'] ?? '',
         albumArt: firstShuffledSong['albumArt'] ?? widget.albumArt,
-        audioUrl: firstShuffledSong['url'],
-        playlist: shuffledSongs, // Pass the shuffled playlist
-        currentIndex: 0, // Start at first position in shuffled list
+        playlist: shuffledSongs, // Pass the FULL shuffled playlist
+        currentIndex: 0, // Start at first position
       );
     }
   }
 
   void _playSong(Map<String, dynamic> song, int index) {
-    showMediaPlayerModal(
-      context: context,
-      trackTitle: song['title'] ?? 'Unknown Title',
-      artistName: song['artist'] ?? 'Unknown Artist',
+    // NEW SYSTEM: Use unified modal with FULL playlist for skip functionality!
+    showLocalPlayerModal(
+      context,
+      title: song['title'] ?? 'Unknown Title',
+      artist: song['artist'] ?? 'Unknown Artist',
+      audioUrl: song['url'] ?? '',
       albumArt: song['albumArt'] ?? widget.albumArt,
-      audioUrl: song['url'], // Pass the direct URL
-      playlist: songs, // Pass the entire playlist
+      playlist: songs, // Pass the FULL playlist
       currentIndex: index, // Pass the current song index
     );
   }

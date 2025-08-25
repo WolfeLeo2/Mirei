@@ -4,18 +4,109 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/realm_models.dart';
+import '../utils/realm_database_helper.dart';
+import 'package:realm/realm.dart';
 
 class JournalViewScreen extends StatelessWidget {
   final JournalEntryRealm entry;
 
   const JournalViewScreen({super.key, required this.entry});
 
+  /// Safely access a Realm object property with error handling
+  T? _safeAccess<T>(T Function() accessor, [T? defaultValue]) {
+    try {
+      return accessor();
+    } catch (e) {
+      if (e is RealmException && e.message.contains('invalidated')) {
+        // Object has been deleted, return default value
+        return defaultValue;
+      }
+      rethrow;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Safely access entry properties
+    final title = _safeAccess(() => entry.title, '') ?? '';
+    final content = _safeAccess(() => entry.content, '') ?? '';
+    final createdAt = _safeAccess(() => entry.createdAt);
+    final imagePaths =
+        _safeAccess(() => entry.imagePaths, <String>[]) ?? <String>[];
+    final audioRecordings =
+        _safeAccess(() => entry.audioRecordings, <AudioRecordingData>[]) ??
+        <AudioRecordingData>[];
+
+    // If the entry has been invalidated, show an error screen
+    if (createdAt == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFd7dfe5),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFd7dfe5),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF115e5a)),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: Text(
+            'Journal Entry',
+            style: GoogleFonts.inter(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF115e5a),
+            ),
+          ),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Color(0xFF115e5a),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Entry Not Found',
+                style: GoogleFonts.inter(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF2D3748),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This journal entry has been deleted or is no longer available.',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  color: const Color(0xFF718096),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF115e5a),
+                  foregroundColor: Colors.white,
+                ),
+                child: Text(
+                  'Go Back',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final dateFormat = DateFormat('EEEE, MMMM d, yyyy');
     final timeFormat = DateFormat('h:mm a');
-    final hasImages = entry.imagePaths.isNotEmpty;
-    final hasAudio = entry.audioRecordings.isNotEmpty;
+    final hasImages = imagePaths.isNotEmpty;
+    final hasAudio = audioRecordings.isNotEmpty;
     final hasAttachments = hasImages || hasAudio;
 
     return Scaffold(
@@ -28,7 +119,7 @@ class JournalViewScreen extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          entry.title.isNotEmpty ? entry.title : 'Untitled Entry',
+          title.isNotEmpty ? title : 'Untitled Entry',
           style: GoogleFonts.inter(
             fontSize: 20,
             fontWeight: FontWeight.w600,
@@ -36,99 +127,13 @@ class JournalViewScreen extends StatelessWidget {
           ),
         ),
         centerTitle: true,
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (String value) {
-              switch (value) {
-                case 'edit':
-                  // TODO: Navigate to edit journal entry
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Edit functionality coming soon!'),
-                      backgroundColor: Color(0xFF115e5a),
-                    ),
-                  );
-                  break;
-                case 'share':
-                  // TODO: Implement share functionality
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Share functionality coming soon!'),
-                      backgroundColor: Color(0xFF115e5a),
-                    ),
-                  );
-                  break;
-                case 'delete':
-                  _showDeleteConfirmation(context);
-                  break;
-              }
-            },
-            itemBuilder: (BuildContext context) => [
-              PopupMenuItem<String>(
-                value: 'edit',
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.edit_outlined,
-                      color: Color(0xFF115e5a),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Edit Entry',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w500),
-                    ),
-                  ],
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'share',
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.share_outlined,
-                      color: Color(0xFF115e5a),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Share Entry',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w500),
-                    ),
-                  ],
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.delete_outline,
-                      color: Colors.red,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Delete Entry',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w500,
-                        color: Colors.red,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            icon: const Icon(Icons.more_vert, color: Color(0xFF115e5a)),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Date and time section
+            // Date and time section with action buttons
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -136,7 +141,7 @@ class JournalViewScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
@@ -147,7 +152,7 @@ class JournalViewScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF115e5a).withOpacity(0.1),
+                      color: const Color(0xFF115e5a).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
@@ -162,7 +167,7 @@ class JournalViewScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          dateFormat.format(entry.createdAt),
+                          dateFormat.format(createdAt),
                           style: GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -171,7 +176,7 @@ class JournalViewScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          timeFormat.format(entry.createdAt),
+                          timeFormat.format(createdAt),
                           style: GoogleFonts.inter(
                             fontSize: 14,
                             color: const Color(0xFF718096),
@@ -179,6 +184,46 @@ class JournalViewScreen extends StatelessWidget {
                         ),
                       ],
                     ),
+                  ),
+                  // Action buttons
+                  Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF115e5a).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.edit_outlined,
+                            size: 18,
+                            color: Color(0xFF115e5a),
+                          ),
+                          onPressed: () => _navigateToEdit(context),
+                          padding: EdgeInsets.zero,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            size: 18,
+                            color: Colors.red,
+                          ),
+                          onPressed: () => _showDeleteConfirmation(context),
+                          padding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -194,7 +239,7 @@ class JournalViewScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
@@ -205,13 +250,13 @@ class JournalViewScreen extends StatelessWidget {
                 children: [
                   // Attachments section (if any)
                   if (hasAttachments) ...[
-                    _buildAttachmentsGrid(),
+                    _buildAttachmentsGrid(imagePaths, audioRecordings),
                     const SizedBox(height: 24),
                   ],
 
                   // Content section
                   Text(
-                    entry.content,
+                    content,
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       height: 1.6,
@@ -228,14 +273,27 @@ class JournalViewScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAttachmentsGrid() {
+  void _navigateToEdit(BuildContext context) {
+    // TODO: Navigate to edit journal entry when edit functionality is available
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Edit functionality coming soon!'),
+        backgroundColor: Color(0xFF115e5a),
+      ),
+    );
+  }
+
+  Widget _buildAttachmentsGrid(
+    List<String> imagePaths,
+    List<AudioRecordingData> audioRecordings,
+  ) {
     return StaggeredGrid.count(
       crossAxisCount: 2,
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
       children: [
         // Display images
-        ...entry.imagePaths.map((imagePath) {
+        ...imagePaths.map((imagePath) {
           return StaggeredGridTile.count(
             crossAxisCellCount: 1,
             mainAxisCellCount: 1,
@@ -245,7 +303,7 @@ class JournalViewScreen extends StatelessWidget {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -276,7 +334,10 @@ class JournalViewScreen extends StatelessWidget {
         }),
 
         // Display audio recordings
-        ...entry.audioRecordings.map((audioData) {
+        ...audioRecordings.map((audioData) {
+          // Access audio data properties (AudioRecordingData is not a Realm object)
+          final duration = audioData.duration;
+
           return StaggeredGridTile.count(
             crossAxisCellCount: 1,
             mainAxisCellCount: 1,
@@ -287,7 +348,7 @@ class JournalViewScreen extends StatelessWidget {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -299,7 +360,7 @@ class JournalViewScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF115e5a).withOpacity(0.1),
+                      color: const Color(0xFF115e5a).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(50),
                     ),
                     child: const Icon(
@@ -322,7 +383,7 @@ class JournalViewScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${audioData.duration.inSeconds}s',
+                    '${duration.inSeconds}s',
                     style: GoogleFonts.inter(
                       fontSize: 10,
                       color: const Color(0xFF718096),
@@ -369,16 +430,56 @@ class JournalViewScreen extends StatelessWidget {
             ),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Return to journal list
-              // TODO: Implement delete functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Delete functionality coming soon!'),
-                  backgroundColor: Colors.red,
-                ),
-              );
+            onPressed: () async {
+              final navigator = Navigator.of(context);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+              navigator.pop(); // Close dialog
+
+              try {
+                // Get the entry ID before potential invalidation
+                final entryId = _safeAccess(() => entry.id);
+                if (entryId == null) {
+                  // Entry is already deleted
+                  navigator.pop(); // Return to journal list
+                  return;
+                }
+
+                final dbHelper = RealmDatabaseHelper();
+                await dbHelper.deleteJournalEntry(entryId);
+
+                navigator.pop(
+                  true,
+                ); // Return to journal list with success result
+
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Journal entry deleted successfully',
+                      style: GoogleFonts.inter(color: Colors.white),
+                    ),
+                    backgroundColor: const Color(0xFF115e5a),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                );
+              } catch (e) {
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Error deleting journal entry: $e',
+                      style: GoogleFonts.inter(color: Colors.white),
+                    ),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                );
+              }
             },
             child: Text(
               'Delete',

@@ -1,5 +1,7 @@
 import 'package:just_audio/just_audio.dart';
 import 'repeat_mode.dart';
+import 'package:spotify/spotify.dart' as SpotifyApi;
+import '../services/spotify_service.dart';
 
 class MediaPlayerState {
   final String trackTitle;
@@ -21,6 +23,12 @@ class MediaPlayerState {
   final String? error;
   final bool isLiveStream;
 
+  // Spotify-specific fields
+  final bool isSpotifyTrack;
+  final SpotifyApi.Track? spotifyTrack;
+  final bool hasSpotifyPremium;
+  final SpotifyService? spotifyService;
+
   const MediaPlayerState({
     required this.trackTitle,
     required this.artistName,
@@ -40,26 +48,34 @@ class MediaPlayerState {
     this.processingState,
     this.error,
     this.isLiveStream = false,
+    // Spotify fields with defaults
+    this.isSpotifyTrack = false,
+    this.spotifyTrack,
+    this.hasSpotifyPremium = false,
+    this.spotifyService,
   });
 
   factory MediaPlayerState.initial() => const MediaPlayerState(
-        trackTitle: '',
-        artistName: '',
-        albumArt: '',
-        duration: Duration.zero,
-        position: Duration.zero,
-        isPlaying: false,
-        isBuffering: false,
-        isLoading: false,
-        isMuted: false,
-        volume: 0.7,
-        playlist: [],
-        currentIndex: 0,
-        isShuffleEnabled: false,
-        repeatMode: RepeatMode.none,
-        hasError: false,
-        isLiveStream: false,
-      );
+    trackTitle: '',
+    artistName: '',
+    albumArt: '',
+    duration: Duration.zero,
+    position: Duration.zero,
+    isPlaying: false,
+    isBuffering: false,
+    isLoading: false,
+    isMuted: false,
+    volume: 0.7,
+    playlist: [],
+    currentIndex: 0,
+    isShuffleEnabled: false,
+    repeatMode: RepeatMode.none,
+    hasError: false,
+    isLiveStream: false,
+    // Spotify defaults
+    isSpotifyTrack: false,
+    hasSpotifyPremium: false,
+  );
 
   MediaPlayerState copyWith({
     String? trackTitle,
@@ -80,6 +96,11 @@ class MediaPlayerState {
     ProcessingState? processingState,
     String? error,
     bool? isLiveStream,
+    // Spotify fields
+    bool? isSpotifyTrack,
+    SpotifyApi.Track? spotifyTrack,
+    bool? hasSpotifyPremium,
+    SpotifyService? spotifyService,
   }) {
     return MediaPlayerState(
       trackTitle: trackTitle ?? this.trackTitle,
@@ -100,6 +121,11 @@ class MediaPlayerState {
       processingState: processingState ?? this.processingState,
       error: error ?? this.error,
       isLiveStream: isLiveStream ?? this.isLiveStream,
+      // Spotify fields
+      isSpotifyTrack: isSpotifyTrack ?? this.isSpotifyTrack,
+      spotifyTrack: spotifyTrack ?? this.spotifyTrack,
+      hasSpotifyPremium: hasSpotifyPremium ?? this.hasSpotifyPremium,
+      spotifyService: spotifyService ?? this.spotifyService,
     );
   }
 

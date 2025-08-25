@@ -28,6 +28,10 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // Spotify SDK manifest placeholders
+        manifestPlaceholders["redirectSchemeName"] = "com.kanso.mirei.mirei"
+        manifestPlaceholders["redirectHostName"] = "spotify-auth"
     }
 
     buildTypes {
@@ -41,4 +45,9 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Spotify SDK dependency
+    implementation(project(":spotify-app-remote"))
 }

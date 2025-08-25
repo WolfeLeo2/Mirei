@@ -1,5 +1,7 @@
 import 'package:just_audio/just_audio.dart';
 import 'repeat_mode.dart';
+import 'package:spotify/spotify.dart' as SpotifyApi;
+import '../services/spotify_service.dart';
 
 abstract class MediaPlayerEvent {
   const MediaPlayerEvent();
@@ -45,6 +47,11 @@ class SkipToNext extends MediaPlayerEvent {
 
 class SkipToPrevious extends MediaPlayerEvent {
   const SkipToPrevious();
+}
+
+class FastSkipToIndex extends MediaPlayerEvent {
+  final int targetIndex;
+  const FastSkipToIndex(this.targetIndex);
 }
 
 class SetVolume extends MediaPlayerEvent {
@@ -93,4 +100,47 @@ class ProcessingStateUpdated extends MediaPlayerEvent {
 class StreamError extends MediaPlayerEvent {
   final String error;
   const StreamError(this.error);
+}
+
+// Spotify-specific events
+class InitializeSpotify extends MediaPlayerEvent {
+  final SpotifyApi.Track spotifyTrack;
+  final bool hasSpotifyPremium;
+  final SpotifyService spotifyService;
+  final String? audioUrl; // Preview URL for free users
+
+  const InitializeSpotify({
+    required this.spotifyTrack,
+    required this.hasSpotifyPremium,
+    required this.spotifyService,
+    this.audioUrl,
+  });
+}
+
+class SpotifyTrackChanged extends MediaPlayerEvent {
+  final String trackTitle;
+  final String artistName;
+  final String albumArt;
+  final Duration duration;
+  final bool isPlaying;
+
+  const SpotifyTrackChanged({
+    required this.trackTitle,
+    required this.artistName,
+    required this.albumArt,
+    required this.duration,
+    required this.isPlaying,
+  });
+}
+
+class SpotifyStateUpdated extends MediaPlayerEvent {
+  final Duration position;
+  final Duration duration;
+  final bool isPlaying;
+
+  const SpotifyStateUpdated({
+    required this.position,
+    required this.duration,
+    required this.isPlaying,
+  });
 }

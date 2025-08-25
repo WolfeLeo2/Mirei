@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../models/realm_models.dart';
 import '../../models/folder_models.dart';
 import 'folder_grid_view.dart';
@@ -151,15 +152,19 @@ class _AdaptiveFolderLayoutState extends State<AdaptiveFolderLayout>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.8),
-                borderRadius: BorderRadius.circular(20),
+            // Use the tabby journal image instead of folder icon
+              Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Image.asset(
+                'assets/images/tabby_journal.png',
+                width: 160,
+                height: 160,
+                fit: BoxFit.contain,
               ),
-              child: Icon(Icons.folder_open, size: 64, color: Colors.grey[400]),
-            ),
-            const SizedBox(height: 24),
+            )
+                .animate()
+                .fadeIn(duration: 600.ms, delay: 200.ms)
+                .scale(begin: const Offset(0.8, 0.8), duration: 400.ms, delay: 200.ms, curve: Curves.easeOutBack),
             Text(
               'No journal entries yet',
               style: TextStyle(
@@ -167,13 +172,19 @@ class _AdaptiveFolderLayoutState extends State<AdaptiveFolderLayout>
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF115e5a),
               ),
-            ),
+            )
+                .animate()
+                .fadeIn(duration: 400.ms, delay: 600.ms)
+                .slideY(begin: 0.3, duration: 400.ms, delay: 600.ms, curve: Curves.easeOut),
             const SizedBox(height: 12),
             Text(
-              'Start writing your thoughts and memories',
+              'Start writing your thoughts\n and memories',
               style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               textAlign: TextAlign.center,
-            ),
+            )
+                .animate()
+                .fadeIn(duration: 400.ms, delay: 800.ms)
+                .slideY(begin: 0.3, duration: 400.ms, delay: 800.ms, curve: Curves.easeOut),
           ],
         ),
       ),

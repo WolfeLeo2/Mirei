@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../utils/media_player_modal.dart';
+import 'package:icons_plus/icons_plus.dart';
+import 'package:spotify/spotify.dart' as SpotifyApi;
+import 'package:url_launcher/url_launcher.dart';
+
+import '../utils/new_media_player_modal.dart';
 import 'playlist_screen.dart';
 import '../bloc/media_player_bloc.dart';
 import '../bloc/media_player_event.dart';
 import '../bloc/media_player_state.dart';
+import '../services/spotify_service.dart';
+import '../widgets/spotify_music_card.dart';
 
 // Static data classes for better performance
 class _AlbumData {
@@ -58,6 +64,15 @@ class MediaScreen extends StatefulWidget {
 }
 
 class _MediaScreenState extends State<MediaScreen> {
+  final SpotifyService _spotifyService = SpotifyService();
+
+  // Spotify state
+  bool _isSpotifyConnected = false;
+  bool _hasSpotifyPremium = false;
+  bool _isLoadingSpotify = false;
+  List<SpotifyApi.Track> _spotifyTracks = [];
+  List<SpotifyApi.PlaylistSimple> _spotifyPlaylists = [];
+
   // Static const data for better performance
   static const List<_AlbumData> _albumData = [
     _AlbumData(
@@ -111,7 +126,6 @@ class _MediaScreenState extends State<MediaScreen> {
       imagePath: 'assets/images/bg-evening.jpg',
       url: 'https://wolfeleo2.github.io/audio-cdn/chill/',
     ),
-    
   ];
 
   static const List<_LiveRadioData> _liveRadioData = [
@@ -204,6 +218,26 @@ class _MediaScreenState extends State<MediaScreen> {
               const SizedBox(height: 16),
               _buildLiveRadioCards(state),
               const SizedBox(height: 32),
+              // Spotify Integration Section
+              RepaintBoundary(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                  child: Row(
+                    children: [
+                      Icon(
+                        FontAwesome.spotify_brand,
+                        size: 24,
+                        color: Colors.green[400],
+                      ),
+                      const SizedBox(width: 8),
+                      Text('Music from Spotify', style: _sectionHeaderStyle),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildSpotifySection(),
+              const SizedBox(height: 32),
               RepaintBoundary(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
@@ -250,12 +284,13 @@ class _MediaScreenState extends State<MediaScreen> {
   }
 
   void _handleAlbumTap(_AlbumData album) {
-    showMediaPlayerModal(
-      context: context,
-      trackTitle: album.title,
-      artistName: 'Various Artists',
+    // NEW SYSTEM: Use unified modal - much cleaner!
+    showLocalPlayerModal(
+      context,
+      title: album.title,
+      artist: 'Various Artists',
+      audioUrl: album.url ?? '',
       albumArt: album.imagePath,
-      audioUrl: album.url,
     );
   }
 
@@ -290,6 +325,373 @@ class _MediaScreenState extends State<MediaScreen> {
     );
   }
 
+  Widget _buildSpotifySection() {
+    if (!_isSpotifyConnected) {
+      return _buildSpotifyConnectButton();
+    }
+
+    return Column(
+      children: [
+        // Search and connect status
+        _buildSpotifySearchAndStatus(),
+        const SizedBox(height: 16),
+
+        // Spotify tracks
+        if (_spotifyTracks.isNotEmpty) ...[
+          _buildSpotifyTracksSection(),
+          const SizedBox(height: 24),
+        ],
+
+        // Spotify playlists
+        if (_spotifyPlaylists.isNotEmpty) _buildSpotifyPlaylistsSection(),
+      ],
+    );
+  }
+
+  Widget _buildSpotifyConnectButton() {
+    return Container(
+      height: 120,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.green.withOpacity(0.1),
+            Colors.green.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.green.withOpacity(0.2), width: 1),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _isLoadingSpotify ? null : _connectToSpotify,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: Icon(
+                    FontAwesome.spotify_brand,
+                    color: Colors.green[400],
+                    size: 30,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Connect to Spotify',
+                        style: GoogleFonts.inter(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Access millions of meditation and relaxing tracks',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_isLoadingSpotify)
+                  const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.green,
+                    ),
+                  )
+                else
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.green[400],
+                    size: 20,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSpotifySearchAndStatus() {
+    return Container(
+      height: 60,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 16),
+          Icon(
+            FontAwesome.magnifying_glass_solid,
+            color: Colors.grey[400],
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search meditation music...',
+                hintStyle: GoogleFonts.inter(color: Colors.grey[400]),
+                border: InputBorder.none,
+                isDense: true,
+              ),
+              style: GoogleFonts.inter(color: Colors.black87),
+              cursorColor: Colors.black87,
+              onSubmitted: _searchSpotifyTracks,
+            ),
+          ),
+          const SizedBox(width: 16),
+          if (_isLoadingSpotify)
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.green,
+              ),
+            )
+          else
+            Icon(FontAwesome.spotify_brand, color: Colors.green[400], size: 20),
+          const SizedBox(width: 16),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _connectToSpotify() async {
+    setState(() => _isLoadingSpotify = true);
+
+    try {
+      print('🎵 Connecting to Spotify...');
+      final success = await _spotifyService.authenticateUser();
+
+      if (success) {
+        setState(() {
+          _isSpotifyConnected = true;
+          _hasSpotifyPremium = _spotifyService.hasSpotifyPremium;
+          _isLoadingSpotify = false;
+        });
+
+        // Load initial meditation tracks
+        await _searchSpotifyTracks('meditation music relaxing');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Connected to Spotify! 🎵'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        setState(() => _isLoadingSpotify = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to connect to Spotify'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoadingSpotify = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Connection error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _searchSpotifyTracks(String query) async {
+    if (query.trim().isEmpty) return;
+
+    setState(() => _isLoadingSpotify = true);
+
+    try {
+      final tracks = await _spotifyService.searchTracks(query, limit: 10);
+      final playlists = await _spotifyService.getMeditationPlaylists();
+
+      setState(() {
+        _spotifyTracks = tracks;
+        _spotifyPlaylists = playlists;
+        _isLoadingSpotify = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingSpotify = false);
+      print('Search error: $e');
+    }
+  }
+
+  Widget _buildSpotifyTracksSection() {
+    return RepaintBoundary(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              'Your Tracks',
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF115e5a),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 260,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              scrollDirection: Axis.horizontal,
+              itemCount: _spotifyTracks.length,
+              itemBuilder: (context, index) {
+                final track = _spotifyTracks[index];
+                return SpotifyMusicCard(
+                  track: track,
+                  onTap: () => _handleSpotifyTrackTap(track),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpotifyPlaylistsSection() {
+    return RepaintBoundary(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              'Your Playlists',
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF115e5a),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 260,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              scrollDirection: Axis.horizontal,
+              itemCount: _spotifyPlaylists.length,
+              itemBuilder: (context, index) {
+                final playlist = _spotifyPlaylists[index];
+                return SpotifyMusicCard(
+                  playlist: playlist,
+                  onTap: () => _handleSpotifyPlaylistTap(playlist),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleSpotifyTrackTap(SpotifyApi.Track track) {
+    // Only Premium users can play Spotify tracks
+    if (!_hasSpotifyPremium) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Spotify Premium required for full track playback',
+          ),
+          backgroundColor: Colors.orange,
+          action: SnackBarAction(
+            label: 'Upgrade',
+            textColor: Colors.white,
+            onPressed: () {
+              // Open Spotify Premium upgrade page
+              _openSpotifyUrl('https://www.spotify.com/premium/');
+            },
+          ),
+        ),
+      );
+      return;
+    }
+
+    // NEW SYSTEM: Use unified modal - much cleaner!
+    showSpotifyPlayerModal(context, track, _spotifyService);
+  }
+
+  void _handleSpotifyPlaylistTap(SpotifyApi.PlaylistSimple playlist) {
+    final spotifyUrl = playlist.externalUrls?.spotify;
+
+    if (spotifyUrl != null) {
+      // Open playlist directly in Spotify app/web
+      _openSpotifyUrl(spotifyUrl);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to open playlist'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openSpotifyUrl(String url) async {
+    try {
+      // Use url_launcher to open Spotify URL
+      final Uri uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Opening playlist in Spotify...'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open Spotify URL'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to open playlist: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Widget _buildLiveRadioCards(MediaPlayerState state) {
     return RepaintBoundary(
       child: SizedBox(
@@ -300,10 +702,13 @@ class _MediaScreenState extends State<MediaScreen> {
           itemCount: _liveRadioData.length,
           itemBuilder: (context, index) {
             final station = _liveRadioData[index];
-            final isCurrent = state.isLiveStream && state.trackTitle == station.title;
-            final isLoading = (state.isLoading || state.isBuffering) && isCurrent;
+            final isCurrent =
+                state.isLiveStream && state.trackTitle == station.title;
+            final isLoading =
+                (state.isLoading || state.isBuffering) && isCurrent;
             final isPlaying = isCurrent && state.isPlaying;
-            final isPaused = isCurrent && !isPlaying && !isLoading && !state.hasError;
+            final isPaused =
+                isCurrent && !isPlaying && !isLoading && !state.hasError;
 
             return _LiveRadioCard(
               station: station,
@@ -322,7 +727,9 @@ class _MediaScreenState extends State<MediaScreen> {
                     }
                   : null,
               onStop: isCurrent
-                  ? () => context.read<MediaPlayerBloc>().add(const Pause()) // Using Pause as a Stop
+                  ? () => context
+                        .read<MediaPlayerBloc>()
+                        .add(const Pause()) // Using Pause as a Stop
                   : null,
             );
           },
@@ -333,14 +740,14 @@ class _MediaScreenState extends State<MediaScreen> {
 
   void _handleLiveRadioTap(_LiveRadioData station) {
     context.read<MediaPlayerBloc>().add(
-          Initialize(
-            trackTitle: station.title,
-            artistName: station.subtitle,
-            albumArt: station.imagePath,
-            audioUrl: station.url,
-            autoPlay: true,
-          ),
-        );
+      Initialize(
+        trackTitle: station.title,
+        artistName: station.subtitle,
+        albumArt: station.imagePath,
+        audioUrl: station.url,
+        autoPlay: true,
+      ),
+    );
   }
 }
 

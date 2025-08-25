@@ -7,6 +7,7 @@ import 'package:hyper_effects/hyper_effects.dart';
 import '../../models/realm_models.dart';
 import '../../utils/realm_database_helper.dart';
 import 'scattered_entry_card.dart';
+import 'package:realm/realm.dart';
 
 /// Full-screen overlay that handles the expanded folder state with performance optimizations
 class ExpandedEntriesOverlay extends StatefulWidget {
@@ -14,6 +15,7 @@ class ExpandedEntriesOverlay extends StatefulWidget {
   final Offset folderPosition;
   final VoidCallback onClose;
   final String monthKey;
+  final VoidCallback? onEntryDeleted; // Callback for when an entry is deleted
 
   const ExpandedEntriesOverlay({
     super.key,
@@ -21,6 +23,7 @@ class ExpandedEntriesOverlay extends StatefulWidget {
     required this.folderPosition,
     required this.onClose,
     required this.monthKey,
+    this.onEntryDeleted,
   });
 
   @override
@@ -31,30 +34,59 @@ class _ExpandedEntriesOverlayState extends State<ExpandedEntriesOverlay>
     with TickerProviderStateMixin {
   late AnimationController _blurController;
   late Animation<double> _blurAnimation;
-  
+
   Map<String, MoodEntryRealm?> _dailyMoods = {};
   bool _isExpanded = false;
   bool _isMoodDataLoaded = false;
-  
+
   // Performance optimizations
-  late final List<JournalEntryRealm> _optimizedEntries;
-  static const int _maxVisibleEntries = 100; // Limit for performance
+  List<JournalEntryRealm> _optimizedEntries = []; // Limit for performance
 
   @override
   void initState() {
     super.initState();
-    _optimizeEntries();
+    _optimizedEntries = widget.entries;
     _initializeAnimations();
     _loadMoodDataLazy();
-    
-    // Start the expansion animation after the widget is built
+
+    // Start expansion animation
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        setState(() {
-          _isExpanded = true;
-        });
-      }
+      setState(() {
+        _isExpanded = true;
+      });
     });
+  }
+
+  /// Handle entry deletion and refresh the grid immediately
+  void _handleEntryDeleted() {
+    // Remove invalidated entries immediately from the local state
+    if (mounted) {
+      setState(() {
+        _optimizedEntries = _optimizedEntries.where((entry) {
+          try {
+            // Try to access a property to check if entry is valid
+            entry.createdAt;
+            return true;
+          } catch (e) {
+            // Entry is invalidated, filter it out
+            return false;
+          }
+        }).toList();
+      });
+    }
+
+    // Also notify parent to refresh - both immediately and with a delay
+    if (widget.onEntryDeleted != null) {
+      // Immediate callback
+      widget.onEntryDeleted!();
+
+      // Delayed callback as backup to ensure DB transaction completes
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (mounted) {
+          widget.onEntryDeleted!();
+        }
+      });
+    }
   }
 
   @override
@@ -63,11 +95,6 @@ class _ExpandedEntriesOverlayState extends State<ExpandedEntriesOverlay>
     super.dispose();
   }
 
-  /// Optimize entries list for better performance
-  void _optimizeEntries() {
-    // Limit entries to improve scrolling performance
-    _optimizedEntries = widget.entries.take(_maxVisibleEntries).toList();
-  }
 
   void _initializeAnimations() {
     _blurController = AnimationController(
@@ -79,7 +106,7 @@ class _ExpandedEntriesOverlayState extends State<ExpandedEntriesOverlay>
       parent: _blurController,
       curve: Curves.easeInOutCubic,
     );
-    
+
     _blurController.forward();
   }
 
@@ -123,7 +150,7 @@ class _ExpandedEntriesOverlayState extends State<ExpandedEntriesOverlay>
     setState(() {
       _isExpanded = false;
     });
-    
+
     // Wait for animations to complete before closing
     final maxDelay = math.min(_optimizedEntries.length * 40, 2000); // Cap at 2s
     const animationDuration = 300;
@@ -135,7 +162,7 @@ class _ExpandedEntriesOverlayState extends State<ExpandedEntriesOverlay>
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final padding = MediaQuery.of(context).padding;
-    
+
     return Material(
       color: Colors.transparent,
       child: Stack(
@@ -156,6 +183,7 @@ class _ExpandedEntriesOverlayState extends State<ExpandedEntriesOverlay>
               folderPosition: widget.folderPosition,
               screenSize: screenSize,
               crossAxisCount: _getCrossAxisCount(),
+              onEntryDeleted: _handleEntryDeleted,
             ),
           ),
 
@@ -179,7 +207,11 @@ class _ExpandedEntriesOverlayState extends State<ExpandedEntriesOverlay>
             child: Container(
               width: double.infinity,
               height: double.infinity,
-              color: Color.lerp(Colors.transparent, const Color(0x4D000000), _blurAnimation.value),
+              color: Color.lerp(
+                Colors.transparent,
+                const Color(0x4D000000),
+                _blurAnimation.value,
+              ),
               child: BackdropFilter(
                 filter: ui.ImageFilter.blur(
                   sigmaX: 10 * _blurAnimation.value,
@@ -244,7 +276,10 @@ class _ExpandedEntriesOverlayState extends State<ExpandedEntriesOverlay>
             return Opacity(
               opacity: _blurAnimation.value,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: const BoxDecoration(
                   color: Color(0xE6FFFFFF), // Use const color
                   borderRadius: BorderRadius.all(Radius.circular(20)),
@@ -281,6 +316,7 @@ class _OptimizedGridView extends StatelessWidget {
   final Offset folderPosition;
   final Size screenSize;
   final int crossAxisCount;
+  final VoidCallback? onEntryDeleted;
 
   const _OptimizedGridView({
     required this.entries,
@@ -289,10 +325,40 @@ class _OptimizedGridView extends StatelessWidget {
     required this.folderPosition,
     required this.screenSize,
     required this.crossAxisCount,
+    this.onEntryDeleted,
   });
+
+  /// Safely access a Realm object property with error handling
+  T? _safeAccess<T>(T Function() accessor, [T? defaultValue]) {
+    try {
+      return accessor();
+    } catch (e) {
+      if (e is RealmException && e.message.contains('invalidated')) {
+        // Object has been deleted, return default value
+        return defaultValue;
+      }
+      rethrow;
+    }
+  }
+
+  /// Filter out any invalidated entries from the list
+  List<JournalEntryRealm> _getValidEntries() {
+    return entries.where((entry) {
+      try {
+        // Try to access a property to check if entry is valid
+        entry.createdAt;
+        return true;
+      } catch (e) {
+        // Entry is invalidated, filter it out
+        return false;
+      }
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final validEntries = _getValidEntries();
+
     return RepaintBoundary(
       child: GridView.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -303,10 +369,10 @@ class _OptimizedGridView extends StatelessWidget {
         ),
         padding: const EdgeInsets.fromLTRB(16, 5, 16, 100),
         physics: const ClampingScrollPhysics(),
-        itemCount: entries.length,
+        itemCount: validEntries.length,
         itemBuilder: (context, index) {
-          final journalEntry = entries[index];
-          
+          final journalEntry = validEntries[index];
+
           return _AnimatedEntryCard(
             entry: journalEntry,
             mood: _getMoodForEntry(journalEntry),
@@ -314,6 +380,7 @@ class _OptimizedGridView extends StatelessWidget {
             isExpanded: isExpanded,
             folderPosition: folderPosition,
             screenSize: screenSize,
+            onEntryDeleted: onEntryDeleted,
           );
         },
       ),
@@ -321,7 +388,10 @@ class _OptimizedGridView extends StatelessWidget {
   }
 
   MoodEntryRealm? _getMoodForEntry(JournalEntryRealm entry) {
-    final dateKey = DateFormat('yyyy-MM-dd').format(entry.createdAt);
+    final createdAt = _safeAccess(() => entry.createdAt);
+    if (createdAt == null) return null;
+
+    final dateKey = DateFormat('yyyy-MM-dd').format(createdAt);
     return dailyMoods[dateKey];
   }
 }
@@ -334,6 +404,7 @@ class _AnimatedEntryCard extends StatelessWidget {
   final bool isExpanded;
   final Offset folderPosition;
   final Size screenSize;
+  final VoidCallback? onEntryDeleted;
 
   const _AnimatedEntryCard({
     required this.entry,
@@ -342,30 +413,41 @@ class _AnimatedEntryCard extends StatelessWidget {
     required this.isExpanded,
     required this.folderPosition,
     required this.screenSize,
+    this.onEntryDeleted,
   });
 
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
-      child: ScatteredEntryCard(
-        entry: entry,
-        mood: mood,
-      )
-        .scale(isExpanded ? 1.0 : 0.0)
-        .opacity(isExpanded ? 1.0 : 0.0)
-        .translateXY(
-          isExpanded ? 0 : (folderPosition.dx - screenSize.width / 2) * 0.5,
-          isExpanded ? 0 : (folderPosition.dy - screenSize.height / 2) * 0.5,
-        )
-        .rotate(
-          isExpanded ? (math.Random(index + 123).nextDouble() - 0.5) * 0.1 : 0,
-        )
-        .animate(
-          trigger: isExpanded,
-          duration: Duration(milliseconds: 300 + index * 15), // Faster stagger
-          curve: Curves.easeOutCubic,
-          delay: Duration(milliseconds: index * 30), // Faster delay
-        ),
+      child:
+          ScatteredEntryCard(
+                entry: entry,
+                mood: mood,
+                onEntryDeleted: onEntryDeleted,
+              )
+              .scale(isExpanded ? 1.0 : 0.0)
+              .opacity(isExpanded ? 1.0 : 0.0)
+              .translateXY(
+                isExpanded
+                    ? 0
+                    : (folderPosition.dx - screenSize.width / 2) * 0.5,
+                isExpanded
+                    ? 0
+                    : (folderPosition.dy - screenSize.height / 2) * 0.5,
+              )
+              .rotate(
+                isExpanded
+                    ? (math.Random(index + 123).nextDouble() - 0.5) * 0.1
+                    : 0,
+              )
+              .animate(
+                trigger: isExpanded,
+                duration: Duration(
+                  milliseconds: 300 + index * 15,
+                ), // Faster stagger
+                curve: Curves.easeOutCubic,
+                delay: Duration(milliseconds: index * 30), // Faster delay
+              ),
     );
   }
 }
