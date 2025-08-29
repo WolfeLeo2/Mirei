@@ -5,7 +5,7 @@ import '../utils/realm_database_helper.dart';
 import '../utils/journal_grouping_service.dart';
 import '../components/journal_list/adaptive_folder_layout.dart';
 import '../components/journal_list/expanded_entries_overlay.dart';
-import 'journal_writing.dart';
+import 'journal_template_selection.dart';
 
 class JournalListScreen extends StatefulWidget {
   const JournalListScreen({super.key});
@@ -91,7 +91,9 @@ class _JournalListScreenState extends State<JournalListScreen>
   Future<void> _navigateToJournalWriting() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const JournalWritingScreen()),
+      MaterialPageRoute(
+        builder: (context) => const JournalTemplateSelectionScreen(),
+      ),
     );
 
     if (result == true) {

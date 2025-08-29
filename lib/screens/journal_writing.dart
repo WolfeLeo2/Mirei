@@ -16,15 +16,18 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../models/realm_models.dart';
 import '../utils/realm_database_helper.dart';
 import 'journal_list.dart';
+import '../models/journal_template.dart';
 
 class JournalWritingScreen extends StatefulWidget {
-  const JournalWritingScreen({super.key});
+  final JournalTemplate? initialTemplate;
+
+  const JournalWritingScreen({super.key, this.initialTemplate});
 
   @override
-  _JournalWritingScreenState createState() => _JournalWritingScreenState();
+  JournalWritingScreenState createState() => JournalWritingScreenState();
 }
 
-class _JournalWritingScreenState extends State<JournalWritingScreen>
+class JournalWritingScreenState extends State<JournalWritingScreen>
     with TickerProviderStateMixin {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
@@ -62,6 +65,12 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
     _initializeRecorder();
     _checkPermissions();
     _initializeWaveAnimations();
+
+    // Pre-fill from template if provided
+    if (widget.initialTemplate != null) {
+      _titleController.text = widget.initialTemplate!.getFilledTitle();
+      _contentController.text = widget.initialTemplate!.getFilledContent();
+    }
   }
 
   void _initializeWaveAnimations() {
