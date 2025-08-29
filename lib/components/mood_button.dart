@@ -40,7 +40,11 @@ class MoodButton extends StatelessWidget {
               RepaintBoundary(
                 child: Transform.scale(
                   scale: isSelected ? 1.0 : 1.0,
-                  child: SvgPicture.asset(svgPath, height: 35, fit: BoxFit.fill),
+                  child: SvgPicture.asset(
+                    svgPath,
+                    height: 35,
+                    fit: BoxFit.fill,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),

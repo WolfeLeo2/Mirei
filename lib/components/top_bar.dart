@@ -2,10 +2,55 @@ import 'package:flutter/material.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:mirei/models/session_info.dart';
+import '../services/auth_service.dart';
 
 class TopBar extends StatelessWidget {
   final SessionInfo session;
   const TopBar({super.key, required this.session});
+
+  Future<void> _handleLogout(BuildContext context) async {
+    // Show confirmation dialog
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Logout'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Logout'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout == true) {
+      try {
+        await AuthService().signOut();
+
+        // Clear navigation stack and return to AuthWrapper
+        if (context.mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error signing out: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,55 +104,56 @@ class TopBar extends StatelessWidget {
                 ),
               ),
             ),
-          const SizedBox(width: 8),
-          PullDownButton(
-            itemBuilder: (context) => [
-              PullDownMenuItem(
-                title: 'Profile',
-                icon: CupertinoIcons.person,
-                onTap: () {},
-              ),
-              PullDownMenuItem(
-                title: 'Settings',
-                icon: CupertinoIcons.settings,
-                onTap: () {},
-              ),
-              PullDownMenuItem(
-                title: 'Feedback',
-                icon: CupertinoIcons.chat_bubble_2,
-                onTap: () {},
-              ),
-              const PullDownMenuDivider.large(),
-              PullDownMenuItem(
-                title: 'Logout',
-                icon: CupertinoIcons.square_arrow_right,
-                isDestructive: true,
-                onTap: () {},
-              ),
-            ],
-            buttonBuilder: (context, showMenu) => Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.25),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
-              ),
-              child: IconButton(
-                icon: Icon(
-                  Icons.menu,
-                  color: const Color(0xFF1a237e),
-                  size: 24,
+            const SizedBox(width: 8),
+            PullDownButton(
+              itemBuilder: (context) => [
+                PullDownMenuItem(
+                  title: 'Profile',
+                  icon: CupertinoIcons.person,
+                  onTap: () {},
                 ),
-                onPressed: showMenu,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+                PullDownMenuItem(
+                  title: 'Settings',
+                  icon: CupertinoIcons.settings,
+                  onTap: () {},
+                ),
+                PullDownMenuItem(
+                  title: 'Feedback',
+                  icon: CupertinoIcons.chat_bubble_2,
+                  onTap: () {},
+                ),
+                const PullDownMenuDivider.large(),
+                PullDownMenuItem(
+                  title: 'Logout',
+                  icon: CupertinoIcons.square_arrow_right,
+                  isDestructive: true,
+                  onTap: () => _handleLogout(context),
+                ),
+              ],
+              buttonBuilder: (context, showMenu) => Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.25),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    Icons.menu,
+                    color: const Color(0xFF1a237e),
+                    size: 24,
+                  ),
+                  onPressed: showMenu,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
               ),
             ),
-          ),
-      ]
-      ),
-        
+          ],
+        ),
       ),
     );
   }

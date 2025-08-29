@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:animations/animations.dart';
 import '../../models/realm_models.dart';
-import '../../utils/emotion_colors.dart';
+import '../../core/constants/app_colors.dart';
 import '../../screens/journal_view.dart';
 import '../../utils/realm_database_helper.dart';
 import 'package:realm/realm.dart';
@@ -307,7 +307,7 @@ class _OptimizedCardContent extends StatelessWidget {
                 hasTitle: title.isNotEmpty,
               ),
             ),
-
+            const SizedBox(height: 4),
             // Media indicators and mood
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -505,7 +505,7 @@ class _MoodIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final emotion = mood?.mood ?? 'Neutral';
-    final color = getEmotionColor(emotion);
+    final color = AppColors.getEmotionColor(emotion);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),

@@ -12,42 +12,53 @@ class MoodBloc extends Bloc<MoodEvent, MoodState> {
   // This static list defines the available Moods.
   // In a more dynamic app, this could also come from the repository.
   static const List<String> _moods = [
-    'Angelic', 'Sorry', 'Excited', 'Embarrassed', 'Happy',
-    'Romantic', 'Neutral', 'Sad', 'Silly',
+    'Happy',
+    'Cutesy',
+    'Shocked',
+    'Neutral',
+    'Awkward',
+    'Disappointed',
+    'Sad',
+    'Angry',
+    'Worried',
+    'Tired',
   ];
 
   MoodBloc({required MoodRepository moodRepository})
-      : _moodRepository = moodRepository,
-        super(const MoodState.initial()) {
+    : _moodRepository = moodRepository,
+      super(const MoodState.initial()) {
     on<LoadInitialMood>(_onLoadInitialMood);
     on<MoodSelected>(_onMoodSelected);
   }
 
   Future<void> _onLoadInitialMood(
-      LoadInitialMood event, Emitter<MoodState> emit) async {
+    LoadInitialMood event,
+    Emitter<MoodState> emit,
+  ) async {
     emit(const MoodState.loadInProgress());
     try {
       final todaysMood = await _moodRepository.getTodaysMood();
       // Default to 'Neutral' if no mood is set for the day.
       final initialMood = todaysMood?.mood ?? 'Neutral';
-      emit(MoodState.loadSuccess(
-        allMoods: _moods,
-        selectedMood: initialMood,
-      ));
+      emit(MoodState.loadSuccess(allMoods: _moods, selectedMood: initialMood));
     } catch (e) {
       emit(MoodState.loadFailure(e.toString()));
     }
   }
 
   Future<void> _onMoodSelected(
-      MoodSelected event, Emitter<MoodState> emit) async {
+    MoodSelected event,
+    Emitter<MoodState> emit,
+  ) async {
     final currentState = state;
     if (currentState is MoodLoadSuccess) {
       // Immediately update the UI with the new selection.
-      emit(MoodState.loadSuccess(
-        allMoods: currentState.allMoods,
-        selectedMood: event.mood,
-      ));
+      emit(
+        MoodState.loadSuccess(
+          allMoods: currentState.allMoods,
+          selectedMood: event.mood,
+        ),
+      );
       try {
         // Save the mood in the background.
         await _moodRepository.saveMood(event.mood);

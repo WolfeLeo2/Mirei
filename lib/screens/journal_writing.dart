@@ -526,10 +526,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
         );
 
         // Navigate back to journal list
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const JournalListScreen()),
-        );
+        Navigator.pop(context, true); // Return true to indicate successful save
       }
     } catch (e) {
       if (mounted) {

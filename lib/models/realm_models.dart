@@ -34,6 +34,43 @@ class AudioRecordingData {
 }
 
 @RealmModel()
+class _UserProfileRealm {
+  @PrimaryKey()
+  late String uid; // Firebase UID as primary key
+
+  late String email;
+  String? displayName;
+  String? photoURL; // Firebase profile picture URL
+  String? customAvatarUrl; // User-selected custom avatar
+  late String provider; // 'google', 'facebook', 'apple', 'email'
+  late bool isEmailVerified;
+  late DateTime lastUpdated;
+  late DateTime createdAt;
+
+  // Helper method to get effective avatar URL
+  String get effectiveAvatarUrl {
+    if (customAvatarUrl != null && customAvatarUrl!.isNotEmpty) {
+      return customAvatarUrl!;
+    }
+    if (photoURL != null && photoURL!.isNotEmpty) {
+      return photoURL!;
+    }
+    // Generate default avatar based on UID
+    final seed = uid.hashCode.abs();
+    return 'https://api.dicebear.com/7.x/avataaars/png?seed=$seed&size=150';
+  }
+
+  // Helper method to get effective display name
+  String get effectiveDisplayName {
+    if (displayName != null && displayName!.isNotEmpty) {
+      return displayName!;
+    }
+    // Extract name from email (before @)
+    return email.split('@').first.replaceAll('.', ' ').trim();
+  }
+}
+
+@RealmModel()
 class _MoodEntryRealm {
   @PrimaryKey()
   late ObjectId id;

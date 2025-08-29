@@ -9,6 +9,172 @@ part of 'realm_models.dart';
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
+class UserProfileRealm extends _UserProfileRealm
+    with RealmEntity, RealmObjectBase, RealmObject {
+  UserProfileRealm(
+    String uid,
+    String email,
+    String provider,
+    bool isEmailVerified,
+    DateTime lastUpdated,
+    DateTime createdAt, {
+    String? displayName,
+    String? photoURL,
+    String? customAvatarUrl,
+  }) {
+    RealmObjectBase.set(this, 'uid', uid);
+    RealmObjectBase.set(this, 'email', email);
+    RealmObjectBase.set(this, 'displayName', displayName);
+    RealmObjectBase.set(this, 'photoURL', photoURL);
+    RealmObjectBase.set(this, 'customAvatarUrl', customAvatarUrl);
+    RealmObjectBase.set(this, 'provider', provider);
+    RealmObjectBase.set(this, 'isEmailVerified', isEmailVerified);
+    RealmObjectBase.set(this, 'lastUpdated', lastUpdated);
+    RealmObjectBase.set(this, 'createdAt', createdAt);
+  }
+
+  UserProfileRealm._();
+
+  @override
+  String get uid => RealmObjectBase.get<String>(this, 'uid') as String;
+  @override
+  set uid(String value) => RealmObjectBase.set(this, 'uid', value);
+
+  @override
+  String get email => RealmObjectBase.get<String>(this, 'email') as String;
+  @override
+  set email(String value) => RealmObjectBase.set(this, 'email', value);
+
+  @override
+  String? get displayName =>
+      RealmObjectBase.get<String>(this, 'displayName') as String?;
+  @override
+  set displayName(String? value) =>
+      RealmObjectBase.set(this, 'displayName', value);
+
+  @override
+  String? get photoURL =>
+      RealmObjectBase.get<String>(this, 'photoURL') as String?;
+  @override
+  set photoURL(String? value) => RealmObjectBase.set(this, 'photoURL', value);
+
+  @override
+  String? get customAvatarUrl =>
+      RealmObjectBase.get<String>(this, 'customAvatarUrl') as String?;
+  @override
+  set customAvatarUrl(String? value) =>
+      RealmObjectBase.set(this, 'customAvatarUrl', value);
+
+  @override
+  String get provider =>
+      RealmObjectBase.get<String>(this, 'provider') as String;
+  @override
+  set provider(String value) => RealmObjectBase.set(this, 'provider', value);
+
+  @override
+  bool get isEmailVerified =>
+      RealmObjectBase.get<bool>(this, 'isEmailVerified') as bool;
+  @override
+  set isEmailVerified(bool value) =>
+      RealmObjectBase.set(this, 'isEmailVerified', value);
+
+  @override
+  DateTime get lastUpdated =>
+      RealmObjectBase.get<DateTime>(this, 'lastUpdated') as DateTime;
+  @override
+  set lastUpdated(DateTime value) =>
+      RealmObjectBase.set(this, 'lastUpdated', value);
+
+  @override
+  DateTime get createdAt =>
+      RealmObjectBase.get<DateTime>(this, 'createdAt') as DateTime;
+  @override
+  set createdAt(DateTime value) =>
+      RealmObjectBase.set(this, 'createdAt', value);
+
+  @override
+  Stream<RealmObjectChanges<UserProfileRealm>> get changes =>
+      RealmObjectBase.getChanges<UserProfileRealm>(this);
+
+  @override
+  Stream<RealmObjectChanges<UserProfileRealm>> changesFor([
+    List<String>? keyPaths,
+  ]) => RealmObjectBase.getChangesFor<UserProfileRealm>(this, keyPaths);
+
+  @override
+  UserProfileRealm freeze() =>
+      RealmObjectBase.freezeObject<UserProfileRealm>(this);
+
+  EJsonValue toEJson() {
+    return <String, dynamic>{
+      'uid': uid.toEJson(),
+      'email': email.toEJson(),
+      'displayName': displayName.toEJson(),
+      'photoURL': photoURL.toEJson(),
+      'customAvatarUrl': customAvatarUrl.toEJson(),
+      'provider': provider.toEJson(),
+      'isEmailVerified': isEmailVerified.toEJson(),
+      'lastUpdated': lastUpdated.toEJson(),
+      'createdAt': createdAt.toEJson(),
+    };
+  }
+
+  static EJsonValue _toEJson(UserProfileRealm value) => value.toEJson();
+  static UserProfileRealm _fromEJson(EJsonValue ejson) {
+    if (ejson is! Map<String, dynamic>) return raiseInvalidEJson(ejson);
+    return switch (ejson) {
+      {
+        'uid': EJsonValue uid,
+        'email': EJsonValue email,
+        'provider': EJsonValue provider,
+        'isEmailVerified': EJsonValue isEmailVerified,
+        'lastUpdated': EJsonValue lastUpdated,
+        'createdAt': EJsonValue createdAt,
+      } =>
+        UserProfileRealm(
+          fromEJson(uid),
+          fromEJson(email),
+          fromEJson(provider),
+          fromEJson(isEmailVerified),
+          fromEJson(lastUpdated),
+          fromEJson(createdAt),
+          displayName: fromEJson(ejson['displayName']),
+          photoURL: fromEJson(ejson['photoURL']),
+          customAvatarUrl: fromEJson(ejson['customAvatarUrl']),
+        ),
+      _ => raiseInvalidEJson(ejson),
+    };
+  }
+
+  static final schema = () {
+    RealmObjectBase.registerFactory(UserProfileRealm._);
+    register(_toEJson, _fromEJson);
+    return const SchemaObject(
+      ObjectType.realmObject,
+      UserProfileRealm,
+      'UserProfileRealm',
+      [
+        SchemaProperty('uid', RealmPropertyType.string, primaryKey: true),
+        SchemaProperty('email', RealmPropertyType.string),
+        SchemaProperty('displayName', RealmPropertyType.string, optional: true),
+        SchemaProperty('photoURL', RealmPropertyType.string, optional: true),
+        SchemaProperty(
+          'customAvatarUrl',
+          RealmPropertyType.string,
+          optional: true,
+        ),
+        SchemaProperty('provider', RealmPropertyType.string),
+        SchemaProperty('isEmailVerified', RealmPropertyType.bool),
+        SchemaProperty('lastUpdated', RealmPropertyType.timestamp),
+        SchemaProperty('createdAt', RealmPropertyType.timestamp),
+      ],
+    );
+  }();
+
+  @override
+  SchemaObject get objectSchema => RealmObjectBase.getSchema(this) ?? schema;
+}
+
 class MoodEntryRealm extends _MoodEntryRealm
     with RealmEntity, RealmObjectBase, RealmObject {
   MoodEntryRealm(ObjectId id, String mood, DateTime createdAt, {String? note}) {

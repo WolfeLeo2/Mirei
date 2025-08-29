@@ -18,6 +18,11 @@ migrate_working_dir/
 .env.production
 .env.staging
 
+# Firebase configuration files (contain sensitive API keys)
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+lib/firebase_options.dart
+
 # IntelliJ related
 *.iml
 *.ipr

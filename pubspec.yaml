@@ -79,9 +79,16 @@ dependencies:
   hyper_effects: ^0.3.0+1
   flutter_animate: ^4.5.0
   # Spotify Integration
-  spotify: ^0.13.7  # For Web API (works with free users for discovery)
-  spotify_sdk: ^3.0.2  # For full playback (Premium users only)
-  flutter_dotenv: ^5.1.0  # For environment variables (.env file)
+  spotify: ^0.13.7 # For Web API (works with free users for discovery)
+  spotify_sdk: ^3.0.2 # For full playback (Premium users only)
+  flutter_dotenv: ^5.1.0 # For environment variables (.env file)
+
+  # Firebase Authentication
+  firebase_core: ^3.8.0
+  firebase_auth: ^5.3.3
+  firebase_storage: ^12.3.6
+  google_sign_in: ^6.2.1
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:
@@ -114,7 +121,7 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - .env  # Environment variables file
+    - .env # Environment variables file
     - assets/images/bg-morning.jpg
     - assets/images/bg-afternoon.jpg
     - assets/images/bg-evening.jpg
@@ -128,15 +135,6 @@ flutter:
     - assets/icons/message.svg
     - assets/icons/octagon.svg
     - assets/icons/pie-chart.svg
-    - assets/icons/angelic.svg
-    - assets/icons/disappointed.svg
-    - assets/icons/excited.svg
-    - assets/icons/embarrassed.svg
-    - assets/icons/Happy.svg
-    - assets/icons/loving.svg
-    - assets/icons/neutral.svg
-    - assets/icons/sad.svg
-    - assets/icons/silly.svg
     - assets/icons/meditation.svg
     - assets/images/gradient-2.png
     - assets/images/gradient.png
@@ -154,6 +152,17 @@ flutter:
     - assets/images/moody.jpg
     - assets/images/walking.png
     - assets/images/tabby_journal.png
+    # New emotion icons
+    - assets/emotion-icons/angry.svg
+    - assets/emotion-icons/awkward.svg
+    - assets/emotion-icons/cutesy.svg
+    - assets/emotion-icons/dissapointed.svg
+    - assets/emotion-icons/happy.svg
+    - assets/emotion-icons/neutral.svg
+    - assets/emotion-icons/sad.svg
+    - assets/emotion-icons/shocked.svg
+    - assets/emotion-icons/tired.svg
+    - assets/emotion-icons/worried.svg
 
   # assets:
   #   - images/a_dot_burr.jpeg

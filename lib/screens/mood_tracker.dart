@@ -5,10 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:realm/realm.dart';
 import 'package:mirei/components/activity_icon.dart';
 import 'package:mirei/components/mood_button.dart';
-import 'package:mirei/models/user.dart';
 import '../models/realm_models.dart';
 import '../utils/realm_database_helper.dart';
 import '../utils/performance_mixins.dart';
+import '../services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'progress.dart';
 import 'journal_list.dart';
 import 'media_screen.dart';
@@ -62,7 +63,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
 
   // GlobalKeys for tracking mood button positions
   final List<GlobalKey> _moodButtonKeys = List.generate(
-    9,
+    10,
     (index) => GlobalKey(),
   );
   Offset? _animationPosition;
@@ -70,40 +71,53 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
 
   // Make Moods list const for better performance
   static const List<String> Moods = [
-    'Angelic',
-    'Sorry',
-    'Excited',
-    'Embarrassed',
     'Happy',
-    'Romantic',
+    'Cutesy',
+    'Shocked',
     'Neutral',
+    'Awkward',
+    'Disappointed',
     'Sad',
-    'Silly',
+    'Angry',
+    'Worried',
+    'Tired',
   ];
 
   // Make Moods config const for lazy loading
   static const List<Map<String, String>> MoodConfigs = [
-    {'Mood': 'Angelic', 'svgPath': 'assets/icons/angelic.svg'},
-    {'Mood': 'Sorry', 'svgPath': 'assets/icons/disappointed.svg'},
-    {'Mood': 'Excited', 'svgPath': 'assets/icons/excited.svg'},
-    {'Mood': 'Embarrassed', 'svgPath': 'assets/icons/embarrassed.svg'},
-    {'Mood': 'Happy', 'svgPath': 'assets/icons/Happy.svg'},
-    {'Mood': 'Romantic', 'svgPath': 'assets/icons/loving.svg'},
-    {'Mood': 'Neutral', 'svgPath': 'assets/icons/neutral.svg'},
-    {'Mood': 'Sad', 'svgPath': 'assets/icons/sad.svg'},
-    {'Mood': 'Silly', 'svgPath': 'assets/icons/silly.svg'},
+    {'Mood': 'Happy', 'svgPath': 'assets/emotion-icons/happy.svg'},
+    {'Mood': 'Cutesy', 'svgPath': 'assets/emotion-icons/cutesy.svg'},
+    {'Mood': 'Shocked', 'svgPath': 'assets/emotion-icons/shocked.svg'},
+    {'Mood': 'Neutral', 'svgPath': 'assets/emotion-icons/neutral.svg'},
+    {'Mood': 'Awkward', 'svgPath': 'assets/emotion-icons/awkward.svg'},
+    {
+      'Mood': 'Disappointed',
+      'svgPath': 'assets/emotion-icons/dissapointed.svg',
+    },
+    {'Mood': 'Sad', 'svgPath': 'assets/emotion-icons/sad.svg'},
+    {'Mood': 'Angry', 'svgPath': 'assets/emotion-icons/angry.svg'},
+    {'Mood': 'Worried', 'svgPath': 'assets/emotion-icons/worried.svg'},
+    {'Mood': 'Tired', 'svgPath': 'assets/emotion-icons/tired.svg'},
   ];
 
-  final User _user = User(
-    name: 'User',
-    email: 'user@example.com',
-    avatarUrl: 'https://i.pravatar.cc/150?img=12',
-  );
+  firebase_auth.User? _currentUser;
 
   @override
   void initState() {
     super.initState();
     _loadTodaysMood();
+    _loadUserProfile();
+  }
+
+  void _loadUserProfile() {
+    _currentUser = AuthService().currentUser;
+    AuthService().authStateChanges.listen((user) {
+      if (mounted) {
+        setState(() {
+          _currentUser = user;
+        });
+      }
+    });
   }
 
   Future<void> _loadTodaysMood() async {
@@ -377,43 +391,45 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              RepaintBoundary(
-                                child: CircleAvatar(
-                                  radius: 28,
-                                  backgroundImage: NetworkImage(
-                                    _user.avatarUrl,
+                          if (_currentUser != null)
+                            Row(
+                              children: [
+                                RepaintBoundary(
+                                  child: CircleAvatar(
+                                    radius: 28,
+                                    backgroundImage: NetworkImage(
+                                      _currentUser!.photoURL ??
+                                          'https://api.dicebear.com/7.x/avataaars/png?seed=${_currentUser!.uid}&size=150',
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 16),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _user.name,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w600,
-                                      fontFamily: '.SF Pro Display',
+                                const SizedBox(width: 16),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _currentUser!.displayName ?? '',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w600,
+                                        fontFamily: '.SF Pro Display',
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _user.email,
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.7),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w400,
-                                      fontFamily: '.SF Pro Text',
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      _currentUser!.email ?? '',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.7),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w400,
+                                        fontFamily: '.SF Pro Text',
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           // Use const hamburger menu for better performance
                           _hamburgerMenuIcon,
                         ],

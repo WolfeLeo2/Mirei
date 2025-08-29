@@ -350,86 +350,72 @@ class _MediaScreenState extends State<MediaScreen> {
 
   Widget _buildSpotifyConnectButton() {
     return Container(
-      height: 120,
       margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(40),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.green.withOpacity(0.1),
-            Colors.green.withOpacity(0.05),
-          ],
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.green.withOpacity(0.2), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _isLoadingSpotify ? null : _connectToSpotify,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Icon(
-                    FontAwesome.spotify_brand,
-                    color: Colors.green[400],
-                    size: 30,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Connect to Spotify',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Access millions of meditation and relaxing tracks',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: Colors.white.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (_isLoadingSpotify)
-                  const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.green,
-                    ),
-                  )
-                else
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    color: Colors.green[400],
-                    size: 20,
-                  ),
-              ],
+      child: Column(
+        children: [
+          // Header text
+          Text(
+            'Connect Mirei to your\nSpotify account.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+              height: 1.3,
             ),
           ),
-        ),
+
+          const SizedBox(height: 40),
+
+          // Login button
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: _isLoadingSpotify ? null : _connectToSpotify,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1DB954), // Spotify green
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                disabledBackgroundColor: const Color(
+                  0xFF1DB954,
+                ).withValues(alpha: 0.5),
+              ),
+              child: _isLoadingSpotify
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Text(
+                      'LOG IN TO SPOTIFY',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+            ),
+          ),
+        ],
       ),
     );
   }

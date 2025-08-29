@@ -243,12 +243,12 @@ class MoodAnalyticsService {
 
   // Helper methods
   int _getMoodScore(String mood) {
-    const positiveModods = ['Happy', 'Excited', 'Angelic', 'Romantic'];
-    const negativeModods = ['Sad', 'Sorry', 'Embarrassed'];
+    const positiveModods = ['Happy', 'Cutesy', 'Shocked'];
+    const negativeModods = ['Sad', 'Angry', 'Disappointed', 'Worried', 'Tired'];
 
     if (positiveModods.contains(mood)) return 1;
     if (negativeModods.contains(mood)) return -1;
-    return 0; // Neutral, Silly
+    return 0; // Neutral, Awkward
   }
 
   double _calculateTrend(List<int> scores) {

@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../models/realm_models.dart';
 import '../utils/realm_database_helper.dart';
-import '../utils/emotion_colors.dart';
+import '../core/constants/app_colors.dart';
 
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
@@ -429,7 +429,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
       final widgetSize = isTouched ? 50.0 : 40.0;
 
       final percentage = (moodEntry.value / totalEntries * 100).round();
-      final color = getEmotionColor(moodEntry.key);
+      final color = AppColors.getEmotionColor(moodEntry.key);
 
       return PieChartSectionData(
         color: color,
@@ -459,7 +459,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     return Column(
       children: sortedMoods.map((entry) {
         final percentage = (entry.value / totalEntries * 100).round();
-        final color = getEmotionColor(entry.key);
+        final color = AppColors.getEmotionColor(entry.key);
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
@@ -529,7 +529,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           const SizedBox(height: 16),
           if (recentMoods.isNotEmpty)
             ...recentMoods.map((mood) {
-              final color = getEmotionColor(mood.mood);
+              final color = AppColors.getEmotionColor(mood.mood);
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Row(
@@ -592,21 +592,21 @@ class _MoodBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     // Map moods to emoji icons based on your emotion system
     final moodEmojis = {
-      'angelic': '😇',
-      'sorry': '�',
-      'excited': '🤩',
-      'embarrassed': '�',
-      'happy': '�',
-      'romantic': '😍',
+      'happy': '😊',
+      'cutesy': '🥰',
+      'shocked': '😲',
       'neutral': '😐',
-      'sad': '�',
-      'silly': '🤪',
+      'awkward': '😅',
+      'disappointed': '😞',
+      'sad': '😢',
+      'angry': '😠',
+      'worried': '😟',
+      'tired': '😴',
       // Add fallback variations
       'calm': '😌',
       'grateful': '🙏',
       'frustrated': '😤',
       'content': '😊',
-      'worried': '😟',
       'joyful': '😄',
       'overwhelmed': '😵',
     };

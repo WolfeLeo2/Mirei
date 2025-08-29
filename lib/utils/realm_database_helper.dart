@@ -29,6 +29,7 @@ class RealmDatabaseHelper {
       AudioCacheEntry.schema,
       MoodEntryRealm.schema,
       JournalEntryRealm.schema, // Added missing JournalEntryRealm schema
+      UserProfileRealm.schema, // Added UserProfileRealm schema
       PlaylistCacheEntry.schema,
       PlaylistData.schema, // Added playlist JSON cache
       HttpCacheEntry.schema,
@@ -37,7 +38,7 @@ class RealmDatabaseHelper {
     try {
       // Add schema version and migration
       final config = Configuration.local(
-        schemas, 
+        schemas,
         path: realmPath,
         schemaVersion:
             5, // Increment version due to added indexes for performance optimization
@@ -51,12 +52,12 @@ class RealmDatabaseHelper {
           }
         },
       );
-      
+
       return Realm(config);
     } catch (e) {
       print('Realm migration failed: $e');
       print('Rebuilding cache database for schema compatibility...');
-      
+
       // For cache data, it's acceptable to clear and rebuild
       // This is simpler and more reliable than complex migrations
       try {
@@ -65,7 +66,7 @@ class RealmDatabaseHelper {
           await file.delete();
           print('Cache database cleared - will rebuild automatically');
         }
-        
+
         // Create fresh database with new schema
         final config = Configuration.local(
           schemas,
@@ -81,7 +82,7 @@ class RealmDatabaseHelper {
   }
 
   // DATABASE MAINTENANCE METHODS
-  
+
   /// Clear all cache data (useful for testing or resolving migration issues)
   Future<void> clearAllCacheData() async {
     final realmDb = await realm;
@@ -100,10 +101,10 @@ class RealmDatabaseHelper {
       _realm!.close();
       _realm = null;
     }
-    
+
     final directory = await getApplicationDocumentsDirectory();
     final realmPath = path.join(directory.path, 'mirei_app.realm');
-    
+
     final file = File(realmPath);
     if (await file.exists()) {
       await file.delete();
@@ -115,12 +116,12 @@ class RealmDatabaseHelper {
   Future<ObjectId> insertMoodEntry(MoodEntryRealm moodEntry) async {
     final realmDb = await realm;
     late ObjectId id;
-    
+
     realmDb.write(() {
       final savedEntry = realmDb.add(moodEntry);
       id = savedEntry.id;
     });
-    
+
     return id;
   }
 
@@ -157,7 +158,7 @@ class RealmDatabaseHelper {
   Future<void> updateMoodEntry(MoodEntryRealm moodEntry) async {
     final realmDb = await realm;
     final existingEntry = realmDb.find<MoodEntryRealm>(moodEntry.id);
-    
+
     if (existingEntry != null) {
       realmDb.write(() {
         existingEntry.mood = moodEntry.mood;
@@ -176,17 +177,25 @@ class RealmDatabaseHelper {
   /// Retrieves the first mood entry for a specific date.
   Future<MoodEntryRealm?> getMoodsForDate(DateTime date) async {
     final realmDb = await realm;
-    
+
     // Normalize the date to the start and end of the day in UTC
     final startOfDay = DateTime.utc(date.year, date.month, date.day);
-    final endOfDay = DateTime.utc(date.year, date.month, date.day, 23, 59, 59, 999);
+    final endOfDay = DateTime.utc(
+      date.year,
+      date.month,
+      date.day,
+      23,
+      59,
+      59,
+      999,
+    );
 
     // Query for entries within the specified day
     final results = realmDb.all<MoodEntryRealm>().query(
       'createdAt >= \$0 AND createdAt <= \$1',
       [startOfDay, endOfDay],
     );
-    
+
     // Return the first result if available, otherwise null
     return results.isEmpty ? null : results.first;
   }
@@ -195,12 +204,12 @@ class RealmDatabaseHelper {
   Future<ObjectId> insertJournalEntry(JournalEntryRealm entry) async {
     final realmDb = await realm;
     late ObjectId id;
-    
+
     realmDb.write(() {
       final savedEntry = realmDb.add(entry);
       id = savedEntry.id;
     });
-    
+
     return id;
   }
 
@@ -220,7 +229,7 @@ class RealmDatabaseHelper {
   Future<void> updateJournalEntry(JournalEntryRealm entry) async {
     final realmDb = await realm;
     final existingEntry = realmDb.find<JournalEntryRealm>(entry.id);
-    
+
     if (existingEntry != null) {
       realmDb.write(() {
         existingEntry.title = entry.title;
@@ -337,7 +346,7 @@ class RealmDatabaseHelper {
       'playlistId == \$0',
       [playlistId],
     );
-    
+
     realmDb.write(() {
       realmDb.deleteMany(entries);
     });
@@ -350,11 +359,11 @@ class RealmDatabaseHelper {
       'expiresAt < \$0',
       [now],
     );
-    
+
     realmDb.write(() {
       realmDb.deleteMany(expiredEntries);
     });
-    
+
     print('Cleaned ${expiredEntries.length} expired playlist cache entries');
   }
 
@@ -381,7 +390,7 @@ class RealmDatabaseHelper {
     await realmDb.writeAsync(() {
       final now = DateTime.now();
       final expiresAt = now.add(ttl);
-      
+
       // Parse JSON to get track count for stats
       int trackCount = 0;
       String? title;
@@ -392,7 +401,7 @@ class RealmDatabaseHelper {
       } catch (e) {
         print('Error parsing playlist JSON for stats: $e');
       }
-      
+
       final entry = PlaylistData(
         playlistUrl,
         jsonData,
@@ -401,7 +410,7 @@ class RealmDatabaseHelper {
         trackCount,
         title: title,
       );
-      
+
       realmDb.add(entry, update: true); // Upsert
     });
   }
@@ -410,7 +419,7 @@ class RealmDatabaseHelper {
     final realmDb = await realm;
     final now = DateTime.now();
     final entry = realmDb.find<PlaylistData>(playlistUrl);
-    
+
     if (entry != null) {
       if (entry.expiresAt.isAfter(now)) {
         print(
@@ -425,7 +434,7 @@ class RealmDatabaseHelper {
         print('Playlist cache expired for: $playlistUrl');
       }
     }
-    
+
     return null; // Cache miss or expired
   }
 
@@ -436,11 +445,11 @@ class RealmDatabaseHelper {
       'expiresAt < \$0',
       [now],
     );
-    
+
     await realmDb.writeAsync(() {
       realmDb.deleteMany(expiredPlaylists);
     });
-    
+
     print('Cleaned ${expiredPlaylists.length} expired playlist entries');
   }
 
@@ -464,7 +473,7 @@ class RealmDatabaseHelper {
       'expiresAt < \$0',
       [now],
     );
-    
+
     realmDb.write(() {
       realmDb.deleteMany(expiredEntries);
     });
@@ -492,10 +501,10 @@ class RealmDatabaseHelper {
       // This would be called once to migrate data from the old SQLite database
       // Implementation would depend on the existing DatabaseHelper structure
       print('Realm migration: Starting migration from SQLite...');
-      
+
       // For now, we'll just ensure the database is initialized
       await realm;
-      
+
       print('Realm migration: Migration completed successfully');
     } catch (e) {
       print('Realm migration error: $e');
