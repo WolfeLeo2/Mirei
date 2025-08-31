@@ -1578,7 +1578,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
                                 flex: 3,
                                 child: Container(
                                   width: double.infinity,
-                                  padding: const EdgeInsets.all(8),                                 
+                                  padding: const EdgeInsets.all(8),
                                   child: SvgPicture.asset(
                                     kMoodSvg[mood] ??
                                         'assets/emotion-icons/neutral.svg',
