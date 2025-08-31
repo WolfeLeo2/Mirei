@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,12 +12,13 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:realm/realm.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../models/realm_models.dart';
-import '../utils/realm_database_helper.dart';
-import 'journal_list.dart';
 import '../models/journal_template.dart';
+import '../services/journal_mood_integration.dart';
+import '../data/mood_constants.dart';
+import '../data/mood_assets.dart';
+import '../core/constants/app_colors.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class JournalWritingScreen extends StatefulWidget {
   final JournalTemplate? initialTemplate;
@@ -24,10 +26,10 @@ class JournalWritingScreen extends StatefulWidget {
   const JournalWritingScreen({super.key, this.initialTemplate});
 
   @override
-  JournalWritingScreenState createState() => JournalWritingScreenState();
+  _JournalWritingScreenState createState() => _JournalWritingScreenState();
 }
 
-class JournalWritingScreenState extends State<JournalWritingScreen>
+class _JournalWritingScreenState extends State<JournalWritingScreen>
     with TickerProviderStateMixin {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
@@ -59,14 +61,21 @@ class JournalWritingScreenState extends State<JournalWritingScreen>
   Duration _recordingDuration = Duration.zero;
   Timer? _recordingTimer;
 
+  // Journal mood context
+  final JournalMoodIntegration _moodIntegration = JournalMoodIntegration();
+  String? _selectedEntryMood;
+  String? _selectedMoodContext;
+
   @override
   void initState() {
     super.initState();
     _initializeRecorder();
     _checkPermissions();
     _initializeWaveAnimations();
+    _initializeTemplate();
+  }
 
-    // Pre-fill from template if provided
+  void _initializeTemplate() {
     if (widget.initialTemplate != null) {
       _titleController.text = widget.initialTemplate!.getFilledTitle();
       _contentController.text = widget.initialTemplate!.getFilledContent();
@@ -349,6 +358,10 @@ class JournalWritingScreenState extends State<JournalWritingScreen>
                 ),
                 const SizedBox(height: 32),
 
+                // Mood section
+                _buildMoodSection(),
+                const SizedBox(height: 32),
+
                 // Media attachments section
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -490,34 +503,28 @@ class JournalWritingScreenState extends State<JournalWritingScreen>
 
     try {
       // Prepare audio recordings for saving
-      final List<AudioRecordingData> audioRecordings = _audioRecordings.map((
+      final List<Map<String, dynamic>> audioRecordings = _audioRecordings.map((
         audioData,
       ) {
-        return AudioRecordingData(
-          path: audioData['path'],
-          duration: audioData['duration'],
-          timestamp: audioData['timestamp'],
-        );
+        return {
+          'path': audioData['path'],
+          'duration': (audioData['duration'] as Duration).inMilliseconds,
+          'timestamp':
+              (audioData['timestamp'] as DateTime).millisecondsSinceEpoch,
+        };
       }).toList();
 
-      // Create journal entry
-      final journalEntry = JournalEntryRealm(
-        ObjectId(),
-        _titleController.text.trim(),
-        _contentController.text.trim(),
-        DateTime.now(),
-        // Removed mood field - moods are stored separately in MoodEntryRealm
-        imagePathsString: _selectedImages
-            .map((image) => image.path)
-            .join('|||'),
-        audioRecordingsString: audioRecordings
-            .map((audio) => audio.toJson())
-            .join('|'),
+      // Save journal entry with mood context using the proper service
+      await _moodIntegration.saveJournalWithMoodContext(
+        title: _titleController.text.trim().isNotEmpty
+            ? _titleController.text.trim()
+            : 'Untitled Entry',
+        content: _contentController.text.trim(),
+        entryMood: _selectedEntryMood,
+        entryMoodContext: _selectedMoodContext,
+        imagePaths: _selectedImages.map((image) => image.path).toList(),
+        audioRecordings: audioRecordings,
       );
-
-      // Save to database
-      final dbHelper = RealmDatabaseHelper();
-      await dbHelper.insertJournalEntry(journalEntry);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1256,6 +1263,385 @@ class JournalWritingScreenState extends State<JournalWritingScreen>
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMoodSection() {
+    final selectedMoodColor = _selectedEntryMood != null
+        ? AppColors.getEmotionColor(_selectedEntryMood!)
+        : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'How are you feeling?',
+              style: TextStyle(
+                color: Colors.black87,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                fontFamily: GoogleFonts.inter().fontFamily,
+              ),
+            ),
+            if (_selectedEntryMood != null)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: selectedMoodColor!.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: selectedMoodColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _selectedEntryMood!,
+                      style: TextStyle(
+                        color: selectedMoodColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: GoogleFonts.inter().fontFamily,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: _showMoodSelector,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: _selectedEntryMood != null
+                  ? selectedMoodColor!.withValues(alpha: 0.05)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: _selectedEntryMood != null
+                    ? selectedMoodColor!.withValues(alpha: 0.4)
+                    : Colors.grey.withValues(alpha: 0.3),
+                width: _selectedEntryMood != null ? 2 : 1,
+              ),
+              boxShadow: _selectedEntryMood != null
+                  ? [
+                      BoxShadow(
+                        color: selectedMoodColor!.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+            ),
+            child: Row(
+              children: [
+                if (_selectedEntryMood != null)
+                  Container(
+                    width: 32,
+                    height: 32,
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: selectedMoodColor!.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: SvgPicture.asset(
+                      kMoodSvg[_selectedEntryMood!] ??
+                          'assets/emotion-icons/neutral.svg',
+                      colorFilter: ColorFilter.mode(
+                        selectedMoodColor!,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  )
+                else
+                  Icon(
+                    Icons.mood_outlined,
+                    color: Colors.grey.shade600,
+                    size: 24,
+                  ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _selectedEntryMood != null
+                        ? '$_selectedEntryMood'
+                        : 'Tap to select your mood while writing',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: _selectedEntryMood != null
+                          ? selectedMoodColor
+                          : Colors.black54,
+                      fontWeight: _selectedEntryMood != null
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                      fontFamily: GoogleFonts.inter().fontFamily,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: _selectedEntryMood != null
+                      ? selectedMoodColor!.withValues(alpha: 0.7)
+                      : Colors.grey,
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showMoodSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 48,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primary.withValues(alpha: 0.1),
+                              AppColors.primaryLight.withValues(alpha: 0.1),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          Icons.mood_rounded,
+                          color: AppColors.primary,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'How are you feeling?',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black87,
+                                fontFamily: GoogleFonts.inter().fontFamily,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Choose the mood that best represents how you feel while writing',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black54,
+                                fontFamily: GoogleFonts.inter().fontFamily,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+
+            // Mood Grid
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: GridView.builder(
+                  physics: const BouncingScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: 1.1,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemCount: MoodConstants.moodTypes.length,
+                  itemBuilder: (context, index) {
+                    final mood = MoodConstants.moodTypes[index];
+                    final isSelected = mood == _selectedEntryMood;
+                    final moodColor = AppColors.getEmotionColor(mood);
+
+                    return GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        setState(() {
+                          _selectedEntryMood = mood;
+                        });
+                        // Add a slight delay for visual feedback before closing
+                        Future.delayed(const Duration(milliseconds: 150), () {
+                          if (mounted) Navigator.pop(context);
+                        });
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeInOut,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? moodColor.withValues(alpha: 0.08)
+                              : Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? moodColor.withValues(alpha: 0.4)
+                                : Colors.grey.withValues(alpha: 0.2),
+                            width: isSelected ? 2 : 1,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: moodColor.withValues(alpha: 0.15),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ]
+                              : [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.04),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // SVG Icon
+                              Expanded(
+                                flex: 3,
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(8),                                 
+                                  child: SvgPicture.asset(
+                                    kMoodSvg[mood] ??
+                                        'assets/emotion-icons/neutral.svg',
+                                    colorFilter: ColorFilter.mode(
+                                      isSelected
+                                          ? moodColor
+                                          : Colors.grey.shade700,
+                                      BlendMode.srcIn,
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 4),
+
+                              // Mood Name
+                              Expanded(
+                                flex: 1,
+                                child: Text(
+                                  mood,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w600,
+                                    color: isSelected
+                                        ? moodColor
+                                        : Colors.black87,
+                                    fontFamily: GoogleFonts.inter().fontFamily,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+
+                              // Selection indicator
+                              AnimatedOpacity(
+                                duration: const Duration(milliseconds: 200),
+                                opacity: isSelected ? 1.0 : 0.0,
+                                child: Container(
+                                  width: 4,
+                                  height: 4,
+                                  decoration: BoxDecoration(
+                                    color: moodColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            // Bottom padding for safe area
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }

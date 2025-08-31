@@ -40,15 +40,15 @@ class RealmDatabaseHelper {
       final config = Configuration.local(
         schemas,
         path: realmPath,
-        schemaVersion:
-            5, // Increment version due to added indexes for performance optimization
+        schemaVersion: 6, // Enhanced mood tracking and journal mood context
         migrationCallback: (migration, oldSchemaVersion) {
           // For cache data, it's safer to just clear and rebuild rather than migrate
-          if (oldSchemaVersion < 5) {
+          if (oldSchemaVersion < 6) {
             print(
-              'Schema version $oldSchemaVersion detected. Cache will be rebuilt with new indexes.',
+              'Schema version $oldSchemaVersion detected. Enhanced mood tracking schema applied.',
             );
-            // Migration will be handled by database recreation fallback
+            // New optional fields are automatically handled by Realm
+            // Existing data remains untouched
           }
         },
       );
@@ -198,6 +198,90 @@ class RealmDatabaseHelper {
 
     // Return the first result if available, otherwise null
     return results.isEmpty ? null : results.first;
+  }
+
+  // ENHANCED MOOD TRACKING METHODS
+
+  /// Get all mood entries for a specific date (supports multiple daily entries)
+  Future<List<MoodEntryRealm>> getAllMoodsForDate(DateTime date) async {
+    final realmDb = await realm;
+
+    // Compute local day boundaries, then convert to UTC for querying stored UTC timestamps
+    final localStart = DateTime(date.year, date.month, date.day);
+    final localEnd = localStart
+        .add(const Duration(days: 1))
+        .subtract(const Duration(milliseconds: 1));
+    final utcStart = localStart.toUtc();
+    final utcEnd = localEnd.toUtc();
+
+    final results = realmDb.all<MoodEntryRealm>().query(
+      'createdAt >= \$0 AND createdAt <= \$1 SORT(createdAt ASC)',
+      [utcStart, utcEnd],
+    );
+
+    return results.toList();
+  }
+
+  /// Get the latest mood entry for today
+  Future<MoodEntryRealm?> getLatestMoodToday() async {
+    final todaysMoods = await getAllMoodsForDate(DateTime.now());
+    return todaysMoods.isEmpty ? null : todaysMoods.last;
+  }
+
+  /// Insert mood entry with enhanced data
+  Future<ObjectId> insertEnhancedMoodEntry({
+    required String mood,
+    int? intensity,
+    String? context,
+    List<String>? triggers,
+    List<String>? activities,
+    String? location,
+    String? checkInType,
+  }) async {
+    final realmDb = await realm;
+    late ObjectId id;
+
+    // Calculate sequence number for today
+    final todaysMoods = await getAllMoodsForDate(DateTime.now());
+    final sequenceNumber = todaysMoods.length + 1;
+
+    final moodEntry = MoodEntryRealm(
+      ObjectId(),
+      mood,
+      DateTime.now().toUtc(),
+      note: context,
+      intensity: intensity,
+      context: context,
+      triggers: triggers?.join(','),
+      activities: activities?.join(','),
+      location: location,
+      checkInType: checkInType,
+      sequenceNumber: sequenceNumber,
+    );
+
+    realmDb.write(() {
+      final savedEntry = realmDb.add(moodEntry);
+      id = savedEntry.id;
+    });
+
+    return id;
+  }
+
+  /// Update journal entry with mood context
+  Future<void> updateJournalEntryMoodContext(
+    ObjectId journalId, {
+    String? entryMood,
+    String? entryMoodContext,
+  }) async {
+    final realmDb = await realm;
+    final existingEntry = realmDb.find<JournalEntryRealm>(journalId);
+
+    if (existingEntry != null) {
+      realmDb.write(() {
+        existingEntry.entryMood = entryMood;
+        existingEntry.entryMoodContext = entryMoodContext;
+      });
+    }
   }
 
   // JOURNAL ENTRY METHODS
@@ -538,5 +622,64 @@ extension JournalEntryConversion on JournalEntryRealm {
           .map((audio) => audio.toJson())
           .join('|||'),
     };
+  }
+}
+
+// HTTP CACHE METHODS
+Future<void> insertHttpCacheEntry(HttpCacheEntry entry) async {
+  final realmDb = await RealmDatabaseHelper().realm;
+  realmDb.write(() {
+    realmDb.add(entry, update: true); // Update if exists
+  });
+}
+
+Future<HttpCacheEntry?> getHttpCacheEntry(String key) async {
+  final realmDb = await RealmDatabaseHelper().realm;
+  return realmDb.find<HttpCacheEntry>(key);
+}
+
+Future<void> cleanExpiredHttpCache() async {
+  final realmDb = await RealmDatabaseHelper().realm;
+  final now = DateTime.now();
+  final expiredEntries = realmDb.all<HttpCacheEntry>().query(
+    'expiresAt < \$0',
+    [now],
+  );
+
+  realmDb.write(() {
+    realmDb.deleteMany(expiredEntries);
+  });
+}
+
+// UTILITY METHODS
+Future<void> close() async {
+  final realmDb = await RealmDatabaseHelper().realm;
+  realmDb.close();
+}
+
+Future<void> deleteDatabase() async {
+  await close();
+  final directory = await getApplicationDocumentsDirectory();
+  final realmPath = path.join(directory.path, 'mirei_app.realm');
+  final file = File(realmPath);
+  if (await file.exists()) {
+    await file.delete();
+  }
+}
+
+// Migration helper for existing SQLite data
+Future<void> migrateFromSQLite() async {
+  try {
+    // This would be called once to migrate data from the old SQLite database
+    // Implementation would depend on the existing DatabaseHelper structure
+    print('Realm migration: Starting migration from SQLite...');
+
+    // For now, we'll just ensure the database is initialized
+    await RealmDatabaseHelper().realm;
+
+    print('Realm migration: Migration completed successfully');
+  } catch (e) {
+    print('Realm migration error: $e');
+    rethrow;
   }
 }

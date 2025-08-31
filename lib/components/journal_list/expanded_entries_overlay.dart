@@ -95,7 +95,6 @@ class _ExpandedEntriesOverlayState extends State<ExpandedEntriesOverlay>
     super.dispose();
   }
 
-
   void _initializeAnimations() {
     _blurController = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -118,7 +117,9 @@ class _ExpandedEntriesOverlayState extends State<ExpandedEntriesOverlay>
 
       final moodMap = <String, MoodEntryRealm>{};
       for (var mood in moodEntries) {
-        final dateKey = DateFormat('yyyy-MM-dd').format(mood.createdAt);
+        final dateKey = DateFormat(
+          'yyyy-MM-dd',
+        ).format(mood.createdAt.toLocal());
         moodMap[dateKey] = mood;
       }
 
@@ -388,10 +389,24 @@ class _OptimizedGridView extends StatelessWidget {
   }
 
   MoodEntryRealm? _getMoodForEntry(JournalEntryRealm entry) {
+    // First check if journal has its own mood context
+    final entryMood = _safeAccess(() => entry.entryMood);
+
+    if (entryMood != null) {
+      // Create a temporary mood entry for display purposes
+      return MoodEntryRealm(
+        ObjectId(),
+        entryMood,
+        _safeAccess(() => entry.createdAt) ?? DateTime.now(),
+        intensity: null, // Don't show intensity for journal entries
+      );
+    }
+
+    // Fallback to daily mood
     final createdAt = _safeAccess(() => entry.createdAt);
     if (createdAt == null) return null;
 
-    final dateKey = DateFormat('yyyy-MM-dd').format(createdAt);
+    final dateKey = DateFormat('yyyy-MM-dd').format(createdAt.toLocal());
     return dailyMoods[dateKey];
   }
 }

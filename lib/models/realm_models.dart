@@ -1,5 +1,6 @@
 import 'package:realm/realm.dart';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 part 'realm_models.realm.dart';
 
@@ -19,17 +20,29 @@ class AudioRecordingData {
     return jsonEncode({
       'path': path,
       'duration': duration.inMilliseconds,
-      'timestamp': timestamp.toIso8601String(),
+      'timestamp': timestamp.millisecondsSinceEpoch,
     });
   }
 
   factory AudioRecordingData.fromJson(String jsonString) {
+    try {
     final data = jsonDecode(jsonString);
     return AudioRecordingData(
-      path: data['path'],
-      duration: Duration(milliseconds: data['duration']),
-      timestamp: DateTime.parse(data['timestamp']),
+        path: data['path'] ?? '',
+        duration: Duration(milliseconds: data['duration'] ?? 0),
+        timestamp: data['timestamp'] != null && data['timestamp'] != 0
+            ? DateTime.fromMillisecondsSinceEpoch(data['timestamp'])
+            : DateTime.now(),
     );
+    } catch (e) {
+      debugPrint('Error parsing AudioRecordingData JSON: $e');
+      // Return a default/fallback audio recording
+      return AudioRecordingData(
+        path: '',
+        duration: Duration.zero,
+        timestamp: DateTime.now(),
+      );
+    }
   }
 }
 
@@ -79,6 +92,15 @@ class _MoodEntryRealm {
   @Indexed() // Index for date-based queries (most common query pattern)
   late DateTime createdAt;
   String? note;
+
+  // Enhanced mood tracking fields (backward compatible)
+  int? intensity; // 1-10 scale (null = not set for existing entries)
+  String? context; // "Why do you feel this way?"
+  String? triggers; // "work,social,health" (comma-separated)
+  String? activities; // "exercise,meditation,socializing"
+  String? location; // "home,work,outdoors"
+  String? checkInType; // "morning,afternoon,evening,manual"
+  int? sequenceNumber; // 1st, 2nd, 3rd entry of the day
 }
 
 @RealmModel()
@@ -98,10 +120,18 @@ class _JournalEntryRealm {
   // Store audio recordings as JSON string
   String? audioRecordingsString;
 
+  // Journal-specific mood context (separate from daily mood tracking)
+  String? entryMood; // Mood while writing this specific entry
+  int? entryMoodIntensity; // Intensity (1-10) while writing
+  String? entryMoodContext; // Why you felt this way while writing
+
   // Helper getters/setters for backward compatibility
   List<String> get imagePaths {
     if (imagePathsString == null || imagePathsString!.isEmpty) return [];
-    return imagePathsString!.split('|||');
+    // Support legacy comma-delimited strings and new triple-pipe
+    return imagePathsString!.contains('|||')
+        ? imagePathsString!.split('|||')
+        : imagePathsString!.split(',');
   }
 
   set imagePaths(List<String> paths) {
@@ -109,13 +139,22 @@ class _JournalEntryRealm {
   }
 
   List<AudioRecordingData> get audioRecordings {
-    if (audioRecordingsString == null || audioRecordingsString!.isEmpty)
+    if (audioRecordingsString == null || audioRecordingsString!.isEmpty) {
       return [];
+    }
+    try {
     return audioRecordingsString!
         .split('|||')
         .where((s) => s.isNotEmpty)
         .map((s) => AudioRecordingData.fromJson(s))
+          .where(
+            (audio) => audio.path.isNotEmpty,
+          ) // Filter out empty/invalid recordings
         .toList();
+    } catch (e) {
+      debugPrint('Error parsing audio recordings: $e');
+      return [];
+    }
   }
 
   set audioRecordings(List<AudioRecordingData> recordings) {

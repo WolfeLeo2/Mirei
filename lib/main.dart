@@ -16,6 +16,7 @@ import 'package:mirei/screens/auth/auth_wrapper.dart';
 import 'package:mirei/services/audio_cache_service.dart';
 import 'services/performance_service.dart';
 import 'services/database_maintenance_service.dart';
+
 import 'core/constants/app_colors.dart';
 import 'firebase_options.dart';
 

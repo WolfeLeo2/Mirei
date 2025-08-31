@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:realm/realm.dart';
 import 'package:mirei/components/activity_icon.dart';
 import 'package:mirei/components/mood_button.dart';
-import '../models/realm_models.dart';
-import '../utils/realm_database_helper.dart';
+import 'package:intl/intl.dart';
 import '../utils/performance_mixins.dart';
 import '../services/auth_service.dart';
+import '../services/enhanced_mood_service.dart';
+import '../models/realm_models.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'enhanced_mood_details.dart';
 import 'progress.dart';
 import 'journal_list.dart';
 import 'media_screen.dart';
@@ -53,6 +54,9 @@ class MoodTrackerScreen extends StatefulWidget {
 
 class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     with PerformanceOptimizedStateMixin {
+  // Services
+  final EnhancedMoodService _enhancedMoodService = EnhancedMoodService();
+
   int selectedMoodIndex = 1;
 
   // Lottie overlay state
@@ -101,6 +105,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
   ];
 
   firebase_auth.User? _currentUser;
+  MoodEntryRealm? _latestMoodEntry;
 
   @override
   void initState() {
@@ -122,14 +127,24 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
 
   Future<void> _loadTodaysMood() async {
     try {
-      final todaysMood = await RealmDatabaseHelper().getTodaysMoodEntry();
-      if (todaysMood != null) {
-        final moodIndex = Moods.indexOf(todaysMood.mood);
+      // Load all mood entries for today (supports multiple entries)
+      final todaysMoodEntries = await _enhancedMoodService
+          .getTodaysMoodEntries();
+
+      // Set selected mood to the latest entry for UI consistency
+      if (todaysMoodEntries.isNotEmpty) {
+        final latestMood = todaysMoodEntries.last;
+        final moodIndex = Moods.indexOf(latestMood.mood);
         if (moodIndex != -1) {
           safeSetState(() {
             selectedMoodIndex = moodIndex;
+            _latestMoodEntry = latestMood;
           });
         }
+      } else {
+        safeSetState(() {
+          _latestMoodEntry = null;
+        });
       }
     } catch (e) {
       // Handle error silently, use default selection
@@ -137,88 +152,19 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     }
   }
 
-  Future<void> _saveMoodSelection(String mood) async {
-    try {
-      // Check if there's already a mood entry for today
-      final existingMoodEntry = await RealmDatabaseHelper()
-          .getTodaysMoodEntry();
-
-      if (existingMoodEntry != null) {
-        // Update existing mood entry with current timestamp
-        final updatedMoodEntry = MoodEntryRealm(
-          existingMoodEntry.id,
-          mood,
-          DateTime.now(),
-          note: existingMoodEntry.note,
-        );
-        await RealmDatabaseHelper().updateMoodEntry(updatedMoodEntry);
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Mood updated to "$mood"!',
-                style: TextStyle(
-                  fontFamily: GoogleFonts.inter().fontFamily,
-                  color: Colors.white,
-                ),
-              ),
-              duration: const Duration(seconds: 1),
-              backgroundColor: const Color(0xFF115e5a),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          );
-        }
-      } else {
-        // Create a new mood entry
-        final moodEntry = MoodEntryRealm(
-          ObjectId(),
-          mood,
-          DateTime.now(),
-          note: null,
-        );
-        await RealmDatabaseHelper().insertMoodEntry(moodEntry);
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Mood "$mood" saved successfully!',
-                style: TextStyle(
-                  fontFamily: GoogleFonts.inter().fontFamily,
-                  color: Colors.white,
-                ),
-              ),
-              duration: const Duration(seconds: 1),
-              backgroundColor: const Color(0xFF115e5a),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Error saving mood: $e',
-              style: TextStyle(
-                fontFamily: GoogleFonts.inter().fontFamily,
-                color: Colors.white,
-              ),
-            ),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
+  void _navigateToDetailedMoodCheckIn(String mood) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => EnhancedMoodDetailsScreen(
+        selectedMood: mood,
+        onMoodSaved: () {
+          // Mood was saved successfully, refresh to show new timestamp
+          _loadTodaysMood();
+        },
+      ),
+    );
   }
 
   void _playMoodAnimation() {
@@ -269,8 +215,8 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
       }
     });
 
-    // Save the mood immediately on selection
-    _saveMoodSelection(mood);
+    // Navigate directly to detailed mood check-in
+    _navigateToDetailedMoodCheckIn(mood);
   }
 
   // Lazy builder for Mood buttons with const optimization
@@ -299,16 +245,76 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     ),
   );
 
-  // Const widget for subtitle text
-  static const Widget _subtitleText = Text(
-    'Select your current mood',
-    style: TextStyle(
-      color: Color.fromRGBO(255, 255, 255, 0.7),
-      fontSize: 16,
-      fontWeight: FontWeight.w400,
-      fontFamily: '.SF Pro Text',
-    ),
-  );
+  // Dynamic subtitle that shows last mood entry time
+  Widget _buildDynamicSubtitle() {
+    if (_latestMoodEntry != null) {
+      final timeAgo = _getTimeAgo(_latestMoodEntry!.createdAt);
+      final exactTime = DateFormat(
+        'h:mm a',
+      ).format(_latestMoodEntry!.createdAt.toLocal());
+      final timeOfDay = _latestMoodEntry!.checkInType ?? 'unknown';
+
+      return Column(
+        children: [
+          Text(
+            'Last mood: ${_latestMoodEntry!.mood}',
+            style: const TextStyle(
+              color: Color.fromRGBO(255, 255, 255, 0.9),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              fontFamily: '.SF Pro Text',
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.access_time,
+                size: 14,
+                color: Colors.white.withValues(alpha: 0.7),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '$exactTime • $timeOfDay • $timeAgo',
+                style: const TextStyle(
+                  color: Color.fromRGBO(255, 255, 255, 0.7),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  fontFamily: '.SF Pro Text',
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    } else {
+      return const Text(
+        'Select your current mood',
+        style: TextStyle(
+          color: Color.fromRGBO(255, 255, 255, 0.7),
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          fontFamily: '.SF Pro Text',
+        ),
+      );
+    }
+  }
+
+  String _getTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
+  }
 
   // Create const activity icons for better performance
   Widget _buildActivityIcons(BuildContext context) {
@@ -465,7 +471,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _subtitleText,
+                      _buildDynamicSubtitle(),
                       const SizedBox(height: 24),
                     ],
                   ),

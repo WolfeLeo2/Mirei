@@ -177,11 +177,30 @@ class UserProfileRealm extends _UserProfileRealm
 
 class MoodEntryRealm extends _MoodEntryRealm
     with RealmEntity, RealmObjectBase, RealmObject {
-  MoodEntryRealm(ObjectId id, String mood, DateTime createdAt, {String? note}) {
+  MoodEntryRealm(
+    ObjectId id,
+    String mood,
+    DateTime createdAt, {
+    String? note,
+    int? intensity,
+    String? context,
+    String? triggers,
+    String? activities,
+    String? location,
+    String? checkInType,
+    int? sequenceNumber,
+  }) {
     RealmObjectBase.set(this, 'id', id);
     RealmObjectBase.set(this, 'mood', mood);
     RealmObjectBase.set(this, 'createdAt', createdAt);
     RealmObjectBase.set(this, 'note', note);
+    RealmObjectBase.set(this, 'intensity', intensity);
+    RealmObjectBase.set(this, 'context', context);
+    RealmObjectBase.set(this, 'triggers', triggers);
+    RealmObjectBase.set(this, 'activities', activities);
+    RealmObjectBase.set(this, 'location', location);
+    RealmObjectBase.set(this, 'checkInType', checkInType);
+    RealmObjectBase.set(this, 'sequenceNumber', sequenceNumber);
   }
 
   MoodEntryRealm._();
@@ -209,6 +228,50 @@ class MoodEntryRealm extends _MoodEntryRealm
   set note(String? value) => RealmObjectBase.set(this, 'note', value);
 
   @override
+  int? get intensity => RealmObjectBase.get<int>(this, 'intensity') as int?;
+  @override
+  set intensity(int? value) => RealmObjectBase.set(this, 'intensity', value);
+
+  @override
+  String? get context =>
+      RealmObjectBase.get<String>(this, 'context') as String?;
+  @override
+  set context(String? value) => RealmObjectBase.set(this, 'context', value);
+
+  @override
+  String? get triggers =>
+      RealmObjectBase.get<String>(this, 'triggers') as String?;
+  @override
+  set triggers(String? value) => RealmObjectBase.set(this, 'triggers', value);
+
+  @override
+  String? get activities =>
+      RealmObjectBase.get<String>(this, 'activities') as String?;
+  @override
+  set activities(String? value) =>
+      RealmObjectBase.set(this, 'activities', value);
+
+  @override
+  String? get location =>
+      RealmObjectBase.get<String>(this, 'location') as String?;
+  @override
+  set location(String? value) => RealmObjectBase.set(this, 'location', value);
+
+  @override
+  String? get checkInType =>
+      RealmObjectBase.get<String>(this, 'checkInType') as String?;
+  @override
+  set checkInType(String? value) =>
+      RealmObjectBase.set(this, 'checkInType', value);
+
+  @override
+  int? get sequenceNumber =>
+      RealmObjectBase.get<int>(this, 'sequenceNumber') as int?;
+  @override
+  set sequenceNumber(int? value) =>
+      RealmObjectBase.set(this, 'sequenceNumber', value);
+
+  @override
   Stream<RealmObjectChanges<MoodEntryRealm>> get changes =>
       RealmObjectBase.getChanges<MoodEntryRealm>(this);
 
@@ -226,6 +289,13 @@ class MoodEntryRealm extends _MoodEntryRealm
       'mood': mood.toEJson(),
       'createdAt': createdAt.toEJson(),
       'note': note.toEJson(),
+      'intensity': intensity.toEJson(),
+      'context': context.toEJson(),
+      'triggers': triggers.toEJson(),
+      'activities': activities.toEJson(),
+      'location': location.toEJson(),
+      'checkInType': checkInType.toEJson(),
+      'sequenceNumber': sequenceNumber.toEJson(),
     };
   }
 
@@ -243,6 +313,13 @@ class MoodEntryRealm extends _MoodEntryRealm
           fromEJson(mood),
           fromEJson(createdAt),
           note: fromEJson(ejson['note']),
+          intensity: fromEJson(ejson['intensity']),
+          context: fromEJson(ejson['context']),
+          triggers: fromEJson(ejson['triggers']),
+          activities: fromEJson(ejson['activities']),
+          location: fromEJson(ejson['location']),
+          checkInType: fromEJson(ejson['checkInType']),
+          sequenceNumber: fromEJson(ejson['sequenceNumber']),
         ),
       _ => raiseInvalidEJson(ejson),
     };
@@ -264,6 +341,13 @@ class MoodEntryRealm extends _MoodEntryRealm
           indexType: RealmIndexType.regular,
         ),
         SchemaProperty('note', RealmPropertyType.string, optional: true),
+        SchemaProperty('intensity', RealmPropertyType.int, optional: true),
+        SchemaProperty('context', RealmPropertyType.string, optional: true),
+        SchemaProperty('triggers', RealmPropertyType.string, optional: true),
+        SchemaProperty('activities', RealmPropertyType.string, optional: true),
+        SchemaProperty('location', RealmPropertyType.string, optional: true),
+        SchemaProperty('checkInType', RealmPropertyType.string, optional: true),
+        SchemaProperty('sequenceNumber', RealmPropertyType.int, optional: true),
       ],
     );
   }();
@@ -281,6 +365,9 @@ class JournalEntryRealm extends _JournalEntryRealm
     DateTime createdAt, {
     String? imagePathsString,
     String? audioRecordingsString,
+    String? entryMood,
+    int? entryMoodIntensity,
+    String? entryMoodContext,
   }) {
     RealmObjectBase.set(this, 'id', id);
     RealmObjectBase.set(this, 'title', title);
@@ -288,6 +375,9 @@ class JournalEntryRealm extends _JournalEntryRealm
     RealmObjectBase.set(this, 'createdAt', createdAt);
     RealmObjectBase.set(this, 'imagePathsString', imagePathsString);
     RealmObjectBase.set(this, 'audioRecordingsString', audioRecordingsString);
+    RealmObjectBase.set(this, 'entryMood', entryMood);
+    RealmObjectBase.set(this, 'entryMoodIntensity', entryMoodIntensity);
+    RealmObjectBase.set(this, 'entryMoodContext', entryMoodContext);
   }
 
   JournalEntryRealm._();
@@ -329,6 +419,26 @@ class JournalEntryRealm extends _JournalEntryRealm
       RealmObjectBase.set(this, 'audioRecordingsString', value);
 
   @override
+  String? get entryMood =>
+      RealmObjectBase.get<String>(this, 'entryMood') as String?;
+  @override
+  set entryMood(String? value) => RealmObjectBase.set(this, 'entryMood', value);
+
+  @override
+  int? get entryMoodIntensity =>
+      RealmObjectBase.get<int>(this, 'entryMoodIntensity') as int?;
+  @override
+  set entryMoodIntensity(int? value) =>
+      RealmObjectBase.set(this, 'entryMoodIntensity', value);
+
+  @override
+  String? get entryMoodContext =>
+      RealmObjectBase.get<String>(this, 'entryMoodContext') as String?;
+  @override
+  set entryMoodContext(String? value) =>
+      RealmObjectBase.set(this, 'entryMoodContext', value);
+
+  @override
   Stream<RealmObjectChanges<JournalEntryRealm>> get changes =>
       RealmObjectBase.getChanges<JournalEntryRealm>(this);
 
@@ -349,6 +459,9 @@ class JournalEntryRealm extends _JournalEntryRealm
       'createdAt': createdAt.toEJson(),
       'imagePathsString': imagePathsString.toEJson(),
       'audioRecordingsString': audioRecordingsString.toEJson(),
+      'entryMood': entryMood.toEJson(),
+      'entryMoodIntensity': entryMoodIntensity.toEJson(),
+      'entryMoodContext': entryMoodContext.toEJson(),
     };
   }
 
@@ -369,6 +482,9 @@ class JournalEntryRealm extends _JournalEntryRealm
           fromEJson(createdAt),
           imagePathsString: fromEJson(ejson['imagePathsString']),
           audioRecordingsString: fromEJson(ejson['audioRecordingsString']),
+          entryMood: fromEJson(ejson['entryMood']),
+          entryMoodIntensity: fromEJson(ejson['entryMoodIntensity']),
+          entryMoodContext: fromEJson(ejson['entryMoodContext']),
         ),
       _ => raiseInvalidEJson(ejson),
     };
@@ -397,6 +513,17 @@ class JournalEntryRealm extends _JournalEntryRealm
         ),
         SchemaProperty(
           'audioRecordingsString',
+          RealmPropertyType.string,
+          optional: true,
+        ),
+        SchemaProperty('entryMood', RealmPropertyType.string, optional: true),
+        SchemaProperty(
+          'entryMoodIntensity',
+          RealmPropertyType.int,
+          optional: true,
+        ),
+        SchemaProperty(
+          'entryMoodContext',
           RealmPropertyType.string,
           optional: true,
         ),

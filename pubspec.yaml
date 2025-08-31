@@ -152,6 +152,7 @@ flutter:
     - assets/images/moody.jpg
     - assets/images/walking.png
     - assets/images/tabby_journal.png
+    - assets/images/tabby.svg
     # New emotion icons
     - assets/emotion-icons/angry.svg
     - assets/emotion-icons/awkward.svg
@@ -163,6 +164,7 @@ flutter:
     - assets/emotion-icons/shocked.svg
     - assets/emotion-icons/tired.svg
     - assets/emotion-icons/worried.svg
+    
 
   # assets:
   #   - images/a_dot_burr.jpeg

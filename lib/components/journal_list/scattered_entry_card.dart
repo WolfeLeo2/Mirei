@@ -154,7 +154,7 @@ class ScatteredEntryCard extends StatelessWidget {
           borderRadius: BorderRadius.all(Radius.circular(16)),
         ),
         child: const Center(
-          child: Icon(Icons.error_outline, color: Colors.white, size: 32),
+          child: Icon(Icons.error_outline, color: AppColors.surface, size: 32),
         ),
       );
     }
@@ -217,7 +217,7 @@ class ScatteredEntryCard extends StatelessWidget {
                     onTap: () => _showDeleteConfirmation(context),
                     child: const Icon(
                       Icons.close,
-                      color: Colors.white,
+                      color: AppColors.surface,
                       size: 16,
                     ),
                   ),
@@ -264,7 +264,7 @@ class _OptimizedCardContent extends StatelessWidget {
           borderRadius: BorderRadius.all(Radius.circular(16)),
         ),
         child: const Center(
-          child: Icon(Icons.error_outline, color: Colors.white, size: 32),
+          child: Icon(Icons.error_outline, color: AppColors.surface, size: 32),
         ),
       );
     }
@@ -273,7 +273,7 @@ class _OptimizedCardContent extends StatelessWidget {
       width: 150,
       height: 200,
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.all(Radius.circular(16)),
         boxShadow: [
           BoxShadow(
@@ -313,9 +313,11 @@ class _OptimizedCardContent extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Media indicators
-                _MediaIndicators(
-                  imagePaths: imagePaths,
-                  audioRecordings: audioRecordings,
+                Expanded(
+                  child: _MediaIndicators(
+                    imagePaths: imagePaths,
+                    audioRecordings: audioRecordings,
+                  ),
                 ),
                 // Mood indicator
                 _MoodIndicator(mood: mood),
@@ -336,19 +338,36 @@ class _DateWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      _formatDate(date),
-      style: GoogleFonts.inter(
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-        color: const Color(0xFF115e5a), // Use const color
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _formatDate(date),
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF115e5a),
+          ),
+        ),
+        Text(
+          _formatTime(date),
+          style: GoogleFonts.inter(
+            fontSize: 10,
+            fontWeight: FontWeight.w400,
+            color: const Color(0xFF718096),
+          ),
+        ),
+      ],
     );
   }
 
-  // Static method for better performance
+  // Static methods for better performance
   static String _formatDate(DateTime date) {
-    return DateFormat('MMM d').format(date);
+    return DateFormat('MMM d').format(date.toLocal());
+  }
+
+  static String _formatTime(DateTime date) {
+    return DateFormat('h:mm a').format(date.toLocal());
   }
 }
 
@@ -415,6 +434,7 @@ class _MediaIndicators extends StatelessWidget {
     }
 
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         if (hasImages) _ImageIndicator(count: imagePaths.length),
         if (hasImages && hasAudio) const SizedBox(width: 4),
