@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_color_utilities/material_color_utilities.dart' as mcu;
 
 /// App Color Constants
 /// Primary theme color: Teal/Green (#115e5a)
@@ -92,5 +93,15 @@ class AppColors {
       default:
         return neutral; // Default fallback
     }
+  }
+
+  /// Harmonize a color towards a target color to match the active theme.
+  static Color harmonizeTo(Color color, Color target) {
+    return Color(mcu.Blend.harmonize(color.value, target.value));
+  }
+
+  /// Harmonize any color to the theme's primary color hue.
+  static Color harmonizeToPrimary(Color color, ColorScheme scheme) {
+    return harmonizeTo(color, scheme.primary);
   }
 }

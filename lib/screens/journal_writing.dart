@@ -19,6 +19,7 @@ import '../data/mood_constants.dart';
 import '../data/mood_assets.dart';
 import '../core/constants/app_colors.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../core/theme/mood_colors.dart';
 
 class JournalWritingScreen extends StatefulWidget {
   final JournalTemplate? initialTemplate;
@@ -493,7 +494,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
           ),
           backgroundColor: const Color(0xFF115e5a),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
+          shape: RoundedSuperellipseBorder(
             borderRadius: BorderRadius.circular(10),
           ),
         ),
@@ -535,7 +536,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
             ),
             backgroundColor: const Color(0xFF115e5a),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
+            shape: RoundedSuperellipseBorder(
               borderRadius: BorderRadius.circular(10),
             ),
           ),
@@ -554,7 +555,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
+            shape: RoundedSuperellipseBorder(
               borderRadius: BorderRadius.circular(10),
             ),
           ),
@@ -701,7 +702,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
               content: const Text('Voice note recorded successfully!'),
               backgroundColor: const Color(0xFF115e5a),
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
+              shape: RoundedSuperellipseBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
@@ -912,7 +913,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
               content: Text('${images.length} image(s) added successfully!'),
               backgroundColor: const Color(0xFF115e5a),
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
+              shape: RoundedSuperellipseBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
@@ -1268,9 +1269,12 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
   }
 
   Widget _buildMoodSection() {
-    final selectedMoodColor = _selectedEntryMood != null
-        ? AppColors.getEmotionColor(_selectedEntryMood!)
+    final moodExt = Theme.of(context).extension<MoodColors>();
+    final selectedMoodColorRaw = _selectedEntryMood != null
+        ? (moodExt?.byMood(_selectedEntryMood!) ??
+              AppColors.getEmotionColor(_selectedEntryMood!))
         : null;
+    final selectedMoodColor = selectedMoodColorRaw;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1421,226 +1425,237 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.75,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Handle bar
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 48,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
+      builder: (context) => ClipPath(
+        clipper: _SquircleClipper(radius: 28),
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.75,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
               ),
-            ),
-
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.primary.withValues(alpha: 0.1),
-                              AppColors.primaryLight.withValues(alpha: 0.1),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Icon(
-                          Icons.mood_rounded,
-                          color: AppColors.primary,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'How are you feeling?',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black87,
-                                fontFamily: GoogleFonts.inter().fontFamily,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Choose the mood that best represents how you feel while writing',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.black54,
-                                fontFamily: GoogleFonts.inter().fontFamily,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                ],
+            ],
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 48,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
 
-            // Mood Grid
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: GridView.builder(
-                  physics: const BouncingScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    childAspectRatio: 1.1,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                  ),
-                  itemCount: MoodConstants.moodTypes.length,
-                  itemBuilder: (context, index) {
-                    final mood = MoodConstants.moodTypes[index];
-                    final isSelected = mood == _selectedEntryMood;
-                    final moodColor = AppColors.getEmotionColor(mood);
-
-                    return GestureDetector(
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        setState(() {
-                          _selectedEntryMood = mood;
-                        });
-                        // Add a slight delay for visual feedback before closing
-                        Future.delayed(const Duration(milliseconds: 150), () {
-                          if (mounted) Navigator.pop(context);
-                        });
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeInOut,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? moodColor.withValues(alpha: 0.08)
-                              : Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected
-                                ? moodColor.withValues(alpha: 0.4)
-                                : Colors.grey.withValues(alpha: 0.2),
-                            width: isSelected ? 2 : 1,
+              // Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.primary.withValues(alpha: 0.1),
+                                AppColors.primaryLight.withValues(alpha: 0.1),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: moodColor.withValues(alpha: 0.15),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ]
-                              : [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.04),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
+                          child: Icon(
+                            Icons.mood_rounded,
+                            color: AppColors.primary,
+                            size: 24,
+                          ),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(6),
+                        const SizedBox(width: 16),
+                        Expanded(
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // SVG Icon
-                              Expanded(
-                                flex: 3,
-                                child: Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(8),
-                                  child: SvgPicture.asset(
-                                    kMoodSvg[mood] ??
-                                        'assets/emotion-icons/neutral.svg',
-                                    colorFilter: ColorFilter.mode(
-                                      isSelected
-                                          ? moodColor
-                                          : Colors.grey.shade700,
-                                      BlendMode.srcIn,
+                              Text(
+                                'How are you feeling?',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87,
+                                  fontFamily: GoogleFonts.inter().fontFamily,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Choose the mood that best represents how you feel while writing',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                  fontFamily: GoogleFonts.inter().fontFamily,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+
+              // Mood Grid
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: GridView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          childAspectRatio: 1.1,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                        ),
+                    itemCount: MoodConstants.moodTypes.length,
+                    itemBuilder: (context, index) {
+                      final moodExtLocal = Theme.of(
+                        context,
+                      ).extension<MoodColors>();
+                      final mood = MoodConstants.moodTypes[index];
+                      final isSelected = mood == _selectedEntryMood;
+                      final moodColor =
+                          (moodExtLocal?.byMood(mood) ??
+                          AppColors.getEmotionColor(mood));
+
+                      return GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          setState(() {
+                            _selectedEntryMood = mood;
+                          });
+                          // Add a slight delay for visual feedback before closing
+                          Future.delayed(const Duration(milliseconds: 150), () {
+                            if (mounted) Navigator.pop(context);
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeInOut,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? moodColor.withValues(alpha: 0.08)
+                                : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected
+                                  ? moodColor.withValues(alpha: 0.4)
+                                  : Colors.grey.withValues(alpha: 0.2),
+                              width: isSelected ? 2 : 1,
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: moodColor.withValues(alpha: 0.15),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ]
+                                : [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.04,
+                                      ),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // SVG Icon
+                                Expanded(
+                                  flex: 3,
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(8),
+                                    child: SvgPicture.asset(
+                                      kMoodSvg[mood] ??
+                                          'assets/emotion-icons/neutral.svg',
+                                      colorFilter: ColorFilter.mode(
+                                        isSelected
+                                            ? moodColor
+                                            : Colors.grey.shade700,
+                                        BlendMode.srcIn,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
 
-                              const SizedBox(height: 4),
+                                const SizedBox(height: 4),
 
-                              // Mood Name
-                              Expanded(
-                                flex: 1,
-                                child: Text(
-                                  mood,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w700
-                                        : FontWeight.w600,
-                                    color: isSelected
-                                        ? moodColor
-                                        : Colors.black87,
-                                    fontFamily: GoogleFonts.inter().fontFamily,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-
-                              // Selection indicator
-                              AnimatedOpacity(
-                                duration: const Duration(milliseconds: 200),
-                                opacity: isSelected ? 1.0 : 0.0,
-                                child: Container(
-                                  width: 4,
-                                  height: 4,
-                                  decoration: BoxDecoration(
-                                    color: moodColor,
-                                    shape: BoxShape.circle,
+                                // Mood Name
+                                Expanded(
+                                  flex: 1,
+                                  child: Text(
+                                    mood,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w700
+                                          : FontWeight.w600,
+                                      color: isSelected
+                                          ? moodColor
+                                          : Colors.black87,
+                                      fontFamily:
+                                          GoogleFonts.inter().fontFamily,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                              ),
-                            ],
+
+                                // Selection indicator
+                                AnimatedOpacity(
+                                  duration: const Duration(milliseconds: 200),
+                                  opacity: isSelected ? 1.0 : 0.0,
+                                  child: Container(
+                                    width: 4,
+                                    height: 4,
+                                    decoration: BoxDecoration(
+                                      color: moodColor,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
-            ),
 
-            // Bottom padding for safe area
-            const SizedBox(height: 24),
-          ],
+              // Bottom padding for safe area
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );
@@ -1818,4 +1833,31 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
       },
     );
   }
+}
+
+class _SquircleClipper extends CustomClipper<Path> {
+  final double radius;
+  _SquircleClipper({required this.radius});
+
+  @override
+  Path getClip(Size size) {
+    try {
+      final shape = RoundedSuperellipseBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(radius)),
+      );
+      return shape.getOuterPath(Rect.fromLTWH(0, 0, size.width, size.height));
+    } catch (_) {
+      return Path()..addRRect(
+        RRect.fromRectAndCorners(
+          Rect.fromLTWH(0, 0, size.width, size.height),
+          topLeft: Radius.circular(radius),
+          topRight: Radius.circular(radius),
+        ),
+      );
+    }
+  }
+
+  @override
+  bool shouldReclip(covariant _SquircleClipper oldClipper) =>
+      oldClipper.radius != radius;
 }

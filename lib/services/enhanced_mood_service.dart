@@ -16,10 +16,8 @@ class EnhancedMoodService {
     List<String>? triggers,
     List<String>? activities,
     String? location,
-    String? checkInType,
   }) async {
     // Auto-determine time of day if not provided
-    final finalCheckInType = checkInType ?? getSuggestedCheckInType();
 
     await _dbHelper.insertEnhancedMoodEntry(
       mood: mood,
@@ -28,7 +26,6 @@ class EnhancedMoodService {
       triggers: triggers,
       activities: activities,
       location: location,
-      checkInType: finalCheckInType,
     );
   }
 
@@ -81,11 +78,6 @@ class EnhancedMoodService {
 
   // QUICK CHECK-IN HELPERS
 
-  /// Quick mood check-in (just mood + intensity)
-  Future<void> quickMoodCheckIn(String mood, int intensity) async {
-    await saveMoodEntry(mood: mood, intensity: intensity, checkInType: 'quick');
-  }
-
   /// Detailed mood check-in (full context)
   Future<void> detailedMoodCheckIn({
     required String mood,
@@ -102,7 +94,6 @@ class EnhancedMoodService {
       triggers: triggers,
       activities: activities,
       location: location,
-      checkInType: 'detailed',
     );
   }
 
@@ -190,7 +181,7 @@ class EnhancedMoodService {
       await _dbHelper.updateMoodEntry(updatedMoodEntry);
     } else {
       // Create new simple mood entry
-      await saveMoodEntry(mood: mood, checkInType: 'simple');
+      await saveMoodEntry(mood: mood);
     }
   }
 

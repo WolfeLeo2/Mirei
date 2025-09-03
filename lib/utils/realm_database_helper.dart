@@ -236,7 +236,6 @@ class RealmDatabaseHelper {
     List<String>? triggers,
     List<String>? activities,
     String? location,
-    String? checkInType,
   }) async {
     final realmDb = await realm;
     late ObjectId id;
@@ -255,7 +254,6 @@ class RealmDatabaseHelper {
       triggers: triggers?.join(','),
       activities: activities?.join(','),
       location: location,
-      checkInType: checkInType,
       sequenceNumber: sequenceNumber,
     );
 

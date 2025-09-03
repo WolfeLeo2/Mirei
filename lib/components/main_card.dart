@@ -47,8 +47,8 @@ class MainCard extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               foregroundColor: const Color.fromARGB(255, 20, 50, 81),
               backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+              shape: const RoundedSuperellipseBorder(
+                borderRadius: BorderRadius.all(Radius.circular(20)),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               elevation: 0,

@@ -157,6 +157,9 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      shape: const RoundedSuperellipseBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) => EnhancedMoodDetailsScreen(
         selectedMood: mood,
         onMoodSaved: () {
@@ -252,7 +255,6 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
       final exactTime = DateFormat(
         'h:mm a',
       ).format(_latestMoodEntry!.createdAt.toLocal());
-      final timeOfDay = _latestMoodEntry!.checkInType ?? 'unknown';
 
       return Column(
         children: [
@@ -276,7 +278,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
               ),
               const SizedBox(width: 4),
               Text(
-                '$exactTime • $timeOfDay • $timeAgo',
+                '$exactTime',
                 style: const TextStyle(
                   color: Color.fromRGBO(255, 255, 255, 0.7),
                   fontSize: 14,

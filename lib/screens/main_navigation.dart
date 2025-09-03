@@ -55,45 +55,56 @@ class _MainNavigationState extends State<MainNavigation>
 
     // Initialize breathing animation
     _initializeBreathingAnimation();
-    
+
     // Start monitoring user activity
     _startActivityMonitoring();
   }
 
   void _initializeBreathingAnimation() {
     _breathingController = AnimationController(
-      duration: const Duration(milliseconds: 2500), // 2.5 second breathing cycle
+      duration: const Duration(
+        milliseconds: 2500,
+      ), // 2.5 second breathing cycle
       vsync: this,
     );
 
-    _breathingAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.02, // Very subtle 2% scale
-    ).animate(CurvedAnimation(
-      parent: _breathingController,
-      curve: Curves.easeInOut,
-    ));
+    _breathingAnimation =
+        Tween<double>(
+          begin: 1.0,
+          end: 1.02, // Very subtle 2% scale
+        ).animate(
+          CurvedAnimation(
+            parent: _breathingController,
+            curve: Curves.easeInOut,
+          ),
+        );
   }
 
   void _startActivityMonitoring() {
     // Check every second if user has been idle long enough to start breathing
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 5));
-      
+
       if (!mounted) return false;
-      
+
       final timeSinceActivity = DateTime.now().difference(_lastActivity);
-      final shouldBreathe = timeSinceActivity.inSeconds > 120; // Start breathing after 2 minutes of inactivity
-      
-      if (shouldBreathe && !_isUserActive && !_breathingController.isAnimating) {
-        print('🌬️ Starting breathing animation after ${timeSinceActivity.inSeconds} seconds of inactivity');
+      final shouldBreathe =
+          timeSinceActivity.inSeconds >
+          120; // Start breathing after 2 minutes of inactivity
+
+      if (shouldBreathe &&
+          !_isUserActive &&
+          !_breathingController.isAnimating) {
+        print(
+          '🌬️ Starting breathing animation after ${timeSinceActivity.inSeconds} seconds of inactivity',
+        );
         _breathingController.repeat(reverse: true);
       } else if (_isUserActive && _breathingController.isAnimating) {
         print('⏹️ Stopping breathing animation due to user activity');
         _breathingController.stop();
         _breathingController.reset();
       }
-      
+
       return true;
     });
   }
@@ -103,7 +114,7 @@ class _MainNavigationState extends State<MainNavigation>
       _isUserActive = true;
       _lastActivity = DateTime.now();
     });
-    
+
     // Mark as inactive after a brief delay
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
@@ -125,7 +136,8 @@ class _MainNavigationState extends State<MainNavigation>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Listener(
-        onPointerDown: (_) => _markUserActivity(), // Catches ALL pointer events including TabBar taps
+        onPointerDown: (_) =>
+            _markUserActivity(), // Catches ALL pointer events including TabBar taps
         child: GestureDetector(
           onTap: _markUserActivity,
           onTapDown: (_) => _markUserActivity(), // More reliable tap detection
@@ -146,14 +158,29 @@ class _MainNavigationState extends State<MainNavigation>
                         indicatorColor: colors[_tabController.index],
                         dividerColor: Colors.transparent,
                         labelColor: colors[_tabController.index],
-                        unselectedLabelColor: const Color.fromARGB(255, 21, 55, 26),
+                        unselectedLabelColor: const Color.fromARGB(
+                          255,
+                          21,
+                          55,
+                          26,
+                        ),
                         onTap: (index) {
                           _markUserActivity(); // Tab tap is user activity
                           _tabController.animateTo(index);
                         },
                         tabs: const [
-                          Tab(icon: Icon(FontAwesome.house_chimney_solid, size: 24)),
-                          Tab(icon: Icon(FontAwesome.book_journal_whills_solid, size: 24)),
+                          Tab(
+                            icon: Icon(
+                              FontAwesome.house_chimney_solid,
+                              size: 24,
+                            ),
+                          ),
+                          Tab(
+                            icon: Icon(
+                              FontAwesome.book_journal_whills_solid,
+                              size: 24,
+                            ),
+                          ),
                           Tab(icon: Icon(FontAwesome.spa_solid, size: 24)),
                           Tab(icon: Icon(FontAwesome.radio_solid, size: 24)),
                         ],
@@ -184,25 +211,27 @@ class _MainNavigationState extends State<MainNavigation>
                       barColor: const Color.fromARGB(212, 255, 255, 255),
                       hideOnScroll: true,
                       scrollOpposite: false,
-                      body: (context, controller) => NotificationListener<ScrollNotification>(
-                        onNotification: (scrollNotification) {
-                          if (scrollNotification is ScrollUpdateNotification) {
-                            _markUserActivity(); // Scrolling is user activity
-                          }
-                          return false;
-                        },
-                        child: TabBarView(
-                          controller: _tabController,
-                          dragStartBehavior: DragStartBehavior.down,
-                          physics: const BouncingScrollPhysics(),
-                          children: _screens,
-                        ),
-                      ),
+                      body: (context, controller) =>
+                          NotificationListener<ScrollNotification>(
+                            onNotification: (scrollNotification) {
+                              if (scrollNotification
+                                  is ScrollUpdateNotification) {
+                                _markUserActivity(); // Scrolling is user activity
+                              }
+                              return false;
+                            },
+                            child: TabBarView(
+                              controller: _tabController,
+                              dragStartBehavior: DragStartBehavior.down,
+                              physics: const BouncingScrollPhysics(),
+                              children: _screens,
+                            ),
+                          ),
                     ),
                   );
                 },
               ),
-              
+
               // Mini player positioned above the floating bottom bar
               Positioned(
                 left: 0,

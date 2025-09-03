@@ -6,6 +6,7 @@ import '../models/realm_models.dart';
 import '../utils/realm_database_helper.dart';
 import '../services/enhanced_mood_analytics.dart';
 import '../core/constants/app_colors.dart';
+import '../core/theme/mood_colors.dart';
 
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
@@ -1202,7 +1203,10 @@ class _ProgressScreenState extends State<ProgressScreen>
       final percentage = totalEntries > 0
           ? (moodEntry.value / totalEntries * 100).round()
           : 0;
-      final color = AppColors.getEmotionColor(moodEntry.key);
+      final moodExt = Theme.of(context).extension<MoodColors>();
+      final color =
+          moodExt?.byMood(moodEntry.key) ??
+          AppColors.getEmotionColor(moodEntry.key);
 
       return PieChartSectionData(
         color: color,
@@ -1257,7 +1261,9 @@ class _ProgressScreenState extends State<ProgressScreen>
         final percentage = totalEntries > 0
             ? (entry.value / totalEntries * 100).round()
             : 0;
-        final color = AppColors.getEmotionColor(entry.key);
+        final moodExt = Theme.of(context).extension<MoodColors>();
+        final color =
+            moodExt?.byMood(entry.key) ?? AppColors.getEmotionColor(entry.key);
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
@@ -1301,7 +1307,9 @@ class _ProgressScreenState extends State<ProgressScreen>
     final timeAgo = _getTimeAgo(mood.createdAt);
     final exactTime = DateFormat('h:mm a').format(mood.createdAt.toLocal());
     final timeOfDay = mood.checkInType ?? 'unknown';
-    final color = AppColors.getEmotionColor(mood.mood);
+    final color =
+        Theme.of(context).extension<MoodColors>()?.byMood(mood.mood) ??
+        AppColors.getEmotionColor(mood.mood);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -2204,9 +2212,12 @@ class _ProgressScreenState extends State<ProgressScreen>
   }
 
   Widget _buildDetailedMoodEntry(MoodEntryRealm mood) {
-    final color = AppColors.getEmotionColor(mood.mood);
-    final exactTime = DateFormat('MMM dd, h:mm a').format(mood.createdAt.toLocal());
-    final timeOfDay = mood.checkInType ?? 'unknown';
+    final color =
+        Theme.of(context).extension<MoodColors>()?.byMood(mood.mood) ??
+        AppColors.getEmotionColor(mood.mood);
+    final exactTime = DateFormat(
+      'MMM dd, h:mm a',
+    ).format(mood.createdAt.toLocal());
     final sequenceNumber = mood.sequenceNumber ?? 1;
 
     return Container(
@@ -2308,18 +2319,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: _getTimeOfDayColor(
-                          timeOfDay,
-                        ).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        timeOfDay.toUpperCase(),
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: _getTimeOfDayColor(timeOfDay),
-                        ),
                       ),
                     ),
                   ],
@@ -2343,19 +2343,6 @@ class _ProgressScreenState extends State<ProgressScreen>
         ],
       ),
     );
-  }
-
-  Color _getTimeOfDayColor(String timeOfDay) {
-    switch (timeOfDay.toLowerCase()) {
-      case 'morning':
-        return Colors.orange;
-      case 'afternoon':
-        return Colors.blue;
-      case 'evening':
-        return Colors.purple;
-      default:
-        return Colors.grey;
-    }
   }
 
   void _navigateToPreviousMonth() {

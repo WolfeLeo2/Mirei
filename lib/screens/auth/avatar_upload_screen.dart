@@ -44,7 +44,7 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
+      shape: const RoundedSuperellipseBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => Container(
@@ -102,7 +102,7 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
             height: 80,
             decoration: BoxDecoration(
               color: AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: const BorderRadius.all(Radius.circular(20)),
             ),
             child: Icon(icon, size: 40, color: AppColors.primary),
           ),
@@ -164,7 +164,9 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
         content: Text(message),
         backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedSuperellipseBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
       ),
     );
   }
@@ -276,7 +278,7 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
+                          shape: RoundedSuperellipseBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           padding: const EdgeInsets.symmetric(
@@ -301,7 +303,7 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.primary,
                               side: BorderSide(color: AppColors.primary),
-                              shape: RoundedRectangleBorder(
+                              shape: RoundedSuperellipseBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
@@ -320,7 +322,7 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.red,
                               side: const BorderSide(color: Colors.red),
-                              shape: RoundedRectangleBorder(
+                              shape: RoundedSuperellipseBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
@@ -354,7 +356,7 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
+                    shape: RoundedSuperellipseBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                     elevation: 0,

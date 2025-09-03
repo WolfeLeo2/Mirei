@@ -725,7 +725,9 @@ class _JournalViewScreenState extends State<JournalViewScreen>
         ),
         backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: const RoundedSuperellipseBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
       ),
     );
   }
@@ -739,7 +741,9 @@ class _JournalViewScreenState extends State<JournalViewScreen>
         ),
         backgroundColor: AppColors.secondary,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: const RoundedSuperellipseBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
       ),
     );
   }
@@ -774,7 +778,10 @@ class _JournalViewScreenState extends State<JournalViewScreen>
             _entryOrWidget.createdAt,
             intensity: null,
           );
-          _moodColor = AppColors.getEmotionColor(entryMood);
+          _moodColor = AppColors.harmonizeToPrimary(
+            AppColors.getEmotionColor(entryMood),
+            Theme.of(context).colorScheme,
+          );
         });
         return;
       }
@@ -783,7 +790,10 @@ class _JournalViewScreenState extends State<JournalViewScreen>
       if (dailyMoods.isNotEmpty) {
         setState(() {
           _associatedMood = dailyMoods.first;
-          _moodColor = AppColors.getEmotionColor(dailyMoods.first.mood);
+          _moodColor = AppColors.harmonizeToPrimary(
+            AppColors.getEmotionColor(dailyMoods.first.mood),
+            Theme.of(context).colorScheme,
+          );
         });
       }
     } catch (_) {

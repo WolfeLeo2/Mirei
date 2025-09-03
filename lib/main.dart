@@ -19,6 +19,7 @@ import 'services/database_maintenance_service.dart';
 
 import 'core/constants/app_colors.dart';
 import 'firebase_options.dart';
+import 'core/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -123,22 +124,9 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'Mirei',
-        theme: ThemeData(
-          textTheme: GoogleFonts.interTextTheme(),
-          colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
-          useMaterial3: true,
-          primaryColor: AppColors.primary,
-          appBarTheme: AppBarTheme(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ),
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: ThemeMode.system,
         home: const AuthWrapper(),
       ),
     );

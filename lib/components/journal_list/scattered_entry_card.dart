@@ -112,7 +112,7 @@ class ScatteredEntryCard extends StatelessWidget {
           ),
           backgroundColor: const Color(0xFF115e5a),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
+          shape: RoundedSuperellipseBorder(
             borderRadius: BorderRadius.circular(10),
           ),
         ),
@@ -131,7 +131,7 @@ class ScatteredEntryCard extends StatelessWidget {
           ),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
+          shape: RoundedSuperellipseBorder(
             borderRadius: BorderRadius.circular(10),
           ),
         ),
@@ -179,7 +179,7 @@ class ScatteredEntryCard extends StatelessWidget {
             },
             openShape: BeveledRectangleBorder(),
             closedElevation: 8,
-            closedShape: const RoundedRectangleBorder(
+            closedShape: const RoundedSuperellipseBorder(
               borderRadius: BorderRadius.all(Radius.circular(16)),
             ),
             closedBuilder: (BuildContext context, VoidCallback openContainer) {
@@ -452,28 +452,23 @@ class _ImageIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final base = const Color(0xFF1976D2);
+    final color = AppColors.harmonizeToPrimary(
+      base,
+      Theme.of(context).colorScheme,
+    );
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: const Color(0x1A2196F3), // Use const color
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.image,
-            size: 10,
-            color: Color(0xFF1976D2), // Use const color
-          ),
+          Icon(Icons.image, size: 10, color: color),
           const SizedBox(width: 2),
-          Text(
-            '$count',
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              color: const Color(0xFF1976D2),
-            ),
-          ),
+          Text('$count', style: GoogleFonts.inter(fontSize: 10, color: color)),
         ],
       ),
     );
@@ -488,28 +483,23 @@ class _AudioIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final base = const Color(0xFFF57C00);
+    final color = AppColors.harmonizeToPrimary(
+      base,
+      Theme.of(context).colorScheme,
+    );
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: const Color(0x1AFF9800), // Use const color
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.mic,
-            size: 10,
-            color: Color(0xFFF57C00), // Use const color
-          ),
+          Icon(Icons.mic, size: 10, color: color),
           const SizedBox(width: 2),
-          Text(
-            '$count',
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              color: const Color(0xFFF57C00),
-            ),
-          ),
+          Text('$count', style: GoogleFonts.inter(fontSize: 10, color: color)),
         ],
       ),
     );
@@ -525,7 +515,11 @@ class _MoodIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final emotion = mood?.mood ?? 'Neutral';
-    final color = AppColors.getEmotionColor(emotion);
+    final baseColor = AppColors.getEmotionColor(emotion);
+    final color = AppColors.harmonizeToPrimary(
+      baseColor,
+      Theme.of(context).colorScheme,
+    );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
