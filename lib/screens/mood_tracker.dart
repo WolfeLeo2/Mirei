@@ -569,13 +569,12 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                           ),
                         ),
                         Expanded(
-                          child: SingleChildScrollView(
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(
                                 20,
                                 12,
                                 18,
-                                100,
+                                90,
                               ), // Added bottom padding for nav bar
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -679,7 +678,6 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                               ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),
