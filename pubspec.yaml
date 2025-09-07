@@ -64,9 +64,7 @@ dependencies:
   realm: ^20.1.1 # Realm database replacement for SQLite
   dio: ^5.8.0+1 # Enhanced HTTP client with caching, pooling, interceptors
   dio_cache_interceptor: ^3.5.0 # HTTP caching for audio streams
-  dio_cache_interceptor_hive_store: ^4.0.0 # Hive-based cache storage
-  hive: ^2.2.3 # Fast key-value database for caching
-  hive_flutter: ^1.1.0 # Flutter integration for Hive
+
   connectivity_plus: ^6.0.5 # Network connectivity monitoring
   cached_network_image: ^3.4.1 # Image caching
   crypto: ^3.0.3 # For cache key generation
@@ -82,13 +80,15 @@ dependencies:
   spotify: ^0.13.7 # For Web API (works with free users for discovery)
   spotify_sdk: ^3.0.2 # For full playback (Premium users only)
   flutter_dotenv: ^5.1.0 # For environment variables (.env file)
+  google_generative_ai: ^0.4.6 # Official Google Gemini SDK
 
   # Firebase Authentication
-  firebase_core: ^3.8.0
+  firebase_core: ^3.15.2
   firebase_auth: ^5.3.3
   firebase_storage: ^12.3.6
   google_sign_in: ^6.2.1
   shared_preferences: ^2.5.3
+  firebase_ai: ^2.3.0
 
 dev_dependencies:
   flutter_test:
@@ -164,7 +164,6 @@ flutter:
     - assets/emotion-icons/shocked.svg
     - assets/emotion-icons/tired.svg
     - assets/emotion-icons/worried.svg
-    
 
   # assets:
   #   - images/a_dot_burr.jpeg

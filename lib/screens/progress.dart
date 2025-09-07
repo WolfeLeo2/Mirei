@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/realm_models.dart';
 import '../utils/realm_database_helper.dart';
 import '../services/enhanced_mood_analytics.dart';
 import '../core/constants/app_colors.dart';
 import '../core/theme/mood_colors.dart';
+import '../services/ai_service.dart';
 
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
@@ -33,6 +35,31 @@ class _ProgressScreenState extends State<ProgressScreen>
   List<WellnessRecommendation>? _recommendations;
   List<MoodEntryRealm> _recentMoods = [];
 
+  // AI insights state
+  final AiService _ai = AiService();
+  MoodAnalysisResult? _aiJournalAnalysis;
+  String? _aiWellnessInsight;
+  List<ActivitySuggestion> _aiCopingSuggestions = const [];
+  MoodPrediction? _aiMoodPrediction;
+
+  // AI error states
+  String? _aiWellnessError;
+  String? _aiCopingError;
+  String? _aiPredictionError;
+
+  // AI loading states (for when refreshing cached data)
+  bool _isRefreshingWellness = false;
+  bool _isRefreshingCoping = false;
+  bool _isRefreshingPrediction = false;
+
+  // AI caching state
+  String? _cachedMoodDataHash;
+  String? _cachedJournalContent;
+  DateTime? _lastAiRefresh;
+
+  // Privacy settings
+  bool _allowJournalAiAnalysis = false;
+
   // Original pie chart data
   Map<String, int> moodFrequency = {};
   int totalEntries = 0;
@@ -42,7 +69,30 @@ class _ProgressScreenState extends State<ProgressScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _loadAllAnalytics();
+    debugPrint(
+      '🔥 [${DateTime.now().toIso8601String()}] ProgressScreen initState - starting loads',
+    );
+    _loadPrivacySettings();
+    _loadDataSequentially();
+  }
+
+  Future<void> _loadPrivacySettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _allowJournalAiAnalysis =
+          prefs.getBool('allow_journal_ai_analysis') ?? false;
+    });
+
+    // Load cached AI data
+    await _loadCachedAiData();
+  }
+
+  Future<void> _loadDataSequentially() async {
+    // First load analytics data (includes _recentMoods)
+    await _loadAllAnalytics();
+
+    // Then load AI insights with populated mood data
+    await _loadAiInsights();
   }
 
   @override
@@ -114,6 +164,361 @@ class _ProgressScreenState extends State<ProgressScreen>
 
     moodFrequency = frequency;
     totalEntries = latestMoods.length;
+  }
+
+  Future<void> _loadAiInsights() async {
+    try {
+      // Build recent mood samples for AI
+      final samples = _recentMoods
+          .take(20)
+          .map(
+            (m) => MoodSample(
+              mood: m.mood,
+              intensity: m.intensity,
+              timestamp: m.createdAt,
+              context: m.context,
+            ),
+          )
+          .toList();
+
+      // Debug: Verify mood data is available for AI
+      if (samples.isEmpty) {
+        debugPrint(
+          '⚠️ No mood samples available for AI - _recentMoods.length=${_recentMoods.length}',
+        );
+      }
+
+      // Get latest journal content if available (last 1)
+      String? latestJournal;
+      try {
+        final db = RealmDatabaseHelper();
+        final start = DateTime.now().subtract(const Duration(days: 30));
+        final journals = await db.getJournalEntriesForPeriod(
+          start,
+          DateTime.now(),
+        );
+        if (journals.isNotEmpty) {
+          latestJournal = journals.first.content;
+        }
+      } catch (_) {}
+
+      // Create data fingerprint for caching
+      final moodDataHash = _createMoodDataHash(samples, latestJournal);
+
+      // Check if we need to refresh AI insights
+      final shouldRefresh = _shouldRefreshAiInsights(
+        moodDataHash,
+        latestJournal,
+      );
+
+      if (!shouldRefresh) {
+        debugPrint('🎯 AI insights cached - skipping refresh');
+        return;
+      }
+
+      debugPrint('🔄 Refreshing AI insights - data changed');
+
+      // Clear any previous errors and set loading states
+      setState(() {
+        _aiWellnessError = null;
+        _aiCopingError = null;
+        _aiPredictionError = null;
+        _isRefreshingWellness = true;
+        _isRefreshingCoping = true;
+        _isRefreshingPrediction = true;
+      });
+
+      // Journal analysis (only if privacy enabled)
+      MoodAnalysisResult? analysis;
+      if (latestJournal != null && _allowJournalAiAnalysis) {
+        try {
+          analysis = await _ai.analyzeJournal(
+            journalContent: latestJournal,
+            currentMood: _recentMoods.isNotEmpty
+                ? _recentMoods.first.mood
+                : null,
+            recentMoods: _recentMoods.take(5).map((m) => m.mood).toList(),
+          );
+        } catch (e) {
+          debugPrint('Journal analysis failed: $e');
+          // Journal analysis errors are handled silently (privacy feature)
+        }
+      }
+
+      // Wellness insight
+      String? insight;
+      try {
+        insight = await _ai.generateWellnessInsight(
+          recentMoodSamples: samples,
+          context: _recentMoods.isNotEmpty ? _recentMoods.first.context : null,
+        );
+      } catch (e) {
+        debugPrint('Wellness insight failed: $e');
+        _aiWellnessError = e.toString().replaceFirst('Exception: ', '');
+      } finally {
+        _isRefreshingWellness = false;
+      }
+
+      // Coping strategies
+      List<ActivitySuggestion> strategies = [];
+      try {
+        strategies = await _ai.suggestCopingStrategies(
+          mood: _recentMoods.isNotEmpty ? _recentMoods.first.mood : 'neutral',
+          intensity: _recentMoods.isNotEmpty
+              ? _recentMoods.first.intensity
+              : null,
+          context: _recentMoods.isNotEmpty ? _recentMoods.first.context : null,
+        );
+      } catch (e) {
+        debugPrint('Coping strategies failed: $e');
+        _aiCopingError = e.toString().replaceFirst('Exception: ', '');
+      } finally {
+        _isRefreshingCoping = false;
+      }
+
+      // Mood prediction
+      MoodPrediction? prediction;
+      try {
+        prediction = await _ai.predictNextMood(recentMoodSamples: samples);
+      } catch (e) {
+        debugPrint('Mood prediction failed: $e');
+        _aiPredictionError = e.toString().replaceFirst('Exception: ', '');
+      } finally {
+        _isRefreshingPrediction = false;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _aiJournalAnalysis = analysis;
+        _aiWellnessInsight = insight;
+        _aiCopingSuggestions = strategies;
+        _aiMoodPrediction = prediction;
+
+        // Update cache state
+        _cachedMoodDataHash = moodDataHash;
+        _cachedJournalContent = latestJournal;
+        _lastAiRefresh = DateTime.now();
+      });
+
+      // Save to persistent cache only if we have successful results
+      if (insight != null || strategies.isNotEmpty || prediction != null) {
+        await _saveCachedAiData();
+      }
+    } catch (e) {
+      debugPrint('AI insights failed: $e');
+    }
+  }
+
+  /// Create a hash of mood data for caching comparison
+  String _createMoodDataHash(List<MoodSample> samples, String? journalContent) {
+    final moodData = samples
+        .map(
+          (s) =>
+              '${s.mood}-${s.intensity}-${s.timestamp.millisecondsSinceEpoch}',
+        )
+        .join(',');
+    final journalHash = journalContent?.hashCode.toString() ?? 'no-journal';
+    return '$moodData-$journalHash';
+  }
+
+  /// Check if AI insights should be refreshed based on data changes
+  bool _shouldRefreshAiInsights(String currentHash, String? currentJournal) {
+    // Always refresh on first load
+    if (_cachedMoodDataHash == null) return true;
+
+    // Refresh if data has changed
+    if (_cachedMoodDataHash != currentHash) return true;
+
+    // Refresh if journal content has changed
+    if (_cachedJournalContent != currentJournal) return true;
+
+    // Refresh if it's been more than 1 hour (to handle edge cases)
+    if (_lastAiRefresh != null) {
+      final hoursSinceLastRefresh = DateTime.now()
+          .difference(_lastAiRefresh!)
+          .inHours;
+      if (hoursSinceLastRefresh >= 1) return true;
+    }
+
+    // Otherwise, use cached data
+    return false;
+  }
+
+  /// Load cached AI data from persistent storage
+  Future<void> _loadCachedAiData() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Load cache metadata
+    _cachedMoodDataHash = prefs.getString('ai_cache_mood_hash');
+    _cachedJournalContent = prefs.getString('ai_cache_journal_content');
+    final lastRefreshMs = prefs.getInt('ai_cache_last_refresh');
+    if (lastRefreshMs != null) {
+      _lastAiRefresh = DateTime.fromMillisecondsSinceEpoch(lastRefreshMs);
+    }
+
+    // Load cached AI results if still valid (within 1 hour)
+    if (_lastAiRefresh != null) {
+      final hoursSinceRefresh = DateTime.now()
+          .difference(_lastAiRefresh!)
+          .inHours;
+      if (hoursSinceRefresh < 1) {
+        // Load cached wellness insight
+        final cachedWellnessInsight = prefs.getString(
+          'ai_cache_wellness_insight',
+        );
+        _aiWellnessInsight = cachedWellnessInsight;
+
+        // Load cached mood prediction
+        final cachedPredictedMood = prefs.getString('ai_cache_predicted_mood');
+        final cachedConfidence = prefs.getDouble('ai_cache_confidence');
+        final cachedPredictionReason = prefs.getString(
+          'ai_cache_prediction_reason',
+        );
+        if (cachedPredictedMood != null &&
+            cachedConfidence != null &&
+            cachedPredictionReason != null) {
+          _aiMoodPrediction = MoodPrediction(
+            predictedMood: cachedPredictedMood,
+            confidence: cachedConfidence,
+            reason: cachedPredictionReason,
+          );
+        }
+
+        // Load cached coping strategies
+        final cachedStrategiesCount =
+            prefs.getInt('ai_cache_strategies_count') ?? 0;
+        final strategies = <ActivitySuggestion>[];
+        for (int i = 0; i < cachedStrategiesCount; i++) {
+          final title = prefs.getString('ai_cache_strategy_${i}_title');
+          final reason = prefs.getString('ai_cache_strategy_${i}_reason');
+          final duration = prefs.getInt('ai_cache_strategy_${i}_duration');
+          if (title != null && reason != null && duration != null) {
+            strategies.add(
+              ActivitySuggestion(
+                title: title,
+                reason: reason,
+                durationMins: duration,
+              ),
+            );
+          }
+        }
+        _aiCopingSuggestions = strategies;
+
+        debugPrint(
+          '🎯 Loaded cached AI insights from storage (${strategies.length} strategies, prediction: ${cachedPredictedMood ?? 'none'})',
+        );
+      }
+    }
+  }
+
+  /// Save AI data to persistent cache
+  Future<void> _saveCachedAiData() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Save cache metadata
+    if (_cachedMoodDataHash != null) {
+      await prefs.setString('ai_cache_mood_hash', _cachedMoodDataHash!);
+    }
+    if (_cachedJournalContent != null) {
+      await prefs.setString('ai_cache_journal_content', _cachedJournalContent!);
+    }
+    if (_lastAiRefresh != null) {
+      await prefs.setInt(
+        'ai_cache_last_refresh',
+        _lastAiRefresh!.millisecondsSinceEpoch,
+      );
+    }
+
+    // Save AI results
+    if (_aiWellnessInsight != null) {
+      await prefs.setString('ai_cache_wellness_insight', _aiWellnessInsight!);
+    }
+
+    // Save mood prediction
+    if (_aiMoodPrediction != null) {
+      await prefs.setString(
+        'ai_cache_predicted_mood',
+        _aiMoodPrediction!.predictedMood,
+      );
+      await prefs.setDouble(
+        'ai_cache_confidence',
+        _aiMoodPrediction!.confidence,
+      );
+      await prefs.setString(
+        'ai_cache_prediction_reason',
+        _aiMoodPrediction!.reason,
+      );
+    }
+
+    // Save coping strategies
+    await prefs.setInt(
+      'ai_cache_strategies_count',
+      _aiCopingSuggestions.length,
+    );
+    for (int i = 0; i < _aiCopingSuggestions.length; i++) {
+      final strategy = _aiCopingSuggestions[i];
+      await prefs.setString('ai_cache_strategy_${i}_title', strategy.title);
+      await prefs.setString('ai_cache_strategy_${i}_reason', strategy.reason);
+      await prefs.setInt(
+        'ai_cache_strategy_${i}_duration',
+        strategy.durationMins,
+      );
+    }
+  }
+
+  /// Show privacy dialog for journal AI analysis
+  void _showJournalPrivacyDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.privacy_tip, color: Colors.blue[700]),
+            const SizedBox(width: 8),
+            const Text('Journal Privacy'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Journal AI Analysis',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'When enabled, AI will analyze your journal entries to provide:\n\n'
+              '• Key themes and insights\n'
+              '• Emotional patterns\n'
+              '• Personalized recommendations\n\n'
+              'Your journal content will be processed by Google Gemini AI. '
+              'This is optional and can be disabled anytime.',
+              style: GoogleFonts.inter(fontSize: 14, height: 1.4),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Keep Disabled'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('allow_journal_ai_analysis', true);
+              setState(() {
+                _allowJournalAiAnalysis = true;
+              });
+              Navigator.pop(context);
+              // Refresh AI insights with journal analysis enabled
+              _loadAiInsights();
+            },
+            child: const Text('Enable AI Analysis'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -263,7 +668,11 @@ class _ProgressScreenState extends State<ProgressScreen>
           _buildInsightsHeader(),
           const SizedBox(height: 24),
 
-          // Recommendations
+          // AI Insights
+          _buildAiInsightsSection(),
+          const SizedBox(height: 24),
+
+          // Recommendations (non-AI)
           _buildRecommendationsSection(),
           const SizedBox(height: 24),
 
@@ -2351,6 +2760,8 @@ class _ProgressScreenState extends State<ProgressScreen>
       isLoading = true;
     });
     _loadAllAnalytics();
+    // AI insights will be cached and only refresh if mood data changed
+    _loadAiInsights();
   }
 
   void _navigateToNextMonth() {
@@ -2361,7 +2772,907 @@ class _ProgressScreenState extends State<ProgressScreen>
         isLoading = true;
       });
       _loadAllAnalytics();
+      // AI insights will be cached and only refresh if mood data changed
+      _loadAiInsights();
     }
+  }
+
+  // --- AI Insights UI ---
+  Widget _buildAiInsightsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildAiInsightCard(),
+        const SizedBox(height: 16),
+        _buildAiCopingSuggestions(),
+        const SizedBox(height: 16),
+        _buildAiPredictionCard(),
+      ],
+    );
+  }
+
+  Widget _buildAiInsightCard() {
+    final hasInsight = _aiWellnessInsight != null;
+    final hasError = _aiWellnessError != null;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: const Color(0xFF115e5a).withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with status indicator
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF115e5a).withValues(alpha: 0.1),
+                      const Color(0xFF115e5a).withValues(alpha: 0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  hasInsight ? Icons.auto_awesome : Icons.hourglass_empty,
+                  color: const Color(0xFF115e5a),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'AI Wellness Insight',
+                      style: GoogleFonts.inter(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    if (hasError)
+                      Text(
+                        'Connection failed',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.red[600],
+                          fontStyle: FontStyle.italic,
+                        ),
+                      )
+                    else if (!hasInsight)
+                      Text(
+                        'Analyzing your mood patterns...',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (_isRefreshingWellness)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 10,
+                        height: 10,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.5,
+                          valueColor: AlwaysStoppedAnimation(Colors.blue[700]),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Updating...',
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (hasInsight)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.check_circle,
+                        size: 12,
+                        color: Colors.green[700],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Fresh',
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Content
+          if (hasError)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        color: Colors.red[700],
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Connection Error',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: Colors.red[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _aiWellnessError!,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: Colors.red[600],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else if (!hasInsight)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation(Colors.grey[600]),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Generating personalized insights...',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF115e5a).withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF115e5a).withValues(alpha: 0.08),
+                ),
+              ),
+              child: Text(
+                _aiWellnessInsight!,
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  height: 1.6,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ),
+          if (_aiJournalAnalysis != null) ...[
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _aiJournalAnalysis!.keyThemes
+                  .take(4)
+                  .map(
+                    (t) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF115e5a).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        t,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: const Color(0xFF115e5a),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+
+          // Privacy notice for journal analysis
+          if (!_allowJournalAiAnalysis) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.privacy_tip_outlined,
+                        size: 16,
+                        color: Colors.blue[700],
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Journal Privacy Protection',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Journal AI analysis is disabled for privacy. Enable to get personalized themes from your journal entries.',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: Colors.blue[600],
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: _showJournalPrivacyDialog,
+                    child: Text(
+                      'Review Privacy Settings →',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue[700],
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiCopingSuggestions() {
+    final hasStrategies = _aiCopingSuggestions.isNotEmpty;
+    final hasError = _aiCopingError != null;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.orange.withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with status
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.orange.withValues(alpha: 0.15),
+                      Colors.orange.withValues(alpha: 0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Coping Strategies',
+                      style: GoogleFonts.inter(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      hasError
+                          ? 'Connection failed'
+                          : _isRefreshingCoping
+                          ? 'Updating strategies...'
+                          : hasStrategies
+                          ? '${_aiCopingSuggestions.length} personalized suggestions'
+                          : 'Generating strategies...',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: hasError
+                            ? Colors.red[600]
+                            : _isRefreshingCoping
+                            ? Colors.blue[600]
+                            : Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Content
+          if (hasError)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        color: Colors.red[700],
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Connection Error',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: Colors.red[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _aiCopingError!,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: Colors.red[600],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else if (!hasStrategies)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation(Colors.grey[600]),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Generating coping strategies...',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Column(
+              children: _aiCopingSuggestions.asMap().entries.map((entry) {
+                final index = entry.key;
+                final s = entry.value;
+                return Container(
+                  margin: EdgeInsets.only(
+                    bottom: index < _aiCopingSuggestions.length - 1 ? 12 : 0,
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.03),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: Colors.orange.withValues(alpha: 0.1),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${index + 1}',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.orange[700],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              s.title,
+                              style: GoogleFonts.inter(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              s.reason,
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                color: Colors.black,
+                                height: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 2,
+                          vertical: 6,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.schedule,
+                              size: 14,
+                              color: Colors.orange[700],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${s.durationMins}m',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.orange[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiPredictionCard() {
+    final hasPrediction = _aiMoodPrediction != null;
+    final hasError = _aiPredictionError != null;
+    final confidencePercent = hasPrediction
+        ? (_aiMoodPrediction!.confidence * 100).round()
+        : 0;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.purple.withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with prediction
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.purple.withValues(alpha: 0.15),
+                      Colors.purple.withValues(alpha: 0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  hasPrediction ? Icons.auto_graph : Icons.hourglass_empty,
+                  color: Colors.purple[700],
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Mood Prediction',
+                      style: GoogleFonts.inter(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      hasError
+                          ? 'Connection failed'
+                          : _isRefreshingPrediction
+                          ? 'Updating prediction...'
+                          : hasPrediction
+                          ? 'Next 24 hours outlook'
+                          : 'Analyzing patterns...',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: hasError
+                            ? Colors.red[600]
+                            : _isRefreshingPrediction
+                            ? Colors.blue[600]
+                            : Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_isRefreshingPrediction)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 10,
+                        height: 10,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.5,
+                          valueColor: AlwaysStoppedAnimation(Colors.blue[700]),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Updating...',
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (hasPrediction)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: confidencePercent >= 70
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.amber.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        confidencePercent >= 70
+                            ? Icons.trending_up
+                            : Icons.help_outline,
+                        size: 12,
+                        color: confidencePercent >= 70
+                            ? Colors.green[700]
+                            : Colors.amber[700],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$confidencePercent%',
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: confidencePercent >= 70
+                              ? Colors.green[700]
+                              : Colors.amber[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Content
+          if (hasError)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        color: Colors.red[700],
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Connection Error',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: Colors.red[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _aiPredictionError!,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: Colors.red[600],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else if (!hasPrediction)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation(Colors.grey[600]),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Analyzing mood patterns...',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.purple.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.purple.withValues(alpha: 0.08),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Prediction result
+                  Row(
+                    children: [
+                      Text(
+                        'Likely feeling:',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 6,
+                        ),
+                        child: Text(
+                          _aiMoodPrediction!.predictedMood,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: Colors.purple[700],
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Reasoning if available
+                  if (_aiMoodPrediction!.reason.isNotEmpty) ...[
+                    Container(
+                      height: 1,
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.purple.withValues(alpha: 0.1),
+                            Colors.purple.withValues(alpha: 0.3),
+                            Colors.purple.withValues(alpha: 0.1),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _aiMoodPrediction!.reason,
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              color: Colors.black,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 

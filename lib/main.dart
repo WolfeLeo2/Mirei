@@ -1,23 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:realm/realm.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+
 import 'package:mirei/bloc/media_player_bloc.dart';
 import 'package:mirei/bloc/mood_bloc.dart';
 import 'package:mirei/repositories/mood_repository.dart';
-import 'package:mirei/screens/main_navigation.dart';
-import 'package:mirei/screens/onboarding/onboarding_screen.dart';
 import 'package:mirei/screens/auth/auth_wrapper.dart';
 import 'package:mirei/services/audio_cache_service.dart';
 import 'services/performance_service.dart';
 import 'services/database_maintenance_service.dart';
 
-import 'core/constants/app_colors.dart';
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 
@@ -37,14 +32,8 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   print('✅ Firebase initialized successfully');
 
-  // Initialize Hive for reliable local storage
-  try {
-    await Hive.initFlutter();
-    print('✅ Hive initialized successfully');
-  } catch (e) {
-    print('⚠️ Hive initialization warning: $e');
-    // Continue anyway - the app will work with fallbacks
-  }
+  // Realm is initialized automatically when first accessed
+  print('✅ Using Realm for all data storage');
 
   // Test SharedPreferences early to catch issues
   try {
@@ -57,7 +46,7 @@ void main() async {
     await prefs.remove('test_key'); // Clean up test
   } catch (e) {
     print('⚠️ SharedPreferences initialization warning: $e');
-    // Continue anyway - the app will work with Hive fallback
+    // Continue anyway - the app will work with Realm storage
   }
 
   // Initialize services in parallel for faster startup

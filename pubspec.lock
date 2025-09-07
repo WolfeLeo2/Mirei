@@ -329,14 +329,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.5.1"
-  dio_cache_interceptor_hive_store:
-    dependency: "direct main"
-    description:
-      name: dio_cache_interceptor_hive_store
-      sha256: "127cda24a485f5b6469172edd8b81fac819147318bedd654be167527c498bf55"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.0.0"
   dio_web_adapter:
     dependency: transitive
     description:
@@ -425,6 +417,38 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.9.3+4"
+  firebase_ai:
+    dependency: "direct main"
+    description:
+      name: firebase_ai
+      sha256: "5e67e2138dd6ef8f58e6b03aaa27243937724117cc68c684b5f5b8b9f4d49b42"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.3.0"
+  firebase_app_check:
+    dependency: transitive
+    description:
+      name: firebase_app_check
+      sha256: c4124632094a4062d7a1ff0a9f9c657ff54bece5d8393af4626cb191351a2aac
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.2+10"
+  firebase_app_check_platform_interface:
+    dependency: transitive
+    description:
+      name: firebase_app_check_platform_interface
+      sha256: "4ca80bcc6c5c55289514d85e7c8ba8bc354342d23ab807b01c3f82e2fc7158e4"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.1+10"
+  firebase_app_check_web:
+    dependency: transitive
+    description:
+      name: firebase_app_check_web
+      sha256: b3150a78fe18c27525af05b149724ee33bd8592a5959e484fdfa5c98e25edb5f
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.0+14"
   firebase_auth:
     dependency: "direct main"
     description:
@@ -688,6 +712,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.3.0"
+  google_generative_ai:
+    dependency: "direct main"
+    description:
+      name: google_generative_ai
+      sha256: "71f613d0247968992ad87a0eb21650a566869757442ba55a31a81be6746e0d1f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.7"
   google_identity_services_web:
     dependency: transitive
     description:
@@ -744,30 +776,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.2"
-  hive:
-    dependency: "direct main"
-    description:
-      name: hive
-      sha256: "8dcf6db979d7933da8217edcec84e9df1bdb4e4edc7fc77dbd5aa74356d6d941"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.2.3"
-  hive_ce:
-    dependency: transitive
-    description:
-      name: hive_ce
-      sha256: "708bb39050998707c5d422752159f91944d3c81ab42d80e1bd0ee37d8e130658"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.11.3"
-  hive_flutter:
-    dependency: "direct main"
-    description:
-      name: hive_flutter
-      sha256: dca1da446b1d808a51689fb5d0c6c9510c0a2ba01e22805d492c73b68e33eecc
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.0"
   html:
     dependency: transitive
     description:
@@ -896,14 +904,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.5"
-  isolate_channel:
-    dependency: transitive
-    description:
-      name: isolate_channel
-      sha256: f3d36f783b301e6b312c3450eeb2656b0e7d1db81331af2a151d9083a3f6b18d
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.2+1"
   js:
     dependency: transitive
     description:

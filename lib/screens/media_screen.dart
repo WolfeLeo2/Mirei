@@ -176,6 +176,7 @@ class _MediaScreenState extends State<MediaScreen> {
       builder: (context, state) {
         return Scaffold(
           backgroundColor: const Color(0xFFd7dfe5),
+
           appBar: AppBar(
             backgroundColor: const Color(0xFFd7dfe5),
             elevation: 0,
