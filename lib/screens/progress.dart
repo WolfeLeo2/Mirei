@@ -731,7 +731,7 @@ class _ProgressScreenState extends State<ProgressScreen>
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
@@ -772,15 +772,15 @@ class _ProgressScreenState extends State<ProgressScreen>
           const SizedBox(height: 4),
           Text(
             title,
-            style: GoogleFonts.inter(
-              fontSize: 12,
+            style: TextStyle(
+              fontSize: 14,
               fontWeight: FontWeight.w500,
               color: Colors.grey[600],
             ),
           ),
           Text(
             subtitle,
-            style: GoogleFonts.inter(fontSize: 10, color: Colors.grey[500]),
+            style: GoogleFonts.inter(fontSize: 10, color: Colors.black),
           ),
         ],
       ),
