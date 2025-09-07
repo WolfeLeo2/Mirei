@@ -386,63 +386,112 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF115e5a),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF115e5a),
+        elevation: 0,
+        toolbarHeight: 92,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
+        titleSpacing: 10,
+        leadingWidth: 72,
+        leading: _currentUser != null
+            ? Padding(
+                padding: const EdgeInsets.only(left: 20),
+                child: RepaintBoundary(
+                  child: CircleAvatar(
+                                radius: 28,
+                                child: ClipOval(
+                    child: SizedBox(
+                      width: 52,
+                      height: 52,
+                      child: Image.network(
+                        _currentUser!.photoURL ??
+                            'https://api.dicebear.com/7.x/avataaars/png?seed=${_currentUser!.uid}&size=512',
+                                      fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
+                        gaplessPlayback: false,
+                        errorBuilder: (context, error, stackTrace) {
+                          final String name = (_currentUser!.displayName ?? '').trim();
+                          final String initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
+                          return Container(
+                            color: const Color(0xFF0E504D),
+                            alignment: Alignment.center,
+                            child: Text(
+                              initial,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          );
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            color: const Color(0xFF0E504D),
+                            alignment: Alignment.center,
+                            child: const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              )
+        )
+            : null,
+        title: _currentUser != null
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _currentUser!.displayName ?? '',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: '.SF Pro Display',
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _currentUser!.email ?? '',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      fontFamily: '.SF Pro Text',
+                    ),
+                  ),
+                ],
+              )
+            : null,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 20),
+            child: _hamburgerMenuIcon,
+          ),
+        ],
+      ),
       body: Stack(
         children: [
           Column(
             children: [
+              // Header moved into AppBar above. Maintain spacing below the AppBar.
               Container(
                 color: const Color(0xFF115e5a),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 60, 20, 0),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
                   child: Column(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          if (_currentUser != null)
-                            Row(
-                              children: [
-                                RepaintBoundary(
-                                  child: CircleAvatar(
-                                    radius: 28,
-                                    backgroundImage: NetworkImage(
-                                      _currentUser!.photoURL ??
-                                          'https://api.dicebear.com/7.x/avataaars/png?seed=${_currentUser!.uid}&size=150',
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _currentUser!.displayName ?? '',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w600,
-                                        fontFamily: '.SF Pro Display',
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      _currentUser!.email ?? '',
-                                      style: TextStyle(
-                                        color: Colors.white.withOpacity(0.7),
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w400,
-                                        fontFamily: '.SF Pro Text',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          // Use const hamburger menu for better performance
-                          _hamburgerMenuIcon,
-                        ],
-                      ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 8),
                       RepaintBoundary(
                         child: Stack(
                           alignment: Alignment.center,

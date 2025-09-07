@@ -811,7 +811,7 @@ class _ProgressScreenState extends State<ProgressScreen>
             children: [
               Text(
                 'Intensity Trend',
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
@@ -830,7 +830,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                 ),
                 child: Text(
                   _getTrendText(_intensityTrend!.trend),
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: _getTrendColor(_intensityTrend!.trend),
