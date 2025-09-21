@@ -57,7 +57,9 @@ class PerformanceService {
     });
     
     // Cancel unused timers
-    _debounceTimers.values.forEach((timer) => timer.cancel());
+    for (var timer in _debounceTimers.values) {
+      timer.cancel();
+    }
     _debounceTimers.clear();
     
     // Force garbage collection in debug mode

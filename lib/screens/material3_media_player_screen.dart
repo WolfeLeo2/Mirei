@@ -221,7 +221,7 @@ class _Material3MediaPlayerScreenState
 
   Widget _buildPlaceholder() {
     return Container(
-      color: Theme.of(context).colorScheme.surfaceVariant,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Icon(
         Icons.music_note,
         size: 120,

@@ -184,7 +184,7 @@ class DatabaseMaintenanceService {
 
     return CleanupResult(
       itemsDeleted: deletedCount,
-      description: 'Audio cache optimized (freed ${deletedSize} bytes)',
+      description: 'Audio cache optimized (freed $deletedSize bytes)',
     );
   }
 

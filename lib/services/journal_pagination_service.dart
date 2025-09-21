@@ -17,7 +17,7 @@ class JournalPaginationService {
   int _currentPage = 0;
   bool _hasMoreData = true;
   bool _isLoading = false;
-  List<JournalEntryRealm> _allLoadedEntries = [];
+  final List<JournalEntryRealm> _allLoadedEntries = [];
   
   /// Stream of grouped journal entries by month
   Stream<Map<String, List<JournalEntryRealm>>> get groupedEntriesStream => 

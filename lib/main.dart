@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -22,18 +23,28 @@ void main() async {
   // Load environment variables
   try {
     await dotenv.load(fileName: ".env");
-    print('✅ Environment variables loaded successfully');
+    if (kDebugMode) {
+      print('✅ Environment variables loaded successfully');
+    }
   } catch (e) {
-    print('⚠️ Warning: Could not load .env file: $e');
-    print('📝 Make sure you have a .env file with your Spotify credentials');
+    if (kDebugMode) {
+      print('⚠️ Warning: Could not load .env file: $e');
+    }
+    if (kDebugMode) {
+      print('📝 Make sure you have a .env file with your Spotify credentials');
+    }
   }
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  print('✅ Firebase initialized successfully');
+  if (kDebugMode) {
+    print('✅ Firebase initialized successfully');
+  }
 
   // Realm is initialized automatically when first accessed
-  print('✅ Using Realm for all data storage');
+  if (kDebugMode) {
+    print('✅ Using Realm for all data storage');
+  }
 
   // Test SharedPreferences early to catch issues
   try {
@@ -41,11 +52,15 @@ void main() async {
     await prefs.setString('test_key', 'test_value');
     final testValue = prefs.getString('test_key');
     if (testValue == 'test_value') {
-      print('✅ SharedPreferences initialized successfully');
+      if (kDebugMode) {
+        print('✅ SharedPreferences initialized successfully');
+      }
     }
     await prefs.remove('test_key'); // Clean up test
   } catch (e) {
-    print('⚠️ SharedPreferences initialization warning: $e');
+    if (kDebugMode) {
+      print('⚠️ SharedPreferences initialization warning: $e');
+    }
     // Continue anyway - the app will work with Realm storage
   }
 

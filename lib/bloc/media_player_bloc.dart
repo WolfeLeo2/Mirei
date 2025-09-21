@@ -229,7 +229,7 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
     // Check if this initialization is still current (not superseded by another)
     if (_currentInitializationId != initId) {
       print(
-        '🚫 Initialization $initId cancelled - superseded by ${_currentInitializationId}',
+        '🚫 Initialization $initId cancelled - superseded by $_currentInitializationId',
       );
       return;
     }
@@ -332,7 +332,7 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
       // Check if still current after async operation
       if (_currentInitializationId != initId) {
         print(
-          '🚫 Initialization $initId cancelled after cache init - superseded by ${_currentInitializationId}',
+          '🚫 Initialization $initId cancelled after cache init - superseded by $_currentInitializationId',
         );
         return;
       }
@@ -374,7 +374,7 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
 
         if (_currentInitializationId != initId) {
           print(
-            '🚫 Initialization $initId cancelled after cache lookup - superseded by ${_currentInitializationId}',
+            '🚫 Initialization $initId cancelled after cache lookup - superseded by $_currentInitializationId',
           );
           return;
         }
@@ -391,7 +391,7 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
       // Final check if still current after setting audio source
       if (_currentInitializationId != initId) {
         print(
-          '🚫 Initialization $initId cancelled after audio source set - superseded by ${_currentInitializationId}',
+          '🚫 Initialization $initId cancelled after audio source set - superseded by $_currentInitializationId',
         );
         return;
       }
@@ -891,10 +891,10 @@ class MediaPlayerBloc extends Bloc<MediaPlayerEvent, MediaPlayerState> {
           // Check if track changed
           final newTrackName = playerState.track?.name;
           if (newTrackName != null && newTrackName != state.trackTitle) {
-            final newArtistName = playerState.track?.artist?.name ?? '';
+            final newArtistName = playerState.track?.artist.name ?? '';
 
             // Track changed - fetch album art and update
-            _fetchSpotifyAlbumArt(playerState.track?.imageUri?.raw).then((
+            _fetchSpotifyAlbumArt(playerState.track?.imageUri.raw).then((
               albumArt,
             ) {
               add(

@@ -121,7 +121,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: textColor.withOpacity(0.1),
+                        color: textColor.withValues(alpha:0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
@@ -142,7 +142,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: textColor.withOpacity(0.1),
+                      color: textColor.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -162,7 +162,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                 height: screenWidth * 0.7,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: textColor.withOpacity(0.1),
+                  color: textColor.withValues(alpha:0.1),
                 ),
                 child: Stack(
                   alignment: Alignment.center,
@@ -175,7 +175,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                           size: Size(screenWidth * 0.7, screenWidth * 0.7),
                           painter: WavePainter(
                             animation: _waveAnimationController,
-                            color: textColor.withOpacity(0.2),
+                            color: textColor.withValues(alpha:0.2),
                           ),
                         );
                       },
@@ -186,7 +186,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                       width: 80,
                       height: 80,
                       colorFilter: ColorFilter.mode(
-                        textColor.withOpacity(0.7),
+                        textColor.withValues(alpha:0.7),
                         BlendMode.srcIn,
                       ),
                     ),
@@ -206,9 +206,9 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                 ),
                 textAlign: TextAlign.center,
               ),
-              
+
               SizedBox(height: screenHeight * 0.01),
-              
+
               Text(
                 widget.meditation.duration,
                 style: GoogleFonts.inter(
@@ -235,7 +235,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                           color: textColor,
                         ),
                       ),
-                      
+
                       // Progress bar (expanded) - Simple design
                       Expanded(
                         child: Padding(
@@ -243,13 +243,13 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                           child: SliderTheme(
                             data: SliderTheme.of(context).copyWith(
                               activeTrackColor: textColor == Colors.white ? Colors.white : Colors.black,
-                              inactiveTrackColor: textColor == Colors.white 
-                                  ? Colors.white.withOpacity(0.3) 
-                                  : Colors.black.withOpacity(0.3),
+                              inactiveTrackColor: textColor == Colors.white
+                                  ? Colors.white.withValues(alpha:0.3)
+                                  : Colors.black.withValues(alpha:0.3),
                               thumbColor: textColor == Colors.white ? Colors.white : Colors.black,
-                              overlayColor: textColor == Colors.white 
-                                  ? Colors.white.withOpacity(0.2) 
-                                  : Colors.black.withOpacity(0.2),
+                              overlayColor: textColor != Colors.white 
+                                  ? Colors.black.withValues(alpha:0.2)
+                                  : Colors.white.withValues(alpha: 0.2),
                               trackHeight: 4,
                               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
                               overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),

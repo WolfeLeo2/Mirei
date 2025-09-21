@@ -153,38 +153,6 @@ class _MainNavigationState extends State<MainNavigation>
                   return Transform.scale(
                     scale: _breathingAnimation.value,
                     child: BottomBar(
-                      child: TabBar(
-                        controller: _tabController,
-                        indicatorColor: colors[_tabController.index],
-                        dividerColor: Colors.transparent,
-                        labelColor: colors[_tabController.index],
-                        unselectedLabelColor: const Color.fromARGB(
-                          255,
-                          21,
-                          55,
-                          26,
-                        ),
-                        onTap: (index) {
-                          _markUserActivity(); // Tab tap is user activity
-                          _tabController.animateTo(index);
-                        },
-                        tabs: const [
-                          Tab(
-                            icon: Icon(
-                              FontAwesome.house_chimney_solid,
-                              size: 24,
-                            ),
-                          ),
-                          Tab(
-                            icon: Icon(
-                              FontAwesome.book_journal_whills_solid,
-                              size: 24,
-                            ),
-                          ),
-                          Tab(icon: Icon(FontAwesome.spa_solid, size: 24)),
-                          Tab(icon: Icon(FontAwesome.radio_solid, size: 24)),
-                        ],
-                      ),
                       fit: StackFit.expand,
                       icon: (width, height) => Center(
                         child: IconButton(
@@ -227,6 +195,38 @@ class _MainNavigationState extends State<MainNavigation>
                               children: _screens,
                             ),
                           ),
+                      child: TabBar(
+                        controller: _tabController,
+                        indicatorColor: colors[_tabController.index],
+                        dividerColor: Colors.transparent,
+                        labelColor: colors[_tabController.index],
+                        unselectedLabelColor: const Color.fromARGB(
+                          255,
+                          21,
+                          55,
+                          26,
+                        ),
+                        onTap: (index) {
+                          _markUserActivity(); // Tab tap is user activity
+                          _tabController.animateTo(index);
+                        },
+                        tabs: const [
+                          Tab(
+                            icon: Icon(
+                              FontAwesome.house_chimney_solid,
+                              size: 24,
+                            ),
+                          ),
+                          Tab(
+                            icon: Icon(
+                              FontAwesome.book_journal_whills_solid,
+                              size: 24,
+                            ),
+                          ),
+                          Tab(icon: Icon(FontAwesome.spa_solid, size: 24)),
+                          Tab(icon: Icon(FontAwesome.radio_solid, size: 24)),
+                        ],
+                      ),
                     ),
                   );
                 },

@@ -17,8 +17,8 @@ class MediaPlayerColors {
   static Color? _dominantColor;
   static Color? _accentColor;
   static String? _lastAlbumArt;
-  static Map<String, ImageProvider> _imageProviderCache = {};
-  static Map<String, _ColorPalette> _colorCache = {};
+  static final Map<String, ImageProvider> _imageProviderCache = {};
+  static final Map<String, _ColorPalette> _colorCache = {};
 
   static Color get dominantColor => _dominantColor ?? const Color(0xFF2A4A3A);
   static Color get accentColor => _accentColor ?? const Color(0xFF4ADE80);
@@ -272,10 +272,8 @@ class _MiniPlayerState extends State<MiniPlayer> with TickerProviderStateMixin {
     }
 
     // Cache the provider
-    if (provider != null) {
-      MediaPlayerColors.cacheImageProvider(albumArt, provider);
-    }
-
+    MediaPlayerColors.cacheImageProvider(albumArt, provider);
+  
     return provider;
   }
 

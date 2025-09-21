@@ -842,7 +842,7 @@ class _ProgressScreenState extends State<ProgressScreen>
           const SizedBox(height: 16),
 
           // Intensity visualization
-          Container(height: 200, child: _buildIntensityChart()),
+          SizedBox(height: 200, child: _buildIntensityChart()),
 
           const SizedBox(height: 16),
           Row(
@@ -903,7 +903,7 @@ class _ProgressScreenState extends State<ProgressScreen>
           const SizedBox(height: 20),
 
           // Pie chart
-          Container(height: 200, child: _buildMoodPieChart()),
+          SizedBox(height: 200, child: _buildMoodPieChart()),
 
           const SizedBox(height: 16),
           // Mood legend
@@ -1508,7 +1508,7 @@ class _ProgressScreenState extends State<ProgressScreen>
   Widget _buildTimeOfDayChart() {
     if (_timePatterns == null) return const SizedBox();
 
-    return Container(
+    return SizedBox(
       height: 150,
       child: BarChart(
         BarChartData(
@@ -2169,7 +2169,7 @@ class _ProgressScreenState extends State<ProgressScreen>
             ),
           ),
           const SizedBox(height: 16),
-          Container(height: 200, child: _buildTimelineChart()),
+          SizedBox(height: 200, child: _buildTimelineChart()),
         ],
       ),
     );

@@ -36,7 +36,7 @@ class _JournalViewScreenState extends State<JournalViewScreen>
   Color _moodColor = AppColors.primary;
   String? _currentlyPlayingPath;
   bool _isFloatingBarVisible = true;
-  double _expandedHeight = 260; // Default height
+  final double _expandedHeight = 260; // Default height
 
   final Map<String, PlayerController> _playerControllers = {};
   final RealmDatabaseHelper _dbHelper = RealmDatabaseHelper();

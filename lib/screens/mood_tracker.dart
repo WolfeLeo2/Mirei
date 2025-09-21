@@ -278,7 +278,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
               ),
               const SizedBox(width: 4),
               Text(
-                '$exactTime',
+                exactTime,
                 style: const TextStyle(
                   color: Color.fromRGBO(255, 255, 255, 0.7),
                   fontSize: 14,

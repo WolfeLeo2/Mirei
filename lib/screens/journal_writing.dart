@@ -1375,7 +1375,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
                       kMoodSvg[_selectedEntryMood!] ??
                           'assets/emotion-icons/neutral.svg',
                       colorFilter: ColorFilter.mode(
-                        selectedMoodColor!,
+                        selectedMoodColor,
                         BlendMode.srcIn,
                       ),
                     ),

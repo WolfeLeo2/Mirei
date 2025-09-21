@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 /// Enhanced Performance Service for comprehensive app optimization
@@ -165,7 +164,7 @@ class PerformanceService {
 
   static int _getCacheSize() {
     int size = 0;
-    _cache.values.forEach((value) {
+    for (var value in _cache.values) {
       if (value is String) {
         size += value.length * 2; // Rough estimate for UTF-16
       } else if (value is List<int>) {
@@ -173,7 +172,7 @@ class PerformanceService {
       } else {
         size += 1024; // Default estimate
       }
-    });
+    }
     return size;
   }
 

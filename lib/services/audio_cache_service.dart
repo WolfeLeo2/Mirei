@@ -741,7 +741,7 @@ class AudioCacheService {
         }
 
         print(
-          'Cache cleanup: Removed ${removedSize} bytes, ${entries.length} files',
+          'Cache cleanup: Removed $removedSize bytes, ${entries.length} files',
         );
       }
 

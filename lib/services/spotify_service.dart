@@ -71,7 +71,7 @@ class SpotifyService {
       final playerState = await SpotifySdk.getPlayerState();
       if (playerState != null) {
         _currentTrackName = playerState.track?.name;
-        _currentArtistName = playerState.track?.artist?.name;
+        _currentArtistName = playerState.track?.artist.name;
         _isPlaying = !playerState.isPaused;
 
         print(
