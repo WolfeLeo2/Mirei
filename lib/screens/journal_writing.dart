@@ -18,8 +18,9 @@ import '../services/journal_mood_integration.dart';
 import '../data/mood_constants.dart';
 import '../data/mood_assets.dart';
 import '../core/constants/app_colors.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+
 import '../core/theme/mood_colors.dart';
+import '../components/mood_button.dart';
 
 class JournalWritingScreen extends StatefulWidget {
   final JournalTemplate? initialTemplate;
@@ -204,9 +205,9 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Scaffold(
-        backgroundColor: const Color(0xFFfaf6f1),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
-          backgroundColor: const Color(0xFFfaf6f1),
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           elevation: 0,
           leading: IconButton(
             icon: const Icon(
@@ -242,133 +243,52 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
           ],
         ),
         body: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Date display
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF115e5a).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today,
-                        color: const Color(0xFF115e5a),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        DateFormat('EEEE, MMMM d, yyyy').format(DateTime.now()),
-                        style: TextStyle(
-                          color: const Color(0xFF115e5a),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: GoogleFonts.inter().fontFamily,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Title input
-                Text(
-                  'Title',
-                  style: TextStyle(
-                    color: Colors.black87,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: GoogleFonts.inter().fontFamily,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _titleController,
-                  focusNode: _titleFocusNode,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontFamily: GoogleFonts.inter().fontFamily,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Give your entry a title...',
-                    hintStyle: TextStyle(
-                      color: Colors.black38,
-                      fontFamily: GoogleFonts.inter().fontFamily,
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Content input
-                Text(
-                  'Your thoughts',
-                  style: TextStyle(
-                    color: Colors.black87,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: GoogleFonts.inter().fontFamily,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: TextField(
-                    controller: _contentController,
-                    focusNode: _contentFocusNode,
-                    maxLines: 15,
-                    style: TextStyle(
-                      fontSize: 16,
-                      height: 1.5,
-                      fontFamily: GoogleFonts.inter().fontFamily,
-                    ),
-                    decoration: InputDecoration(
-                      hintText:
-                          'What\'s on your mind? Write about your day, your feelings, your goals, or anything that comes to mind...',
-                      hintStyle: TextStyle(
-                        color: Colors.black38,
-                        fontFamily: GoogleFonts.inter().fontFamily,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.all(20),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Mood section
-                _buildMoodSection(),
-                const SizedBox(height: 32),
-
-                // Media attachments section
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Padded sections
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Date display
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF115e5a).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            color: const Color(0xFF115e5a),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            DateFormat(
+                              'EEEE, MMMM d, yyyy',
+                            ).format(DateTime.now()),
+                            style: TextStyle(
+                              color: const Color(0xFF115e5a),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              fontFamily: GoogleFonts.inter().fontFamily,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Title input
                     Text(
-                      'Attachments',
+                      'Title',
                       style: TextStyle(
                         color: Colors.black87,
                         fontSize: 18,
@@ -376,107 +296,209 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
                         fontFamily: GoogleFonts.inter().fontFamily,
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _titleController,
+                      focusNode: _titleFocusNode,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontFamily: GoogleFonts.inter().fontFamily,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Give your entry a title...',
+                        hintStyle: TextStyle(
+                          color: Colors.black38,
+                          fontFamily: GoogleFonts.inter().fontFamily,
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Content input
+                    Text(
+                      'Your thoughts',
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: GoogleFonts.inter().fontFamily,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TextField(
+                        controller: _contentController,
+                        focusNode: _contentFocusNode,
+                        maxLines: 15,
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.5,
+                          fontFamily: GoogleFonts.inter().fontFamily,
+                        ),
+                        decoration: InputDecoration(
+                          hintText:
+                              'What\'s on your mind? Write about your day, your feelings, your goals, or anything that comes to mind...',
+                          hintStyle: TextStyle(
+                            color: Colors.black38,
+                            fontFamily: GoogleFonts.inter().fontFamily,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.all(20),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+
+              // Mood section (edge-to-edge)
+              _buildMoodSection(),
+
+              // Continue with padded sections
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 32),
+
+                    // Media attachments section
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Add image button
-                        GestureDetector(
-                          onTap: _pickImages,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF115e5a),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.image,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Photo',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    fontFamily: GoogleFonts.inter().fontFamily,
-                                  ),
-                                ),
-                              ],
-                            ),
+                        Text(
+                          'Attachments',
+                          style: TextStyle(
+                            color: Colors.black87,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: GoogleFonts.inter().fontFamily,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        // Add audio button
-                        GestureDetector(
-                          onTap: _isRecording
-                              ? _stopRecording
-                              : _startRecording,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _isRecording
-                                  ? Colors.red
-                                  : const Color(0xFF115e5a),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  _isRecording ? Icons.stop : Icons.mic,
-                                  color: Colors.white,
-                                  size: 16,
+                        Row(
+                          children: [
+                            // Add image button
+                            GestureDetector(
+                              onTap: _pickImages,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
                                 ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  _isRecording ? 'Stop' : 'Voice',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    fontFamily: GoogleFonts.inter().fontFamily,
-                                  ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF115e5a),
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
-                              ],
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.image,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Photo',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        fontFamily:
+                                            GoogleFonts.inter().fontFamily,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 12),
+                            // Add audio button
+                            GestureDetector(
+                              onTap: _isRecording
+                                  ? _stopRecording
+                                  : _startRecording,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _isRecording
+                                      ? Colors.red
+                                      : const Color(0xFF115e5a),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _isRecording ? Icons.stop : Icons.mic,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _isRecording ? 'Stop' : 'Voice',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        fontFamily:
+                                            GoogleFonts.inter().fontFamily,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
+
+                    // Real-time wave visualization during recording
+                    if (_showWaveVisualization)
+                      _buildWaveVisualization()
+                          .animate()
+                          .scale(
+                            begin: const Offset(0.8, 0.8),
+                            duration: 200.ms,
+                            curve: Curves.easeOut,
+                          )
+                          .fadeIn(duration: 200.ms),
+
+                    // Media grid
+                    if (_selectedImages.isNotEmpty ||
+                        _audioRecordings.isNotEmpty)
+                      _buildMediaGrid(),
+
+                    const SizedBox(
+                      height: 100,
+                    ), // Extra space for comfortable scrolling
                   ],
                 ),
-                const SizedBox(height: 16),
-
-                // Real-time wave visualization during recording
-                if (_showWaveVisualization)
-                  _buildWaveVisualization()
-                      .animate()
-                      .scale(
-                        begin: const Offset(0.8, 0.8),
-                        duration: 200.ms,
-                        curve: Curves.easeOut,
-                      )
-                      .fadeIn(duration: 200.ms),
-
-                // Media grid
-                if (_selectedImages.isNotEmpty || _audioRecordings.isNotEmpty)
-                  _buildMediaGrid(),
-
-                const SizedBox(
-                  height: 100,
-                ), // Extra space for comfortable scrolling
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1279,6 +1301,9 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: 
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -1326,338 +1351,34 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
                 ),
               ),
           ],
+          ),
         ),
-        const SizedBox(height: 12),
-        GestureDetector(
-          onTap: _showMoodSelector,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(
-              color: _selectedEntryMood != null
-                  ? selectedMoodColor!.withValues(alpha: 0.05)
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: _selectedEntryMood != null
-                    ? selectedMoodColor!.withValues(alpha: 0.4)
-                    : Colors.grey.withValues(alpha: 0.3),
-                width: _selectedEntryMood != null ? 2 : 1,
-              ),
-              boxShadow: _selectedEntryMood != null
-                  ? [
-                      BoxShadow(
-                        color: selectedMoodColor!.withValues(alpha: 0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ]
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-            ),
-            child: Row(
-              children: [
-                if (_selectedEntryMood != null)
-                  Container(
-                    width: 32,
-                    height: 32,
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: selectedMoodColor!.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: SvgPicture.asset(
-                      kMoodSvg[_selectedEntryMood!] ??
-                          'assets/emotion-icons/neutral.svg',
-                      colorFilter: ColorFilter.mode(
-                        selectedMoodColor,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  )
-                else
-                  Icon(
-                    Icons.mood_outlined,
-                    color: Colors.grey.shade600,
-                    size: 24,
-                  ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _selectedEntryMood != null
-                        ? '$_selectedEntryMood'
-                        : 'Tap to select your mood while writing',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: _selectedEntryMood != null
-                          ? selectedMoodColor
-                          : Colors.black54,
-                      fontWeight: _selectedEntryMood != null
-                          ? FontWeight.w600
-                          : FontWeight.w500,
-                      fontFamily: GoogleFonts.inter().fontFamily,
-                    ),
-                  ),
-                ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  color: _selectedEntryMood != null
-                      ? selectedMoodColor!.withValues(alpha: 0.7)
-                      : Colors.grey,
-                  size: 16,
-                ),
-              ],
+        const SizedBox(height: 16),
+        // Mood Buttons Horizontal Scroll
+        RepaintBoundary(
+          child:SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: List.generate(MoodConstants.moodTypes.length, (index) {
+              final mood = MoodConstants.moodTypes[index];
+              return MoodButton(
+                Mood: mood,
+                svgPath: kMoodSvg[mood] ?? 'assets/emotion-icons/neutral.svg',
+                isSelected: mood == _selectedEntryMood,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  setState(() {
+                    _selectedEntryMood = mood;
+                  });
+                },
+              );
+            }),
             ),
           ),
         ),
       ],
-    );
-  }
-
-  void _showMoodSelector() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (context) => ClipPath(
-        clipper: _SquircleClipper(radius: 28),
-        child: Container(
-          height: MediaQuery.of(context).size.height * 0.75,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 20,
-                offset: const Offset(0, -5),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              // Handle bar
-              Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 48,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-
-              // Header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.primary.withValues(alpha: 0.1),
-                                AppColors.primaryLight.withValues(alpha: 0.1),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Icon(
-                            Icons.mood_rounded,
-                            color: AppColors.primary,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'How are you feeling?',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black87,
-                                  fontFamily: GoogleFonts.inter().fontFamily,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Choose the mood that best represents how you feel while writing',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black54,
-                                  fontFamily: GoogleFonts.inter().fontFamily,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-                ),
-              ),
-
-              // Mood Grid
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: GridView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          childAspectRatio: 1.1,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                        ),
-                    itemCount: MoodConstants.moodTypes.length,
-                    itemBuilder: (context, index) {
-                      final moodExtLocal = Theme.of(
-                        context,
-                      ).extension<MoodColors>();
-                      final mood = MoodConstants.moodTypes[index];
-                      final isSelected = mood == _selectedEntryMood;
-                      final moodColor =
-                          (moodExtLocal?.byMood(mood) ??
-                          AppColors.getEmotionColor(mood));
-
-                      return GestureDetector(
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          setState(() {
-                            _selectedEntryMood = mood;
-                          });
-                          // Add a slight delay for visual feedback before closing
-                          Future.delayed(const Duration(milliseconds: 150), () {
-                            if (mounted) Navigator.pop(context);
-                          });
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeInOut,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? moodColor.withValues(alpha: 0.08)
-                                : Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isSelected
-                                  ? moodColor.withValues(alpha: 0.4)
-                                  : Colors.grey.withValues(alpha: 0.2),
-                              width: isSelected ? 2 : 1,
-                            ),
-                            boxShadow: isSelected
-                                ? [
-                                    BoxShadow(
-                                      color: moodColor.withValues(alpha: 0.15),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ]
-                                : [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.04,
-                                      ),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(6),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // SVG Icon
-                                Expanded(
-                                  flex: 3,
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(8),
-                                    child: SvgPicture.asset(
-                                      kMoodSvg[mood] ??
-                                          'assets/emotion-icons/neutral.svg',
-                                      colorFilter: ColorFilter.mode(
-                                        isSelected
-                                            ? moodColor
-                                            : Colors.grey.shade700,
-                                        BlendMode.srcIn,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                                const SizedBox(height: 4),
-
-                                // Mood Name
-                                Expanded(
-                                  flex: 1,
-                                  child: Text(
-                                    mood,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: isSelected
-                                          ? FontWeight.w700
-                                          : FontWeight.w600,
-                                      color: isSelected
-                                          ? moodColor
-                                          : Colors.black87,
-                                      fontFamily:
-                                          GoogleFonts.inter().fontFamily,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-
-                                // Selection indicator
-                                AnimatedOpacity(
-                                  duration: const Duration(milliseconds: 200),
-                                  opacity: isSelected ? 1.0 : 0.0,
-                                  child: Container(
-                                    width: 4,
-                                    height: 4,
-                                    decoration: BoxDecoration(
-                                      color: moodColor,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-
-              // Bottom padding for safe area
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -1833,31 +1554,4 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
       },
     );
   }
-}
-
-class _SquircleClipper extends CustomClipper<Path> {
-  final double radius;
-  _SquircleClipper({required this.radius});
-
-  @override
-  Path getClip(Size size) {
-    try {
-      final shape = RoundedSuperellipseBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(radius)),
-      );
-      return shape.getOuterPath(Rect.fromLTWH(0, 0, size.width, size.height));
-    } catch (_) {
-      return Path()..addRRect(
-        RRect.fromRectAndCorners(
-          Rect.fromLTWH(0, 0, size.width, size.height),
-          topLeft: Radius.circular(radius),
-          topRight: Radius.circular(radius),
-        ),
-      );
-    }
-  }
-
-  @override
-  bool shouldReclip(covariant _SquircleClipper oldClipper) =>
-      oldClipper.radius != radius;
 }

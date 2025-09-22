@@ -160,6 +160,8 @@ class GeminiAiProvider implements AiProvider {
         '''
 Provide a brief, compassionate wellness insight based on the recent mood trend below.
 Be supportive and specific.
+Do not that intestity (1 to 5) is not a number of times the mood has been entered, but rather a measure of how intense the mood is.
+Do not exceed 3 paragraphs.
 Recent moods: $summary
 Context: ${context ?? 'N/A'}
 ''';

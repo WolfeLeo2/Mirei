@@ -3,14 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../models/meditation.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:just_audio/just_audio.dart';
 
 class MeditationPlayerScreen extends StatefulWidget {
   final Meditation meditation;
 
-  const MeditationPlayerScreen({
-    super.key,
-    required this.meditation,
-  });
+  const MeditationPlayerScreen({super.key, required this.meditation});
 
   @override
   State<MeditationPlayerScreen> createState() => _MeditationPlayerScreenState();
@@ -24,13 +22,15 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
   late AnimationController _waveAnimationController;
   late AnimationController _playButtonController;
 
+  final AudioPlayer _player = AudioPlayer();
+
   @override
   void initState() {
     super.initState();
-    
+
     // Parse duration from string (e.g., "10 min" -> Duration(minutes: 10))
     totalDuration = _parseDuration(widget.meditation.duration);
-    
+
     _waveAnimationController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -40,12 +40,60 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
+
+    _initializeAudio();
+  }
+
+  Future<void> _initializeAudio() async {
+    try {
+      await _player.setUrl(widget.meditation.audioUrl);
+      _player.durationStream.listen((duration) {
+        if (!mounted || duration == null) return;
+        setState(() {
+          totalDuration = duration;
+        });
+      });
+      _player.positionStream.listen((pos) {
+        if (!mounted) return;
+        setState(() {
+          currentPosition = pos.inSeconds.toDouble();
+        });
+      });
+      _player.playerStateStream.listen((state) {
+        if (!mounted) return;
+        final playing =
+            state.playing && state.processingState != ProcessingState.completed;
+        setState(() {
+          isPlaying = playing;
+        });
+        if (playing) {
+          if (!_waveAnimationController.isAnimating) {
+            _waveAnimationController.repeat();
+          }
+          if (_playButtonController.status != AnimationStatus.forward &&
+              _playButtonController.value < 1.0) {
+            _playButtonController.forward();
+          }
+        } else {
+          if (_waveAnimationController.isAnimating) {
+            _waveAnimationController.stop();
+          }
+          if (_playButtonController.status != AnimationStatus.reverse &&
+              _playButtonController.value > 0.0) {
+            _playButtonController.reverse();
+          }
+        }
+      });
+    } catch (_) {
+      // Silently ignore for now; UI remains usable
+    }
   }
 
   @override
   void dispose() {
     _waveAnimationController.dispose();
     _playButtonController.dispose();
+    _player.dispose();
     super.dispose();
   }
 
@@ -66,35 +114,39 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
 
   Color _getSecondaryColor(Color primaryColor) {
     final textColor = _getTextColor(primaryColor);
-    return textColor == Colors.black87 
-        ? const Color.fromARGB(130, 0, 0, 0) 
+    return textColor == Colors.black87
+        ? const Color.fromARGB(130, 0, 0, 0)
         : const Color.fromARGB(207, 255, 255, 255);
   }
 
-  void _togglePlayPause() {
-    setState(() {
-      isPlaying = !isPlaying;
-    });
-
-    if (isPlaying) {
-      _waveAnimationController.repeat();
-      _playButtonController.forward();
+  void _togglePlayPause() async {
+    if (_player.playing) {
+      await _player.pause();
     } else {
-      _waveAnimationController.stop();
-      _playButtonController.reverse();
+      await _player.play();
     }
   }
 
-  void _skipBackward() {
-    setState(() {
-      currentPosition = (currentPosition - 15).clamp(0.0, totalDuration.inSeconds.toDouble());
-    });
+  void _skipBackward() async {
+    final target = (currentPosition - 15).clamp(
+      0.0,
+      totalDuration.inSeconds.toDouble(),
+    );
+    await _player.seek(Duration(seconds: target.toInt()));
   }
 
-  void _skipForward() {
-    setState(() {
-      currentPosition = (currentPosition + 15).clamp(0.0, totalDuration.inSeconds.toDouble());
-    });
+  void _skipForward() async {
+    final target = (currentPosition + 15).clamp(
+      0.0,
+      totalDuration.inSeconds.toDouble(),
+    );
+    await _player.seek(Duration(seconds: target.toInt()));
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -121,7 +173,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: textColor.withValues(alpha:0.1),
+                        color: textColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
@@ -142,14 +194,10 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: textColor.withValues(alpha:0.1),
+                      color: textColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(
-                      Icons.more_horiz,
-                      color: textColor,
-                      size: 24,
-                    ),
+                    child: Icon(Icons.more_horiz, color: textColor, size: 24),
                   ),
                 ],
               ),
@@ -162,7 +210,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                 height: screenWidth * 0.7,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: textColor.withValues(alpha:0.1),
+                  color: textColor.withValues(alpha: 0.1),
                 ),
                 child: Stack(
                   alignment: Alignment.center,
@@ -175,7 +223,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                           size: Size(screenWidth * 0.7, screenWidth * 0.7),
                           painter: WavePainter(
                             animation: _waveAnimationController,
-                            color: textColor.withValues(alpha:0.2),
+                            color: textColor.withValues(alpha: 0.2),
                           ),
                         );
                       },
@@ -186,7 +234,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                       width: 80,
                       height: 80,
                       colorFilter: ColorFilter.mode(
-                        textColor.withValues(alpha:0.7),
+                        textColor.withValues(alpha: 0.7),
                         BlendMode.srcIn,
                       ),
                     ),
@@ -228,7 +276,9 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                     children: [
                       // Current time
                       Text(
-                        _formatDuration(Duration(seconds: currentPosition.toInt())),
+                        _formatDuration(
+                          Duration(seconds: currentPosition.toInt()),
+                        ),
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -236,37 +286,49 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                         ),
                       ),
 
-                      // Progress bar (expanded) - Simple design
+                      // Progress bar (expanded)
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: SliderTheme(
                             data: SliderTheme.of(context).copyWith(
-                              activeTrackColor: textColor == Colors.white ? Colors.white : Colors.black,
+                              activeTrackColor: textColor == Colors.white
+                                  ? Colors.white
+                                  : Colors.black,
                               inactiveTrackColor: textColor == Colors.white
-                                  ? Colors.white.withValues(alpha:0.3)
-                                  : Colors.black.withValues(alpha:0.3),
-                              thumbColor: textColor == Colors.white ? Colors.white : Colors.black,
-                              overlayColor: textColor != Colors.white 
-                                  ? Colors.black.withValues(alpha:0.2)
+                                  ? Colors.white.withValues(alpha: 0.3)
+                                  : Colors.black.withValues(alpha: 0.3),
+                              thumbColor: textColor == Colors.white
+                                  ? Colors.white
+                                  : Colors.black,
+                              overlayColor: textColor != Colors.white
+                                  ? Colors.black.withValues(alpha: 0.2)
                                   : Colors.white.withValues(alpha: 0.2),
                               trackHeight: 4,
-                              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                              overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                              thumbShape: const RoundSliderThumbShape(
+                                enabledThumbRadius: 6,
+                              ),
+                              overlayShape: const RoundSliderOverlayShape(
+                                overlayRadius: 16,
+                              ),
                             ),
                             child: Slider(
-                              value: currentPosition,
+                              value: currentPosition.clamp(
+                                0.0,
+                                totalDuration.inSeconds.toDouble(),
+                              ),
                               max: totalDuration.inSeconds.toDouble(),
-                              onChanged: (value) {
-                                setState(() {
-                                  currentPosition = value;
-                                });
+                              onChanged: (value) async {
+                                setState(() => currentPosition = value);
+                                await _player.seek(
+                                  Duration(seconds: value.toInt()),
+                                );
                               },
                             ),
                           ),
                         ),
                       ),
-                      
+
                       // Total duration
                       Text(
                         _formatDuration(totalDuration),
@@ -278,37 +340,39 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                       ),
                     ],
                   ),
-                  
-                  const SizedBox(height: 32),
-                  
-                  // Control buttons - Simple design like in image
+
+                  SizedBox(height: screenHeight * 0.02),
+
+                  // Playback controls
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Skip backward button
-                      _Controls(
+                      IconButton(
+                        icon: Icon(
+                          CupertinoIcons.gobackward_15,
+                          color: textColor,
+                        ),
+                        iconSize: 28,
                         onPressed: _skipBackward,
-                        icon: CupertinoIcons.backward_fill,
-                        isDark: textColor == Colors.white,
                       ),
-                      
-                      const SizedBox(width: 40),
-                      
-                      // Play/Pause button
-                      _Controls(
-                        onPressed: _togglePlayPause,
-                        icon: isPlaying ? CupertinoIcons.pause_solid : CupertinoIcons.play_arrow_solid,
-                        isDark: textColor == Colors.white,
-                        isMain: true,
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: _togglePlayPause,
+                        child: AnimatedIcon(
+                          icon: AnimatedIcons.play_pause,
+                          progress: _playButtonController,
+                          color: textColor,
+                          size: 44,
+                        ),
                       ),
-                      
-                      const SizedBox(width: 40),
-                      
-                      // Skip forward button
-                      _Controls(
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: Icon(
+                          CupertinoIcons.goforward_15,
+                          color: textColor,
+                        ),
+                        iconSize: 28,
                         onPressed: _skipForward,
-                        icon: CupertinoIcons.forward_fill,
-                        isDark: textColor == Colors.white,
                       ),
                     ],
                   ),
@@ -322,41 +386,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
       ),
     );
   }
-
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
-    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-    return "$twoDigitMinutes:$twoDigitSeconds";
-  }
 }
-
-class _Controls extends StatelessWidget {
-  final VoidCallback onPressed;
-  final IconData icon;
-  final bool isDark;
-  final bool isMain;
-
-  const _Controls({
-    required this.onPressed,
-    required this.icon,
-    required this.isDark,
-    this.isMain = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Icon(
-        icon,
-        color: isDark ? Colors.white : Colors.black54,
-        size: isMain ? 48 : 40,
-      ),
-    );
-  }
-}
-
 
 class WavePainter extends CustomPainter {
   final Animation<double> animation;
@@ -372,24 +402,16 @@ class WavePainter extends CustomPainter {
       ..strokeWidth = 2;
 
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
+    final maxRadius = size.width * 0.35;
 
-    // Draw multiple concentric circles with animation
     for (int i = 0; i < 3; i++) {
-      final animatedRadius = (radius * 0.3) + 
-          (radius * 0.4 * animation.value) + 
-          (i * 20);
-      
-      final opacity = (1.0 - animation.value) * (1.0 - i * 0.3);
-      
-      canvas.drawCircle(
-        center,
-        animatedRadius,
-        paint..color = color.withOpacity(opacity.clamp(0.0, 1.0)),
-      );
+      final progress = (animation.value + i / 3) % 1.0;
+      final radius = maxRadius * progress;
+      paint.color = color.withValues(alpha: (1 - progress) * 0.5);
+      canvas.drawCircle(center, radius, paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-} 
+  bool shouldRepaint(covariant WavePainter oldDelegate) => true;
+}

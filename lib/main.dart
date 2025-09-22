@@ -2,15 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:mirei/bloc/media_player_bloc.dart';
 import 'package:mirei/bloc/mood_bloc.dart';
 import 'package:mirei/repositories/mood_repository.dart';
 import 'package:mirei/screens/auth/auth_wrapper.dart';
-import 'package:mirei/services/audio_cache_service.dart';
 import 'services/performance_service.dart';
 import 'services/database_maintenance_service.dart';
 
@@ -29,9 +26,6 @@ void main() async {
   } catch (e) {
     if (kDebugMode) {
       print('⚠️ Warning: Could not load .env file: $e');
-    }
-    if (kDebugMode) {
-      print('📝 Make sure you have a .env file with your Spotify credentials');
     }
   }
 
@@ -68,7 +62,6 @@ void main() async {
   await Future.wait([
     initializePerformanceService(),
     initializeDatabaseServices(),
-    initializeAudioServices(),
   ]);
 
   runApp(const MyApp());
@@ -95,18 +88,6 @@ Future<void> initializeDatabaseServices() async {
   }
 }
 
-/// Initialize background audio services
-Future<void> initializeAudioServices() async {
-  try {
-    // Background audio is now handled by just_audio_background
-    // Pre-warm audio system
-    final player = AudioPlayer();
-    await player.dispose();
-  } catch (e) {
-    // Silently handle errors - continue app startup
-  }
-}
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -119,17 +100,11 @@ class MyApp extends StatelessWidget {
               MoodBloc(moodRepository: RealmMoodRepository())
                 ..add(const LoadInitialMood()),
         ),
-        BlocProvider(
-          create: (context) => MediaPlayerBloc(
-            audioPlayer: AudioPlayer(),
-            cacheService: AudioCacheService(),
-          ),
-        ),
       ],
       child: MaterialApp(
         title: 'Mirei',
         theme: AppTheme.light(),
-        darkTheme: AppTheme.dark(),
+        //darkTheme: AppTheme.dark(),
         themeMode: ThemeMode.system,
         home: const AuthWrapper(),
       ),

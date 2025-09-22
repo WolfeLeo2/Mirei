@@ -13,8 +13,8 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'enhanced_mood_details.dart';
 import 'progress.dart';
 import 'journal_list.dart';
-import 'media_screen.dart';
 import 'package:lottie/lottie.dart';
+import 'meditation_screen.dart';
 
 // Const widgets for static decorative elements
 class _EmphasisIcon extends StatelessWidget {
@@ -366,11 +366,13 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const MediaScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const MeditationScreen(),
+                  ),
                 );
               },
               child: const ActivityIcon(
-                label: 'Music & Media',
+                label: 'Meditation',
                 backgroundColor: Color(0xFFC1DFDF),
                 svgIcon: 'assets/icons/meditation.svg',
                 svgShape: 'assets/icons/heptagon.svg',
@@ -398,54 +400,59 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                 padding: const EdgeInsets.only(left: 20),
                 child: RepaintBoundary(
                   child: CircleAvatar(
-                                radius: 28,
-                                child: ClipOval(
-                    child: SizedBox(
-                      width: 52,
-                      height: 52,
-                      child: Image.network(
-                        _currentUser!.photoURL ??
-                            'https://api.dicebear.com/7.x/avataaars/png?seed=${_currentUser!.uid}&size=512',
-                                      fit: BoxFit.contain,
-                        filterQuality: FilterQuality.high,
-                        gaplessPlayback: false,
-                        errorBuilder: (context, error, stackTrace) {
-                          final String name = (_currentUser!.displayName ?? '').trim();
-                          final String initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
-                          return Container(
-                            color: const Color(0xFF0E504D),
-                            alignment: Alignment.center,
-                            child: Text(
-                              initial,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                    radius: 28,
+                    child: ClipOval(
+                      child: SizedBox(
+                        width: 52,
+                        height: 52,
+                        child: Image.network(
+                          _currentUser!.photoURL ??
+                              'https://api.dicebear.com/7.x/avataaars/png?seed=${_currentUser!.uid}&size=512',
+                          fit: BoxFit.contain,
+                          filterQuality: FilterQuality.high,
+                          gaplessPlayback: false,
+                          errorBuilder: (context, error, stackTrace) {
+                            final String name =
+                                (_currentUser!.displayName ?? '').trim();
+                            final String initial = name.isNotEmpty
+                                ? name[0].toUpperCase()
+                                : 'U';
+                            return Container(
+                              color: const Color(0xFF0E504D),
+                              alignment: Alignment.center,
+                              child: Text(
+                                initial,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Container(
-                            color: const Color(0xFF0E504D),
-                            alignment: Alignment.center,
-                            child: const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                            );
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              color: const Color(0xFF0E504D),
+                              alignment: Alignment.center,
+                              child: const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white70,
+                                  ),
+                                ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),
                 ),
               )
-        )
             : null,
         title: _currentUser != null
             ? Column(
@@ -569,115 +576,113 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                           ),
                         ),
                         Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                20,
-                                12,
-                                18,
-                                90,
-                              ), // Added bottom padding for nav bar
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  RepaintBoundary(
-                                    child: RichText(
-                                      text: TextSpan(
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.w700,
-                                          height: 1.3,
-                                          fontFamily:
-                                              GoogleFonts.inter().fontFamily,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              20,
+                              12,
+                              18,
+                              90,
+                            ), // Added bottom padding for nav bar
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                RepaintBoundary(
+                                  child: RichText(
+                                    text: TextSpan(
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w700,
+                                        height: 1.3,
+                                        fontFamily:
+                                            GoogleFonts.inter().fontFamily,
+                                      ),
+                                      children: [
+                                        const TextSpan(
+                                          text: 'Do You know?\n3 Days Your',
                                         ),
-                                        children: [
-                                          const TextSpan(
-                                            text: 'Do You know?\n3 Days Your',
-                                          ),
-                                          WidgetSpan(
-                                            alignment:
-                                                PlaceholderAlignment.middle,
-                                            child: RepaintBoundary(
-                                              child: Stack(
-                                                alignment: Alignment.center,
-                                                children: [
-                                                  SvgPicture.asset(
-                                                    'assets/icons/circle.svg',
-                                                    width: 50,
-                                                    height: 35,
+                                        WidgetSpan(
+                                          alignment:
+                                              PlaceholderAlignment.middle,
+                                          child: RepaintBoundary(
+                                            child: Stack(
+                                              alignment: Alignment.center,
+                                              children: [
+                                                SvgPicture.asset(
+                                                  'assets/icons/circle.svg',
+                                                  width: 50,
+                                                  height: 35,
+                                                  color: const Color.fromARGB(
+                                                    255,
+                                                    180,
+                                                    235,
+                                                    117,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  'Happiness',
+                                                  style: TextStyle(
                                                     color: const Color.fromARGB(
                                                       255,
-                                                      180,
-                                                      235,
-                                                      117,
+                                                      17,
+                                                      84,
+                                                      70,
                                                     ),
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 22,
+                                                    fontFamily:
+                                                        GoogleFonts.inter()
+                                                            .fontFamily,
                                                   ),
-                                                  Text(
-                                                    'Happiness',
-                                                    style: TextStyle(
-                                                      color:
-                                                          const Color.fromARGB(
-                                                            255,
-                                                            17,
-                                                            84,
-                                                            70,
-                                                          ),
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 22,
-                                                      fontFamily:
-                                                          GoogleFonts.inter()
-                                                              .fontFamily,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
+                                                ),
+                                              ],
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  RepaintBoundary(
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            'Some things you might be\ninterested in doing',
-                                            style: TextStyle(
-                                              color: Colors.black54,
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w400,
-                                              height: 1.4,
-                                              fontFamily: GoogleFonts.inter()
-                                                  .fontFamily,
-                                            ),
-                                          ),
-                                        ),
-                                        const Text(
-                                          'View More',
-                                          style: TextStyle(
-                                            color: Color(0xFF115e5a),
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            fontFamily: '.SF Pro Text',
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(height: 32),
-                                  _buildActivityIcons(context),
-                                  const SizedBox(height: 24),
-                                ],
-                              ),
+                                ),
+                                const SizedBox(height: 16),
+                                RepaintBoundary(
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Some things you might be\ninterested in doing',
+                                          style: TextStyle(
+                                            color: Colors.black54,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w400,
+                                            height: 1.4,
+                                            fontFamily:
+                                                GoogleFonts.inter().fontFamily,
+                                          ),
+                                        ),
+                                      ),
+                                      const Text(
+                                        'View More',
+                                        style: TextStyle(
+                                          color: Color(0xFF115e5a),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          fontFamily: '.SF Pro Text',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 32),
+                                _buildActivityIcons(context),
+                                const SizedBox(height: 24),
+                              ],
                             ),
                           ),
+                        ),
                       ],
                     ),
                   ),

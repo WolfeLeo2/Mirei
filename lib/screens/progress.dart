@@ -524,9 +524,9 @@ class _ProgressScreenState extends State<ProgressScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFfaf6f1),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF115e5a),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(

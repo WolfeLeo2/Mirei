@@ -397,7 +397,7 @@ class _OptimizedGridView extends StatelessWidget {
       return MoodEntryRealm(
         ObjectId(),
         entryMood,
-        _safeAccess(() => entry.createdAt) ?? DateTime.now(),
+        (_safeAccess(() => entry.createdAt) ?? DateTime.now()).toUtc(),
         intensity: null, // Don't show intensity for journal entries
       );
     }

@@ -171,9 +171,9 @@ class _JournalListScreenState extends State<JournalListScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFd7dfe5),
+      backgroundColor: const Color(0xFFf0efeb),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFd7dfe5),
+        backgroundColor: const Color(0xFFf0efeb),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(

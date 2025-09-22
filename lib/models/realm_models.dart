@@ -26,14 +26,14 @@ class AudioRecordingData {
 
   factory AudioRecordingData.fromJson(String jsonString) {
     try {
-    final data = jsonDecode(jsonString);
-    return AudioRecordingData(
+      final data = jsonDecode(jsonString);
+      return AudioRecordingData(
         path: data['path'] ?? '',
         duration: Duration(milliseconds: data['duration'] ?? 0),
         timestamp: data['timestamp'] != null && data['timestamp'] != 0
             ? DateTime.fromMillisecondsSinceEpoch(data['timestamp'])
             : DateTime.now(),
-    );
+      );
     } catch (e) {
       debugPrint('Error parsing AudioRecordingData JSON: $e');
       // Return a default/fallback audio recording
@@ -112,7 +112,6 @@ class _JournalEntryRealm {
   late String content;
   @Indexed() // Index for date-based queries and sorting
   late DateTime createdAt;
-  // Removed mood field - moods are stored separately in MoodEntryRealm
 
   // Store image paths as a single string with delimiter
   String? imagePathsString;
@@ -125,10 +124,9 @@ class _JournalEntryRealm {
   int? entryMoodIntensity; // Intensity (1-10) while writing
   String? entryMoodContext; // Why you felt this way while writing
 
-  // Helper getters/setters for backward compatibility
+  // Helper getters/setters
   List<String> get imagePaths {
     if (imagePathsString == null || imagePathsString!.isEmpty) return [];
-    // Support legacy comma-delimited strings and new triple-pipe
     return imagePathsString!.contains('|||')
         ? imagePathsString!.split('|||')
         : imagePathsString!.split(',');
@@ -143,14 +141,12 @@ class _JournalEntryRealm {
       return [];
     }
     try {
-    return audioRecordingsString!
-        .split('|||')
-        .where((s) => s.isNotEmpty)
-        .map((s) => AudioRecordingData.fromJson(s))
-          .where(
-            (audio) => audio.path.isNotEmpty,
-          ) // Filter out empty/invalid recordings
-        .toList();
+      return audioRecordingsString!
+          .split('|||')
+          .where((s) => s.isNotEmpty)
+          .map((s) => AudioRecordingData.fromJson(s))
+          .where((audio) => audio.path.isNotEmpty)
+          .toList();
     } catch (e) {
       debugPrint('Error parsing audio recordings: $e');
       return [];
@@ -160,64 +156,4 @@ class _JournalEntryRealm {
   set audioRecordings(List<AudioRecordingData> recordings) {
     audioRecordingsString = recordings.map((r) => r.toJson()).join('|||');
   }
-}
-
-// Cache models for audio streaming
-@RealmModel()
-class _AudioCacheEntry {
-  @PrimaryKey()
-  late String url; // URL is the primary key
-
-  late String localPath; // Local file path
-  late DateTime cachedAt;
-  @Indexed() // Index for LRU cache cleanup queries
-  late DateTime lastAccessed;
-  late int sizeBytes;
-  String? mimeType;
-  late int accessCount;
-  late bool isComplete; // Whether the file is fully downloaded
-}
-
-// Predictive caching for playlist items
-@RealmModel()
-class _PlaylistCacheEntry {
-  @PrimaryKey()
-  late ObjectId id;
-
-  @Indexed() // Index for playlist-based queries
-  late String playlistId; // Identifier for the playlist
-  late String songUrl;
-  late int priority; // 1 = next song, 2 = second next, etc.
-  late DateTime createdAt;
-  @Indexed() // Index for TTL cleanup queries
-  late DateTime expiresAt; // TTL for playlist entries
-  late bool isPreloaded;
-}
-
-// Playlist JSON data cache with TTL
-@RealmModel()
-class _PlaylistData {
-  @PrimaryKey()
-  late String playlistUrl; // URL/key for the playlist
-
-  late String jsonData; // JSON string of the playlist
-  late DateTime cachedAt;
-  @Indexed() // Index for TTL cleanup queries
-  late DateTime expiresAt; // TTL for playlist JSON
-  late int trackCount;
-  String? title;
-}
-
-// Network request cache for metadata
-@RealmModel()
-class _HttpCacheEntry {
-  @PrimaryKey()
-  late String key; // Hash of URL + headers
-
-  late String responseBody;
-  late DateTime cachedAt;
-  @Indexed() // Index for TTL cleanup queries
-  late DateTime expiresAt;
-  late int statusCode;
-  String? contentType;
 }

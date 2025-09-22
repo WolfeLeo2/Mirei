@@ -15,37 +15,42 @@ class MeditationScreen extends StatefulWidget {
 
 class _MeditationScreenState extends State<MeditationScreen> {
   final SwiperController _controller = SwiperController();
-  
+
   final List<Meditation> _meditationData = [
     Meditation(
       title: 'Walking',
       duration: '10 min',
       imagePath: 'assets/images/meditation.svg', // Changed to SVG icon
       color: const Color(0xFFE49A7A), // Pastel orange
+      audioUrl: 'https://wolfeleo2.github.io/audio-cdn/breathing.mp3',
     ),
     Meditation(
       title: 'Calm Music',
       duration: '15 min',
       imagePath: 'assets/icons/meditation.svg', // Changed to SVG icon
       color: const Color(0xFF9E9248), // Pastel olive
+      audioUrl: 'https://wolfeleo2.github.io/audio-cdn/breathing.mp3',
     ),
     Meditation(
       title: 'Sleep Well',
       duration: '20 min',
       imagePath: 'assets/icons/meditation.svg', // Changed to SVG icon
       color: const Color(0xFFE1DBCB), // Pastel beige
+      audioUrl: 'https://wolfeleo2.github.io/audio-cdn/breathing.mp3',
     ),
     Meditation(
       title: 'Breath Exercise',
       duration: '5 min',
       imagePath: 'assets/icons/meditation.svg', // Changed to SVG icon
       color: const Color(0xFFC6BEEA), // Pastel purple
+      audioUrl: 'https://wolfeleo2.github.io/audio-cdn/breathing.mp3',
     ),
     Meditation(
       title: 'Breathe Easy',
       duration: '45 min',
       imagePath: 'assets/icons/meditation.svg', // Changed to SVG icon
       color: const Color(0xFF8B7355), // Pastel brown
+      audioUrl: 'https://wolfeleo2.github.io/audio-cdn/breathing.mp3',
     ),
   ];
 
@@ -53,30 +58,30 @@ class _MeditationScreenState extends State<MeditationScreen> {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     return Scaffold(
-      backgroundColor: const Color(0xFFd7dfe5),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-            backgroundColor: const Color(0xFFd7dfe5),
-            elevation: 0,
-            title: Text(
-              'Meditation',
-              style: TextStyle(
-                color: const Color(0xFF115e5a),
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            centerTitle: true,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.search, color: Color(0xFF115e5a)),
-                onPressed: () {
-                  // TODO: Implement search functionality
-                },
-              ),
-            ],
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
+        title: Text(
+          'Meditation',
+          style: TextStyle(
+            color: const Color(0xFF115e5a),
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
           ),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, color: Color(0xFF115e5a)),
+            onPressed: () {
+              // TODO: Implement search functionality
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -84,29 +89,31 @@ class _MeditationScreenState extends State<MeditationScreen> {
             // Title section
             Padding(
               padding: EdgeInsets.fromLTRB(
-                screenWidth * 0.05, 
-                screenHeight * 0.025, 
-                screenWidth * 0.05, 
-                screenHeight * 0.015
+                screenWidth * 0.05,
+                screenHeight * 0.025,
+                screenWidth * 0.05,
+                screenHeight * 0.015,
               ),
-
             ),
-            
+
             // Filter chips section - moved to top for better UX
             Padding(
               padding: EdgeInsets.symmetric(
                 horizontal: screenWidth * 0.05,
-                vertical: screenHeight * 0.005, // Reduced from 0.01 to 0.005 to move cards higher
+                vertical:
+                    screenHeight *
+                    0.005, // Reduced from 0.01 to 0.005 to move cards higher
               ),
               child: _BottomNavBar(screenWidth: screenWidth),
             ),
-            
+
             // Main content with cards
             Expanded(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
                   screenWidth * 0.05,
-                  screenHeight * 0.04, // Changed from screenHeight * 0.01 to 0 to move cards higher
+                  screenHeight *
+                      0.04, // Changed from screenHeight * 0.01 to 0 to move cards higher
                   screenWidth * 0.05,
                   screenHeight * 0.02,
                 ),
@@ -122,11 +129,14 @@ class _MeditationScreenState extends State<MeditationScreen> {
   Widget _buildStackedCards() {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     return Align(
-      alignment: Alignment.topCenter, // Changed from Center to topCenter to move cards higher
+      alignment: Alignment
+          .topCenter, // Changed from Center to topCenter to move cards higher
       child: SizedBox(
-        height: screenHeight * 0.65, // Slightly reduced from 0.7 to make room at top
+        height:
+            screenHeight *
+            0.65, // Slightly reduced from 0.7 to make room at top
         child: Swiper(
           controller: _controller,
           itemCount: _meditationData.length,
@@ -146,7 +156,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
   Widget _buildCard(Meditation meditation) {
     // Pre-calculate text color once
     final textColor = _getTextColor(meditation.color);
-    
+
     return OpenContainer(
       transitionType: ContainerTransitionType.fade,
       transitionDuration: const Duration(milliseconds: 500),
@@ -155,17 +165,14 @@ class _MeditationScreenState extends State<MeditationScreen> {
       closedShape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(30),
       ),
-      openShape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(0),
-      ),
+      openShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
       closedColor: meditation.color,
       openColor: meditation.color,
       middleColor: meditation.color,
-      closedBuilder: (context, openContainer) => RepaintBoundary( // Add RepaintBoundary for better performance
+      closedBuilder: (context, openContainer) => RepaintBoundary(
+        // Add RepaintBoundary for better performance
         child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
-          ),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(30)),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(30),
             child: Stack(
@@ -179,7 +186,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
                     ),
                   ),
                 ),
-                
+
                 // SVG/Image overlay on top of the card (centered)
                 Center(
                   child: RepaintBoundary(
@@ -194,16 +201,14 @@ class _MeditationScreenState extends State<MeditationScreen> {
                     ),
                   ),
                 ),
-                
+
                 // Glass heart icon (top-right)
                 Positioned(
                   top: 25,
                   right: 25,
-                  child: RepaintBoundary(
-                    child: _GlassHeartIcon(),
-                  ),
+                  child: RepaintBoundary(child: _GlassHeartIcon()),
                 ),
-                
+
                 // Title at top-left
                 Positioned(
                   left: 25,
@@ -219,7 +224,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
                     ),
                   ),
                 ),
-                
+
                 // Glass timer widget at bottom-left
                 Positioned(
                   bottom: 25,
@@ -236,9 +241,8 @@ class _MeditationScreenState extends State<MeditationScreen> {
           ),
         ),
       ),
-      openBuilder: (context, closeContainer) => MeditationPlayerScreen(
-        meditation: meditation,
-      ),
+      openBuilder: (context, closeContainer) =>
+          MeditationPlayerScreen(meditation: meditation),
     );
   }
 
@@ -259,7 +263,9 @@ class _BottomNavBar extends StatelessWidget {
   static const Color _textColor = Colors.black;
   static const FontWeight _fontWeight = FontWeight.bold;
   static const double _fontSize = 13;
-  static const BorderRadius _borderRadius = BorderRadius.all(Radius.circular(20));
+  static const BorderRadius _borderRadius = BorderRadius.all(
+    Radius.circular(20),
+  );
   static const List<BoxShadow> _boxShadow = [
     BoxShadow(
       color: Color(0x1A000000), // Colors.black.withOpacity(0.1)
@@ -274,7 +280,7 @@ class _BottomNavBar extends StatelessWidget {
     final chipPadding = screenWidth * 0.04; // 4% of screen width
     final iconSize = screenWidth * 0.05; // 5% of screen width
     final spacing = screenWidth * 0.02; // 2% of screen width
-    
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: EdgeInsets.symmetric(horizontal: spacing),
@@ -294,11 +300,8 @@ class _BottomNavBar extends StatelessWidget {
 
 // Extract filter chip as const widget
 class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.padding,
-  });
-  
+  const _FilterChip({required this.label, required this.padding});
+
   final String label;
   final double padding;
 
@@ -341,34 +344,21 @@ class _GlassHeartIcon extends StatelessWidget {
       linearGradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [
-          Colors.white.withOpacity(0.1),
-          Colors.white.withOpacity(0.05),
-        ],
+        colors: [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)],
       ),
       borderGradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [
-          Colors.white.withOpacity(0.5),
-          Colors.white.withOpacity(0.2),
-        ],
+        colors: [Colors.white.withOpacity(0.5), Colors.white.withOpacity(0.2)],
       ),
-      child: const Icon(
-        Icons.favorite_border,
-        color: Colors.white,
-        size: 20,
-      ),
+      child: const Icon(Icons.favorite_border, color: Colors.white, size: 20),
     );
   }
 }
 
 class _GlassTimer extends StatelessWidget {
-  const _GlassTimer({
-    required this.duration,
-    required this.textColor,
-  });
-  
+  const _GlassTimer({required this.duration, required this.textColor});
+
   final String duration;
   final Color textColor;
 
@@ -384,27 +374,17 @@ class _GlassTimer extends StatelessWidget {
       linearGradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [
-          Colors.white.withOpacity(0.2),
-          Colors.white.withOpacity(0.1),
-        ],
+        colors: [Colors.white.withOpacity(0.2), Colors.white.withOpacity(0.1)],
       ),
       borderGradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [
-          Colors.white.withOpacity(0.6),
-          Colors.white.withOpacity(0.3),
-        ],
+        colors: [Colors.white.withOpacity(0.6), Colors.white.withOpacity(0.3)],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.timer_outlined,
-            color: textColor,
-            size: 16,
-          ),
+          Icon(Icons.timer_outlined, color: textColor, size: 16),
           const SizedBox(width: 6),
           Text(
             duration,
@@ -419,4 +399,3 @@ class _GlassTimer extends StatelessWidget {
     );
   }
 }
-

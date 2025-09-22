@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:realm/realm.dart';
 import '../models/realm_models.dart';
 import '../utils/realm_database_helper.dart';
@@ -248,63 +247,6 @@ class DatabaseQueryService {
     return totalDeleted;
   }
 
-  /// Optimized cache cleanup with smart LRU
-  Future<void> optimizedCacheCleanup({
-    int maxCacheSize = 500 * 1024 * 1024, // 500MB
-    double cleanupThreshold = 0.8, // Clean when 80% full
-  }) async {
-    final realmDb = await _dbHelper.realm;
-
-    // Get current cache size efficiently
-    final totalSize = await _getTotalCacheSize(realmDb);
-
-    if (totalSize < maxCacheSize * cleanupThreshold) {
-      return; // No cleanup needed
-    }
-
-    // Smart LRU cleanup - remove least accessed files first
-    final targetSize = (maxCacheSize * 0.7).round(); // Clean to 70%
-    final toDelete = totalSize - targetSize;
-
-    final oldEntries = realmDb.all<AudioCacheEntry>().query(
-      'TRUEPREDICATE SORT(lastAccessed ASC, accessCount ASC)',
-    );
-
-    var deletedSize = 0;
-    final entriesToDelete = <AudioCacheEntry>[];
-
-    for (final entry in oldEntries) {
-      entriesToDelete.add(entry);
-      deletedSize += entry.sizeBytes;
-
-      if (deletedSize >= toDelete) break;
-    }
-
-    // Batch delete cache entries and files
-    await realmDb.writeAsync(() {
-      realmDb.deleteMany(entriesToDelete);
-    });
-
-    // Delete actual files in background
-    _deleteFilesInBackground(entriesToDelete.map((e) => e.localPath).toList());
-  }
-
-  /// Get database statistics for monitoring
-  Future<Map<String, dynamic>> getDatabaseStats() async {
-    final realmDb = await _dbHelper.realm;
-
-    return {
-      'moodEntries': realmDb.all<MoodEntryRealm>().length,
-      'journalEntries': realmDb.all<JournalEntryRealm>().length,
-      'audioCacheEntries': realmDb.all<AudioCacheEntry>().length,
-      'playlistCacheEntries': realmDb.all<PlaylistCacheEntry>().length,
-      'playlistDataEntries': realmDb.all<PlaylistData>().length,
-      'httpCacheEntries': realmDb.all<HttpCacheEntry>().length,
-      'totalCacheSize': await _getTotalCacheSize(realmDb),
-      'queryCacheSize': _queryCache.length,
-    };
-  }
-
   /// Clear query caches
   void clearAllCaches() {
     _queryCache.clear();
@@ -312,31 +254,6 @@ class DatabaseQueryService {
 
   void _clearCacheByPrefix(String prefix) {
     _queryCache.removeWhere((key, value) => key.startsWith(prefix));
-  }
-
-  Future<int> _getTotalCacheSize(Realm realmDb) async {
-    final entries = realmDb.all<AudioCacheEntry>();
-    var totalSize = 0;
-    for (final entry in entries) {
-      totalSize += entry.sizeBytes;
-    }
-    return totalSize;
-  }
-
-  void _deleteFilesInBackground(List<String> filePaths) {
-    // Delete files in background thread to avoid blocking
-    Future.microtask(() async {
-      for (final filePath in filePaths) {
-        try {
-          final file = File(filePath);
-          if (await file.exists()) {
-            await file.delete();
-          }
-        } catch (e) {
-          print('Error deleting cache file $filePath: $e');
-        }
-      }
-    });
   }
 
   String _formatDate(DateTime date) {

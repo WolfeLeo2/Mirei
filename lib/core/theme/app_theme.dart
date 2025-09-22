@@ -28,7 +28,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: scheme,
       primaryColor: AppColors.primary,
-      scaffoldBackgroundColor: const Color(0xFFFAF6F1),
+      scaffoldBackgroundColor: const Color(0xFFf0efeb),
       textTheme: GoogleFonts.interTextTheme(),
       extensions: <ThemeExtension<dynamic>>[
         MoodColors.fromScheme(colorScheme: scheme),
@@ -65,7 +65,7 @@ class AppTheme {
     );
   }
 
-  static ThemeData dark() {
+  /*static ThemeData dark() {
     final ColorScheme scheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
       brightness: Brightness.dark,
@@ -109,5 +109,5 @@ class AppTheme {
         ),
       ),
     );
-  }
+  }*/
 }

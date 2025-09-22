@@ -26,13 +26,9 @@ class RealmDatabaseHelper {
     final realmPath = path.join(directory.path, 'mirei_app.realm');
 
     final schemas = [
-      AudioCacheEntry.schema,
       MoodEntryRealm.schema,
-      JournalEntryRealm.schema, // Added missing JournalEntryRealm schema
-      UserProfileRealm.schema, // Added UserProfileRealm schema
-      PlaylistCacheEntry.schema,
-      PlaylistData.schema, // Added playlist JSON cache
-      HttpCacheEntry.schema,
+      JournalEntryRealm.schema,
+      UserProfileRealm.schema,
     ];
 
     try {
@@ -40,15 +36,10 @@ class RealmDatabaseHelper {
       final config = Configuration.local(
         schemas,
         path: realmPath,
-        schemaVersion: 6, // Enhanced mood tracking and journal mood context
+        schemaVersion: 7, // Pruned media cache models
         migrationCallback: (migration, oldSchemaVersion) {
-          // For cache data, it's safer to just clear and rebuild rather than migrate
-          if (oldSchemaVersion < 6) {
-            print(
-              'Schema version $oldSchemaVersion detected. Enhanced mood tracking schema applied.',
-            );
-            // New optional fields are automatically handled by Realm
-            // Existing data remains untouched
+          if (oldSchemaVersion < 7) {
+            print('Migrating to schema v7: removing media cache models');
           }
         },
       );
@@ -56,22 +47,19 @@ class RealmDatabaseHelper {
       return Realm(config);
     } catch (e) {
       print('Realm migration failed: $e');
-      print('Rebuilding cache database for schema compatibility...');
+      print('Rebuilding database for schema compatibility...');
 
-      // For cache data, it's acceptable to clear and rebuild
-      // This is simpler and more reliable than complex migrations
       try {
         final file = File(realmPath);
         if (await file.exists()) {
           await file.delete();
-          print('Cache database cleared - will rebuild automatically');
+          print('Database file cleared - will rebuild automatically');
         }
 
-        // Create fresh database with new schema
         final config = Configuration.local(
           schemas,
           path: realmPath,
-          schemaVersion: 3,
+          schemaVersion: 7,
         );
         return Realm(config);
       } catch (recreateError) {
@@ -82,18 +70,6 @@ class RealmDatabaseHelper {
   }
 
   // DATABASE MAINTENANCE METHODS
-
-  /// Clear all cache data (useful for testing or resolving migration issues)
-  Future<void> clearAllCacheData() async {
-    final realmDb = await realm;
-    await realmDb.writeAsync(() {
-      realmDb.deleteAll<AudioCacheEntry>();
-      realmDb.deleteAll<PlaylistCacheEntry>();
-      realmDb.deleteAll<PlaylistData>();
-      realmDb.deleteAll<HttpCacheEntry>();
-    });
-    print('All cache data cleared');
-  }
 
   /// Reset database completely (deletes file and recreates)
   Future<void> resetDatabase() async {
@@ -316,7 +292,6 @@ class RealmDatabaseHelper {
       realmDb.write(() {
         existingEntry.title = entry.title;
         existingEntry.content = entry.content;
-        // Removed mood field - moods are stored separately in MoodEntryRealm
         existingEntry.imagePathsString = entry.imagePathsString;
         existingEntry.audioRecordingsString = entry.audioRecordingsString;
       });
@@ -343,341 +318,5 @@ class RealmDatabaseHelper {
       [start, end],
     );
     return results.toList();
-  }
-
-  // AUDIO CACHE METHODS
-  Future<void> insertAudioCacheEntry(AudioCacheEntry entry) async {
-    final realmDb = await realm;
-    realmDb.write(() {
-      realmDb.add(entry, update: true); // Update if exists
-    });
-  }
-
-  Future<AudioCacheEntry?> getAudioCacheEntry(String url) async {
-    final realmDb = await realm;
-    return realmDb.find<AudioCacheEntry>(url);
-  }
-
-  Future<List<AudioCacheEntry>> getAllAudioCacheEntries() async {
-    final realmDb = await realm;
-    return realmDb.all<AudioCacheEntry>().toList();
-  }
-
-  Future<void> updateAudioCacheAccess(String url) async {
-    final realmDb = await realm;
-    final entry = realmDb.find<AudioCacheEntry>(url);
-    if (entry != null) {
-      realmDb.write(() {
-        entry.lastAccessed = DateTime.now();
-        entry.accessCount += 1;
-      });
-    }
-  }
-
-  Future<void> deleteAudioCacheEntry(String url) async {
-    final realmDb = await realm;
-    final entry = realmDb.find<AudioCacheEntry>(url);
-    if (entry != null) {
-      realmDb.write(() {
-        realmDb.delete(entry);
-      });
-    }
-  }
-
-  Future<List<AudioCacheEntry>> getOldestCacheEntries(int limit) async {
-    final realmDb = await realm;
-    final results = realmDb.all<AudioCacheEntry>().query(
-      'TRUEPREDICATE SORT(lastAccessed ASC) LIMIT(\$0)',
-      [limit],
-    );
-    return results.toList();
-  }
-
-  Future<int> getTotalCacheSize() async {
-    final realmDb = await realm;
-    final entries = realmDb.all<AudioCacheEntry>();
-    int totalSize = 0;
-    for (final entry in entries) {
-      totalSize += entry.sizeBytes;
-    }
-    return totalSize;
-  }
-
-  // PLAYLIST CACHE METHODS
-  Future<void> insertPlaylistCacheEntry(PlaylistCacheEntry entry) async {
-    final realmDb = await realm;
-    realmDb.write(() {
-      realmDb.add(entry);
-    });
-  }
-
-  Future<List<PlaylistCacheEntry>> getPlaylistCacheEntries(
-    String playlistId,
-  ) async {
-    final realmDb = await realm;
-    final results = realmDb.all<PlaylistCacheEntry>().query(
-      'playlistId == \$0 SORT(priority ASC)',
-      [playlistId],
-    );
-    return results.toList();
-  }
-
-  Future<void> clearPlaylistCache(String playlistId) async {
-    final realmDb = await realm;
-    final entries = realmDb.all<PlaylistCacheEntry>().query(
-      'playlistId == \$0',
-      [playlistId],
-    );
-
-    realmDb.write(() {
-      realmDb.deleteMany(entries);
-    });
-  }
-
-  Future<void> cleanExpiredPlaylistEntries() async {
-    final realmDb = await realm;
-    final now = DateTime.now();
-    final expiredEntries = realmDb.all<PlaylistCacheEntry>().query(
-      'expiresAt < \$0',
-      [now],
-    );
-
-    realmDb.write(() {
-      realmDb.deleteMany(expiredEntries);
-    });
-
-    print('Cleaned ${expiredEntries.length} expired playlist cache entries');
-  }
-
-  Future<void> updatePlaylistCachePreloadStatus(
-    ObjectId id,
-    bool isPreloaded,
-  ) async {
-    final realmDb = await realm;
-    final entry = realmDb.find<PlaylistCacheEntry>(id);
-    if (entry != null) {
-      realmDb.write(() {
-        entry.isPreloaded = isPreloaded;
-      });
-    }
-  }
-
-  // PLAYLIST JSON CACHE METHODS WITH TTL
-  Future<void> cachePlaylistJson(
-    String playlistUrl,
-    String jsonData, {
-    Duration ttl = const Duration(hours: 6),
-  }) async {
-    final realmDb = await realm;
-    await realmDb.writeAsync(() {
-      final now = DateTime.now();
-      final expiresAt = now.add(ttl);
-
-      // Parse JSON to get track count for stats
-      int trackCount = 0;
-      String? title;
-      try {
-        final Map<String, dynamic> data = json.decode(jsonData);
-        trackCount = (data['tracks'] as List?)?.length ?? 0;
-        title = data['title'] as String?;
-      } catch (e) {
-        print('Error parsing playlist JSON for stats: $e');
-      }
-
-      final entry = PlaylistData(
-        playlistUrl,
-        jsonData,
-        now,
-        expiresAt,
-        trackCount,
-        title: title,
-      );
-
-      realmDb.add(entry, update: true); // Upsert
-    });
-  }
-
-  Future<String?> getCachedPlaylistJson(String playlistUrl) async {
-    final realmDb = await realm;
-    final now = DateTime.now();
-    final entry = realmDb.find<PlaylistData>(playlistUrl);
-
-    if (entry != null) {
-      if (entry.expiresAt.isAfter(now)) {
-        print(
-          'Playlist cache hit for: $playlistUrl (expires: ${entry.expiresAt})',
-        );
-        return entry.jsonData;
-      } else {
-        // Expired entry, clean it up
-        await realmDb.writeAsync(() {
-          realmDb.delete(entry);
-        });
-        print('Playlist cache expired for: $playlistUrl');
-      }
-    }
-
-    return null; // Cache miss or expired
-  }
-
-  Future<void> cleanExpiredPlaylistData() async {
-    final realmDb = await realm;
-    final now = DateTime.now();
-    final expiredPlaylists = realmDb.all<PlaylistData>().query(
-      'expiresAt < \$0',
-      [now],
-    );
-
-    await realmDb.writeAsync(() {
-      realmDb.deleteMany(expiredPlaylists);
-    });
-
-    print('Cleaned ${expiredPlaylists.length} expired playlist entries');
-  }
-
-  // HTTP CACHE METHODS
-  Future<void> insertHttpCacheEntry(HttpCacheEntry entry) async {
-    final realmDb = await realm;
-    realmDb.write(() {
-      realmDb.add(entry, update: true); // Update if exists
-    });
-  }
-
-  Future<HttpCacheEntry?> getHttpCacheEntry(String key) async {
-    final realmDb = await realm;
-    return realmDb.find<HttpCacheEntry>(key);
-  }
-
-  Future<void> cleanExpiredHttpCache() async {
-    final realmDb = await realm;
-    final now = DateTime.now();
-    final expiredEntries = realmDb.all<HttpCacheEntry>().query(
-      'expiresAt < \$0',
-      [now],
-    );
-
-    realmDb.write(() {
-      realmDb.deleteMany(expiredEntries);
-    });
-  }
-
-  // UTILITY METHODS
-  Future<void> close() async {
-    _realm?.close();
-    _realm = null;
-  }
-
-  Future<void> deleteDatabase() async {
-    await close();
-    final directory = await getApplicationDocumentsDirectory();
-    final realmPath = path.join(directory.path, 'mirei_app.realm');
-    final file = File(realmPath);
-    if (await file.exists()) {
-      await file.delete();
-    }
-  }
-
-  // Migration helper for existing SQLite data
-  Future<void> migrateFromSQLite() async {
-    try {
-      // This would be called once to migrate data from the old SQLite database
-      // Implementation would depend on the existing DatabaseHelper structure
-      print('Realm migration: Starting migration from SQLite...');
-
-      // For now, we'll just ensure the database is initialized
-      await realm;
-
-      print('Realm migration: Migration completed successfully');
-    } catch (e) {
-      print('Realm migration error: $e');
-      rethrow;
-    }
-  }
-}
-
-// Extension methods for backward compatibility with existing models
-extension MoodEntryConversion on MoodEntryRealm {
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id.hexString,
-      'mood': mood,
-      'created_at': createdAt.millisecondsSinceEpoch,
-      'note': note,
-    };
-  }
-}
-
-extension JournalEntryConversion on JournalEntryRealm {
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id.hexString,
-      'title': title,
-      'content': content,
-      'created_at': createdAt.millisecondsSinceEpoch,
-      // Removed mood field - moods are stored separately in MoodEntryRealm
-      'image_paths': imagePaths.join('|'),
-      'audio_recordings': audioRecordings
-          .map((audio) => audio.toJson())
-          .join('|||'),
-    };
-  }
-}
-
-// HTTP CACHE METHODS
-Future<void> insertHttpCacheEntry(HttpCacheEntry entry) async {
-  final realmDb = await RealmDatabaseHelper().realm;
-  realmDb.write(() {
-    realmDb.add(entry, update: true); // Update if exists
-  });
-}
-
-Future<HttpCacheEntry?> getHttpCacheEntry(String key) async {
-  final realmDb = await RealmDatabaseHelper().realm;
-  return realmDb.find<HttpCacheEntry>(key);
-}
-
-Future<void> cleanExpiredHttpCache() async {
-  final realmDb = await RealmDatabaseHelper().realm;
-  final now = DateTime.now();
-  final expiredEntries = realmDb.all<HttpCacheEntry>().query(
-    'expiresAt < \$0',
-    [now],
-  );
-
-  realmDb.write(() {
-    realmDb.deleteMany(expiredEntries);
-  });
-}
-
-// UTILITY METHODS
-Future<void> close() async {
-  final realmDb = await RealmDatabaseHelper().realm;
-  realmDb.close();
-}
-
-Future<void> deleteDatabase() async {
-  await close();
-  final directory = await getApplicationDocumentsDirectory();
-  final realmPath = path.join(directory.path, 'mirei_app.realm');
-  final file = File(realmPath);
-  if (await file.exists()) {
-    await file.delete();
-  }
-}
-
-// Migration helper for existing SQLite data
-Future<void> migrateFromSQLite() async {
-  try {
-    // This would be called once to migrate data from the old SQLite database
-    // Implementation would depend on the existing DatabaseHelper structure
-    print('Realm migration: Starting migration from SQLite...');
-
-    // For now, we'll just ensure the database is initialized
-    await RealmDatabaseHelper().realm;
-
-    print('Realm migration: Migration completed successfully');
-  } catch (e) {
-    print('Realm migration error: $e');
-    rethrow;
   }
 }

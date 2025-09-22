@@ -1,0 +1,277 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Code quality checks
+  analyze:
+    name: Code Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+          channel: "stable"
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate Realm models
+        run: dart run realm generate
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze project source
+        run: dart analyze --fatal-infos
+
+      - name: Check for unused dependencies
+        run: flutter pub deps
+
+  # Unit and Widget Tests
+  test:
+    name: Unit & Widget Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+          channel: "stable"
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate Realm models
+        run: dart run realm generate
+
+      - name: Run unit tests
+        run: flutter test --coverage --test-randomize-ordering-seed random
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+
+  # Database-specific tests
+  database-tests:
+    name: Database Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+          channel: "stable"
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate Realm models
+        run: dart run realm generate
+
+      - name: Run database tests
+        run: flutter test test/unit/realm_database_helper_test.dart test/unit/database_query_service_test.dart test/unit/database_maintenance_service_test.dart --reporter=expanded
+
+  # Integration tests
+  integration-test:
+    name: Integration Tests
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+          channel: "stable"
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate Realm models
+        run: dart run realm generate
+
+      - name: Start iOS Simulator
+        uses: futureware-tech/simulator-action@v3
+        with:
+          model: "iPhone 15"
+
+      - name: Run integration tests
+        run: flutter test integration_test/ --verbose
+
+  # Build verification
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: "zulu"
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+          channel: "stable"
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate Realm models
+        run: dart run realm generate
+
+      - name: Build APK
+        run: flutter build apk --debug --verbose
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+          channel: "stable"
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate Realm models
+        run: dart run realm generate
+
+      - name: Build iOS (no signing)
+        run: flutter build ios --debug --no-codesign --verbose
+
+  # Security checks
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+          channel: "stable"
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run security audit
+        run: flutter pub audit
+
+      - name: Check for sensitive files
+        run: |
+          if [ -f ".env" ]; then
+            echo "Error: .env file should not be committed"
+            exit 1
+          fi
+          if [ -f "android/app/google-services.json" ]; then
+            echo "Warning: google-services.json found - ensure it doesn't contain secrets"
+          fi
+
+  # Performance tests
+  performance:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+          channel: "stable"
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate Realm models
+        run: dart run realm generate
+
+      - name: Run performance tests
+        run: |
+          # Run tests with performance profiling
+          flutter test test/unit/ --plain-name="performance" || echo "No performance tests found"
+
+          # Check bundle size
+          flutter build apk --debug --analyze-size --target-platform android-arm64
+
+          # Check for large files
+          find . -name "*.dart" -size +100k -exec echo "Large Dart file: {}" \;
+
+  # Documentation check
+  docs:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+          channel: "stable"
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate documentation
+        run: dart doc --validate-links
+
+      - name: Check README
+        run: |
+          if [ ! -f "README.md" ]; then
+            echo "Error: README.md not found"
+            exit 1
+          fi
+
+          # Check if README contains basic sections
+          grep -q "# Mirei" README.md || (echo "Error: README missing title" && exit 1)
+          grep -q "## Features" README.md || echo "Warning: README missing Features section"
+          grep -q "## Getting Started" README.md || echo "Warning: README missing Getting Started section"

@@ -1,4 +1,3 @@
-
 import 'package:flutter/foundation.dart';
 import 'package:realm/realm.dart';
 import '../models/realm_models.dart';
@@ -17,7 +16,7 @@ class RealmMoodRepository implements MoodRepository {
   final RealmDatabaseHelper _dbHelper;
 
   RealmMoodRepository({RealmDatabaseHelper? dbHelper})
-      : _dbHelper = dbHelper ?? RealmDatabaseHelper();
+    : _dbHelper = dbHelper ?? RealmDatabaseHelper();
 
   @override
   Future<MoodEntryRealm?> getTodaysMood() async {
@@ -42,11 +41,15 @@ class RealmMoodRepository implements MoodRepository {
         realm.write(() {
           existingMood.mood = mood;
           // Preserve the original creation date to keep it on the same day
-          existingMood.createdAt = existingMood.createdAt; 
+          existingMood.createdAt = existingMood.createdAt;
         });
       } else {
-        // Otherwise, create a new entry.
-        final newMood = MoodEntryRealm(ObjectId(), mood, DateTime.now());
+        // Otherwise, create a new entry with UTC timestamp for consistency.
+        final newMood = MoodEntryRealm(
+          ObjectId(),
+          mood,
+          DateTime.now().toUtc(),
+        );
         await _dbHelper.insertMoodEntry(newMood);
       }
     } catch (e) {
