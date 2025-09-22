@@ -1,17 +1,28 @@
 /*
+ * ====================================================================
+ * DEPRECATED - HOME SCREEN (NOT IN USE)
+ * ====================================================================
+ * 
  * This file has been replaced by MoodTrackerScreen as the new home screen.
+ * 
+ * Status: REMOVED from navigation but preserved for reference
+ * Replaced by: mood_tracker.dart (now serves as home screen)
+ * Date: [Current refactoring]
+ * 
  * This code is kept for potential future reference or rollback needs.
- * Uncomment main_navigation to restore (still present in the main branch)
+ * To restore: uncomment relevant lines in main_navigation.dart
+ * 
+ * ====================================================================
  */
 
 import 'package:flutter/material.dart';
-import '../components/main_card.dart';
-import '../components/horizontal_card_list.dart';
-import '../components/section_header.dart';
-import '../components/top_bar.dart';
-import '../models/card_data.dart'; // Add missing import
-import '../models/session_info.dart'; // Add missing import
-import '../utils/performance_mixins.dart'; // Add performance mixins
+import '../../components/main_card.dart';
+import '../../components/horizontal_card_list.dart';
+import '../../components/section_header.dart';
+import '../../components/top_bar.dart';
+import '../../models/card_data.dart'; // Add missing import
+import '../../models/session_info.dart'; // Add missing import
+import '../../utils/performance_mixins.dart'; // Add performance mixins
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

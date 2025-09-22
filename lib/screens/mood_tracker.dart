@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mirei/components/activity_icon.dart';
 import 'package:mirei/components/mood_button.dart';
+import 'package:mirei/components/profile_pulldown_menu.dart';
 import 'package:intl/intl.dart';
 import '../utils/performance_mixins.dart';
 import '../services/auth_service.dart';
@@ -234,20 +235,6 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     );
   }
 
-  // Const widget for hamburger menu icon
-  static const Widget _hamburgerMenuIcon = SizedBox(
-    width: 24,
-    height: 24,
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        SizedBox(height: 2, child: ColoredBox(color: Colors.white)),
-        SizedBox(height: 2, child: ColoredBox(color: Colors.white)),
-        SizedBox(height: 2, child: ColoredBox(color: Colors.white)),
-      ],
-    ),
-  );
-
   // Dynamic subtitle that shows last mood entry time
   Widget _buildDynamicSubtitle() {
     if (_latestMoodEntry != null) {
@@ -399,54 +386,56 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
             ? Padding(
                 padding: const EdgeInsets.only(left: 20),
                 child: RepaintBoundary(
-                  child: CircleAvatar(
-                    radius: 28,
-                    child: ClipOval(
-                      child: SizedBox(
-                        width: 52,
-                        height: 52,
-                        child: Image.network(
-                          _currentUser!.photoURL ??
-                              'https://api.dicebear.com/7.x/avataaars/png?seed=${_currentUser!.uid}&size=512',
-                          fit: BoxFit.contain,
-                          filterQuality: FilterQuality.high,
-                          gaplessPlayback: false,
-                          errorBuilder: (context, error, stackTrace) {
-                            final String name =
-                                (_currentUser!.displayName ?? '').trim();
-                            final String initial = name.isNotEmpty
-                                ? name[0].toUpperCase()
-                                : 'U';
-                            return Container(
-                              color: const Color(0xFF0E504D),
-                              alignment: Alignment.center,
-                              child: Text(
-                                initial,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            );
-                          },
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Container(
-                              color: const Color(0xFF0E504D),
-                              alignment: Alignment.center,
-                              child: const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white70,
+                  child: ProfilePulldownMenu(
+                    child: CircleAvatar(
+                      radius: 28,
+                      child: ClipOval(
+                        child: SizedBox(
+                          width: 52,
+                          height: 52,
+                          child: Image.network(
+                            _currentUser!.photoURL ??
+                                'https://api.dicebear.com/7.x/avataaars/png?seed=${_currentUser!.uid}&size=512',
+                            fit: BoxFit.contain,
+                            filterQuality: FilterQuality.high,
+                            gaplessPlayback: false,
+                            errorBuilder: (context, error, stackTrace) {
+                              final String name =
+                                  (_currentUser!.displayName ?? '').trim();
+                              final String initial = name.isNotEmpty
+                                  ? name[0].toUpperCase()
+                                  : 'U';
+                              return Container(
+                                color: const Color(0xFF0E504D),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  initial,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                color: const Color(0xFF0E504D),
+                                alignment: Alignment.center,
+                                child: const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white70,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),
@@ -480,12 +469,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                 ],
               )
             : null,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: _hamburgerMenuIcon,
-          ),
-        ],
+        actions: [],
       ),
       body: Stack(
         children: [

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_floating_bottom_bar/flutter_floating_bottom_bar.dart';
 import 'package:icons_plus/icons_plus.dart';
-import 'home_screen.dart';
+// import 'home_screen.dart'; // COMMENTED OUT - HomeScreen removed from navigation
 import 'mood_tracker.dart';
 import 'meditation_screen.dart';
 
@@ -21,12 +22,9 @@ class _MainNavigationState extends State<MainNavigation>
   late final List<Widget> _screens;
 
   final List<Color> colors = [
-    const Color.fromARGB(255, 119, 10, 90), // Beige
-    Colors.green,
-    Colors.amberAccent,
+    CupertinoColors.systemGreen,
+    CupertinoColors.systemOrange,
   ];
-
-
 
   @override
   void initState() {
@@ -35,14 +33,11 @@ class _MainNavigationState extends State<MainNavigation>
 
     // Initialize screens
     _screens = [
-      const HomeScreenContent(),
-      const MoodTrackerScreenContent(),
+      // const HomeScreenContent(), //HomeScreen removed
+      const MoodTrackerScreenContent(), 
       const MeditationScreen(),
     ];
-
-
   }
-
 
   @override
   void dispose() {
@@ -95,9 +90,7 @@ class _MainNavigationState extends State<MainNavigation>
                           NotificationListener<ScrollNotification>(
                             onNotification: (scrollNotification) {
                               if (scrollNotification
-                                  is ScrollUpdateNotification) {
-                               
-                              }
+                                  is ScrollUpdateNotification) {}
                               return false;
                             },
                             child: TabBarView(
@@ -130,11 +123,11 @@ class _MainNavigationState extends State<MainNavigation>
                           ),
                           Tab(
                             icon: Icon(
-                              FontAwesome.book_journal_whills_solid,
+                              FontAwesome.spa_solid,
                               size: 24,
                             ),
                           ),
-                          Tab(icon: Icon(FontAwesome.spa_solid, size: 24)),
+                          //Tab(icon: Icon(FontAwesome.spa_solid, size: 24)),
                         ],
                       ),
                     ),
@@ -149,25 +142,26 @@ class _MainNavigationState extends State<MainNavigation>
   }
 }
 
+// COMMENTED OUT - HomeScreen content wrapper removed
 // Content-only version of HomeScreen (without its own navigation)
-class HomeScreenContent extends StatefulWidget {
-  const HomeScreenContent({super.key});
-
-  @override
-  State<HomeScreenContent> createState() => _HomeScreenContentState();
-}
-
-class _HomeScreenContentState extends State<HomeScreenContent>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return const HomeScreen();
-  }
-}
+// class HomeScreenContent extends StatefulWidget {
+//   const HomeScreenContent({super.key});
+//
+//   @override
+//   State<HomeScreenContent> createState() => _HomeScreenContentState();
+// }
+//
+// class _HomeScreenContentState extends State<HomeScreenContent>
+//     with AutomaticKeepAliveClientMixin {
+//   @override
+//   bool get wantKeepAlive => true;
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     super.build(context);
+//     return const HomeScreen();
+//   }
+// }
 
 // Content-only version of MoodTrackerScreen (without its own navigation)
 class MoodTrackerScreenContent extends StatefulWidget {
