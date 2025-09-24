@@ -26,4 +26,4 @@ plugins {
 }
 
 include(":app")
-include(":spotify-app-remote")
+// include(":spotify-app-remote")  // Disabled: Spotify removed

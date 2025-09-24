@@ -4,6 +4,7 @@ import '../models/realm_models.dart';
 import '../utils/realm_database_helper.dart';
 import 'enhanced_mood_service.dart';
 import 'enhanced_mood_analytics.dart';
+import 'media_store.dart';
 
 /// Service for integrating journal entries with mood context
 /// Solves the problem of correlating journals with multiple daily mood entries
@@ -22,27 +23,61 @@ class JournalMoodIntegration {
     String? entryMood,
     String? entryMoodContext,
     List<String>? imagePaths,
-    List<Map<String, dynamic>>? audioRecordings,
+    List<Map<String, dynamic>>?
+    audioRecordings, // expects path,duration(ms),timestamp(ms)
   }) async {
+    // Generate ID first so we can place media under a per-journal folder
+    final id = ObjectId();
+
+    // Copy images into app storage and store relative paths
+    List<String> relativeImagePaths = <String>[];
+    if (imagePaths != null && imagePaths.isNotEmpty) {
+      try {
+        relativeImagePaths = await MediaStore.instance.copyImagesForJournal(
+          id,
+          imagePaths,
+        );
+      } catch (_) {}
+    }
+
+    // Copy audio files into app storage and rewrite paths to relative before saving
+    List<Map<String, dynamic>>? processedAudio = audioRecordings;
+    if (audioRecordings != null && audioRecordings.isNotEmpty) {
+      try {
+        final relAudioPaths = await MediaStore.instance
+            .copyAudioFilesForJournal(
+              id,
+              audioRecordings.map((a) => a['path'] as String).toList(),
+            );
+        processedAudio = [
+          for (int i = 0; i < audioRecordings.length; i++)
+            {
+              'path': relAudioPaths.length > i
+                  ? relAudioPaths[i]
+                  : audioRecordings[i]['path'],
+              'duration': audioRecordings[i]['duration'],
+              'timestamp': audioRecordings[i]['timestamp'],
+            },
+        ];
+      } catch (_) {}
+    }
+
     // Create journal entry object
     final journalEntry = JournalEntryRealm(
-      ObjectId(),
+      id,
       title,
       content,
       DateTime.now().toUtc(),
-      imagePathsString: imagePaths?.join('|||'),
-      audioRecordingsString: audioRecordings
-          ?.map((a) => jsonEncode(a))
-          .join('|||'),
+      imagePathsString: jsonEncode(relativeImagePaths),
+      audioRecordingsString: processedAudio != null
+          ? jsonEncode(processedAudio)
+          : null,
       entryMood: entryMood,
       entryMoodContext: entryMoodContext,
     );
 
     // Save the journal entry
     final journalId = await _dbHelper.insertJournalEntry(journalEntry);
-
-    // Mood context is already saved in the journal entry creation above
-    // No additional update needed since we included it in the constructor
 
     return journalId;
   }

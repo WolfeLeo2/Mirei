@@ -14,7 +14,6 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'enhanced_mood_details.dart';
 import 'progress.dart';
 import 'journal_list.dart';
-import 'package:lottie/lottie.dart';
 import 'meditation_screen.dart';
 
 // Const widgets for static decorative elements
@@ -61,18 +60,6 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
   int selectedMoodIndex = 1;
 
   // Lottie overlay state
-  bool _showMoodAnimation = false;
-  int _animationKey = 0; // Forces replay when set
-  static const String _moodLottieAsset =
-      'assets/animations/Bubble Explosion.json';
-
-  // GlobalKeys for tracking mood button positions
-  final List<GlobalKey> _moodButtonKeys = List.generate(
-    10,
-    (index) => GlobalKey(),
-  );
-  Offset? _animationPosition;
-  Size? _animationSize;
 
   // Make Moods list const for better performance
   static const List<String> Moods = [
@@ -171,52 +158,12 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
     );
   }
 
-  void _playMoodAnimation() {
-    // Get the position of the selected mood button
-    final selectedKey = _moodButtonKeys[selectedMoodIndex];
-    final RenderBox? renderBox =
-        selectedKey.currentContext?.findRenderObject() as RenderBox?;
-
-    if (renderBox != null) {
-      final position = renderBox.localToGlobal(Offset.zero);
-      final size = renderBox.size;
-
-      setState(() {
-        _animationPosition = Offset(
-          position.dx + size.width / 2, // Center horizontally on the button
-          position.dy + size.height / 2, // Center vertically on the button
-        );
-        _animationSize = Size(
-          size.width * 1.5,
-          size.height * 1.5,
-        ); // Make animation slightly larger than button
-        _showMoodAnimation = true;
-        _animationKey++;
-      });
-    } else {
-      // Fallback to center if position can't be determined
-      setState(() {
-        _animationPosition = null;
-        _animationSize = null;
-        _showMoodAnimation = true;
-        _animationKey++;
-      });
-    }
-  }
 
   void _onMoodSelected(int index, String mood) {
     // Material 3 Expressive haptic feedback for selection
     HapticFeedback.selectionClick();
     safeSetState(() {
       selectedMoodIndex = index;
-    });
-
-    // Add a small delay to ensure the UI has rendered before getting button position
-    Future.delayed(const Duration(milliseconds: 50), () {
-      if (mounted) {
-        // Play lottie overlay animation
-        _playMoodAnimation();
-      }
     });
 
     // Navigate directly to detailed mood check-in
@@ -227,7 +174,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
   Widget _buildMoodButton(int index) {
     final config = MoodConfigs[index];
     return MoodButton(
-      key: _moodButtonKeys[index], // Add the GlobalKey here
+      key: GlobalKey(), // Add the GlobalKey here
       Mood: config['Mood']!,
       svgPath: config['svgPath']!,
       isSelected: selectedMoodIndex == index,
@@ -674,36 +621,6 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
               ),
             ],
           ),
-
-          // Lottie overlay (ignores touches)
-          if (_showMoodAnimation)
-            Positioned(
-              left: _animationPosition != null
-                  ? _animationPosition!.dx - (_animationSize?.width ?? 100) / 2
-                  : MediaQuery.of(context).size.width / 2 - 100,
-              top: _animationPosition != null
-                  ? _animationPosition!.dy - (_animationSize?.height ?? 100) / 2
-                  : MediaQuery.of(context).size.height / 2 - 100,
-              child: IgnorePointer(
-                ignoring: true,
-                child: Lottie.asset(
-                  _moodLottieAsset,
-                  key: ValueKey(_animationKey),
-                  repeat: false,
-                  onLoaded: (composition) {
-                    // Auto-hide when finished
-                    Future.delayed(composition.duration, () {
-                      if (mounted) {
-                        setState(() => _showMoodAnimation = false);
-                      }
-                    });
-                  },
-                  width: _animationSize?.width ?? 200,
-                  height: _animationSize?.height ?? 200,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
         ],
       ),
     );

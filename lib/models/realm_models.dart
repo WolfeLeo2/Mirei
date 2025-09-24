@@ -127,13 +127,25 @@ class _JournalEntryRealm {
   // Helper getters/setters
   List<String> get imagePaths {
     if (imagePathsString == null || imagePathsString!.isEmpty) return [];
-    return imagePathsString!.contains('|||')
-        ? imagePathsString!.split('|||')
-        : imagePathsString!.split(',');
+    try {
+      final raw = imagePathsString!;
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded
+            .map((e) => e?.toString() ?? '')
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+      return [];
+    } catch (_) {
+      // Fallback to empty on parse errors
+      return [];
+    }
   }
 
   set imagePaths(List<String> paths) {
-    imagePathsString = paths.join('|||');
+    // Store as JSON array for future-proofing
+    imagePathsString = jsonEncode(paths);
   }
 
   List<AudioRecordingData> get audioRecordings {
@@ -141,12 +153,19 @@ class _JournalEntryRealm {
       return [];
     }
     try {
-      return audioRecordingsString!
-          .split('|||')
-          .where((s) => s.isNotEmpty)
-          .map((s) => AudioRecordingData.fromJson(s))
-          .where((audio) => audio.path.isNotEmpty)
-          .toList();
+      final decoded = jsonDecode(audioRecordingsString!);
+      if (decoded is List) {
+        return decoded
+            .map(
+              (e) => e is String
+                  ? AudioRecordingData.fromJson(e)
+                  : AudioRecordingData.fromJson(jsonEncode(e)),
+            )
+            .whereType<AudioRecordingData>()
+            .where((audio) => audio.path.isNotEmpty)
+            .toList();
+      }
+      return [];
     } catch (e) {
       debugPrint('Error parsing audio recordings: $e');
       return [];
@@ -154,6 +173,8 @@ class _JournalEntryRealm {
   }
 
   set audioRecordings(List<AudioRecordingData> recordings) {
-    audioRecordingsString = recordings.map((r) => r.toJson()).join('|||');
+    audioRecordingsString = jsonEncode(
+      recordings.map((r) => jsonDecode(r.toJson())).toList(),
+    );
   }
 }

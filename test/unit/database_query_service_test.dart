@@ -855,3 +855,4 @@ extension DatabaseQueryServiceTest on DatabaseQueryService {
     // For now, we'll use a test subclass approach
   }
 }
+ 

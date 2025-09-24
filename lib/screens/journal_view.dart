@@ -9,6 +9,8 @@ import '../core/constants/app_colors.dart';
 import 'package:realm/realm.dart';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'dart:async';
+import '../services/media_store.dart';
+import 'package:path/path.dart' as p;
 
 class JournalViewScreen extends StatefulWidget {
   final JournalEntryRealm entry;
@@ -63,16 +65,28 @@ class _JournalViewScreenState extends State<JournalViewScreen>
     final audioList = _entryOrWidget.audioRecordings;
     for (final audio in audioList) {
       if (audio.path.isEmpty) continue;
-      if (!_playerControllers.containsKey(audio.path)) {
+      final originalKey = audio.path;
+
+      // Prepare resolved absolute path
+      MediaStore.instance.resolvePath(originalKey).then((resolvedPath) {
+        final key = resolvedPath;
+        if (_playerControllers.containsKey(originalKey) ||
+            _playerControllers.containsKey(key)) {
+          // Already prepared
+          return;
+        }
         final controller = PlayerController();
         controller.preparePlayer(
-          path: audio.path,
+          path: key,
           shouldExtractWaveform: true,
           noOfSamples: 100,
           volume: 1.0,
         );
-        _playerControllers[audio.path] = controller;
-      }
+        // Map by resolved key
+        _playerControllers[key] = controller;
+        // Also map the original relative key for UI references
+        _playerControllers[originalKey] = controller;
+      });
     }
   }
 
@@ -281,48 +295,63 @@ class _JournalViewScreenState extends State<JournalViewScreen>
         itemSnapping: true,
         flexWeights: const <int>[1, 8, 1],
         children: [
-          for (final imagePath in imagePaths)
-            Hero(
-              tag: 'image_$imagePath',
-              child: GestureDetector(
-                onTap: () => _showImagePreview(context, imagePath),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.file(
-                    File(imagePath),
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.backgroundLight,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.divider),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.broken_image_outlined,
-                              color: AppColors.textSecondary,
-                              size: 48,
+          for (final storedPath in imagePaths)
+            FutureBuilder<String>(
+              future: MediaStore.instance.resolvePath(storedPath),
+              builder: (context, snapshot) {
+                final resolvedPath = snapshot.data ?? storedPath;
+                return Hero(
+                  tag: 'image_$storedPath',
+                  child: GestureDetector(
+                    onTap: () => _showImagePreview(context, resolvedPath),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.file(
+                        File(resolvedPath),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.backgroundLight,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.divider),
                             ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Image not found',
-                              style: GoogleFonts.inter(
-                                fontSize: 16,
-                                color: AppColors.textSecondary,
-                              ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.broken_image_outlined,
+                                  color: AppColors.textSecondary,
+                                  size: 48,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Image not found (missing or moved)',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 16,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'This file path no longer exists on device.',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      );
-                    },
+                          );
+                        },
+                      ),
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
         ],
       ),
@@ -332,14 +361,13 @@ class _JournalViewScreenState extends State<JournalViewScreen>
   Widget _buildAudioSection(List<AudioRecordingData> audioRecordings) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ...audioRecordings.map((audio) => _buildAudioPlayer(audio)),
-      ],
+      children: [...audioRecordings.map((audio) => _buildAudioPlayer(audio))],
     );
   }
 
   Widget _buildAudioPlayer(AudioRecordingData audio) {
     final isPlaying = _currentlyPlayingPath == audio.path;
+    final displayPathFuture = MediaStore.instance.resolvePath(audio.path);
     final controller = _playerControllers[audio.path];
 
     return Container(
@@ -399,17 +427,47 @@ class _JournalViewScreenState extends State<JournalViewScreen>
                     ),
                   ),
                 const SizedBox(height: 8),
-                Text(
-                  _formatDuration(audio.duration),
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.schedule,
+                      size: 16,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _formatDuration(audio.duration),
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    FutureBuilder<String>(
+                      future: displayPathFuture,
+                      builder: (context, snapshot) {
+                        final show = snapshot.data ?? audio.path;
+                        return Expanded(
+                          child: Text(
+                            p.basename(show),
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
+
+          // Trailing menu
+          const SizedBox(width: 8),
+          Icon(Icons.more_horiz, color: AppColors.textSecondary),
         ],
       ),
     );
@@ -425,7 +483,6 @@ class _JournalViewScreenState extends State<JournalViewScreen>
             fontSize: 16,
             height: 1.6,
             color: Colors.black,
-            
           ),
         ),
       ],
@@ -745,10 +802,15 @@ class _JournalViewScreenState extends State<JournalViewScreen>
   }
 
   void _playAudio(String audioPath) async {
-    final controller = _playerControllers[audioPath];
+    // Resolve relative path to absolute if needed
+    final resolved = await MediaStore.instance.resolvePath(audioPath);
+    final controller =
+        _playerControllers[resolved] ?? _playerControllers[audioPath];
     if (controller == null) return;
 
-    if (_currentlyPlayingPath == audioPath) {
+    final isSame =
+        _currentlyPlayingPath == resolved || _currentlyPlayingPath == audioPath;
+    if (isSame) {
       if (controller.playerState.isPlaying) {
         await controller.pausePlayer();
       } else {
@@ -763,7 +825,7 @@ class _JournalViewScreenState extends State<JournalViewScreen>
       await prev?.stopPlayer();
     }
 
-    _currentlyPlayingPath = audioPath;
+    _currentlyPlayingPath = resolved;
     await controller.startPlayer();
     setState(() {});
   }

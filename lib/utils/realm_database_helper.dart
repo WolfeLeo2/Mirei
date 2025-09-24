@@ -4,6 +4,7 @@ import 'package:path/path.dart' as path;
 import 'dart:io';
 import 'dart:convert';
 import '../models/realm_models.dart';
+import '../services/media_store.dart';
 
 class RealmDatabaseHelper {
   static final RealmDatabaseHelper _instance = RealmDatabaseHelper._internal();
@@ -289,12 +290,44 @@ class RealmDatabaseHelper {
     final existingEntry = realmDb.find<JournalEntryRealm>(entry.id);
 
     if (existingEntry != null) {
+      // Capture old vs new image sets for cleanup
+      final List<String> oldImages = List<String>.from(
+        existingEntry.imagePaths,
+      );
+      final List<String> newImages = List<String>.from(entry.imagePaths);
+
       realmDb.write(() {
         existingEntry.title = entry.title;
         existingEntry.content = entry.content;
         existingEntry.imagePathsString = entry.imagePathsString;
         existingEntry.audioRecordingsString = entry.audioRecordingsString;
       });
+
+      // Delete removed images from storage (those present before but not after)
+      final removedImages = oldImages
+          .where((o) => !newImages.contains(o))
+          .toList();
+      if (removedImages.isNotEmpty) {
+        try {
+          await MediaStore.instance.deleteRelativeFiles(removedImages);
+        } catch (_) {}
+      }
+
+      // Delete removed audio files similarly
+      final List<String> oldAudio = existingEntry.audioRecordings
+          .map((a) => a.path)
+          .toList();
+      final List<String> newAudio = entry.audioRecordings
+          .map((a) => a.path)
+          .toList();
+      final removedAudio = oldAudio
+          .where((o) => !newAudio.contains(o))
+          .toList();
+      if (removedAudio.isNotEmpty) {
+        try {
+          await MediaStore.instance.deleteRelativeFiles(removedAudio);
+        } catch (_) {}
+      }
     }
   }
 
@@ -302,6 +335,10 @@ class RealmDatabaseHelper {
     final realmDb = await realm;
     final entry = realmDb.find<JournalEntryRealm>(id);
     if (entry != null) {
+      // Best-effort media cleanup
+      try {
+        await MediaStore.instance.deleteJournalMedia(id);
+      } catch (_) {}
       realmDb.write(() {
         realmDb.delete(entry);
       });

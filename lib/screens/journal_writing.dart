@@ -13,7 +13,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../models/journal_template.dart';
+
 import '../services/journal_mood_integration.dart';
 import '../data/mood_constants.dart';
 import '../data/mood_assets.dart';
@@ -23,9 +23,7 @@ import '../core/theme/mood_colors.dart';
 import '../components/mood_button.dart';
 
 class JournalWritingScreen extends StatefulWidget {
-  final JournalTemplate? initialTemplate;
-
-  const JournalWritingScreen({super.key, this.initialTemplate});
+  const JournalWritingScreen({super.key});
 
   @override
   _JournalWritingScreenState createState() => _JournalWritingScreenState();
@@ -78,10 +76,7 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
   }
 
   void _initializeTemplate() {
-    if (widget.initialTemplate != null) {
-      _titleController.text = widget.initialTemplate!.getFilledTitle();
-      _contentController.text = widget.initialTemplate!.getFilledContent();
-    }
+    // Template system removed - no longer needed
   }
 
   void _initializeWaveAnimations() {
@@ -1303,78 +1298,77 @@ class _JournalWritingScreenState extends State<JournalWritingScreen>
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: 
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'How are you feeling?',
-              style: TextStyle(
-                color: Colors.black87,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                fontFamily: GoogleFonts.inter().fontFamily,
-              ),
-            ),
-            if (_selectedEntryMood != null)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: selectedMoodColor!.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: selectedMoodColor,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _selectedEntryMood!,
-                      style: TextStyle(
-                        color: selectedMoodColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: GoogleFonts.inter().fontFamily,
-                      ),
-                    ),
-                  ],
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'How are you feeling?',
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: GoogleFonts.inter().fontFamily,
                 ),
               ),
-          ],
+              if (_selectedEntryMood != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selectedMoodColor!.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: selectedMoodColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _selectedEntryMood!,
+                        style: TextStyle(
+                          color: selectedMoodColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: GoogleFonts.inter().fontFamily,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: 16),
         // Mood Buttons Horizontal Scroll
         RepaintBoundary(
-          child:SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            children: List.generate(MoodConstants.moodTypes.length, (index) {
-              final mood = MoodConstants.moodTypes[index];
-              return MoodButton(
-                Mood: mood,
-                svgPath: kMoodSvg[mood] ?? 'assets/emotion-icons/neutral.svg',
-                isSelected: mood == _selectedEntryMood,
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  setState(() {
-                    _selectedEntryMood = mood;
-                  });
-                },
-              );
-            }),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: List.generate(MoodConstants.moodTypes.length, (index) {
+                final mood = MoodConstants.moodTypes[index];
+                return MoodButton(
+                  Mood: mood,
+                  svgPath: kMoodSvg[mood] ?? 'assets/emotion-icons/neutral.svg',
+                  isSelected: mood == _selectedEntryMood,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    setState(() {
+                      _selectedEntryMood = mood;
+                    });
+                  },
+                );
+              }),
             ),
           ),
         ),

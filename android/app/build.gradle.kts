@@ -32,9 +32,9 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         
-        // Spotify SDK manifest placeholders
-        manifestPlaceholders["redirectSchemeName"] = "com.kanso.mirei.mirei"
-        manifestPlaceholders["redirectHostName"] = "spotify-auth"
+        // Spotify SDK manifest placeholders (disabled)
+        // manifestPlaceholders["redirectSchemeName"] = "com.kanso.mirei.mirei"
+        // manifestPlaceholders["redirectHostName"] = "spotify-auth"
     }
 
     buildTypes {
@@ -51,6 +51,5 @@ flutter {
 }
 
 dependencies {
-    // Spotify SDK dependency
-    implementation(project(":spotify-app-remote"))
+    // implementation(project(":spotify-app-remote")) // Disabled: Spotify removed
 }
