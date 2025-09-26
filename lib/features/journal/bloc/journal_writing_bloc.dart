@@ -340,6 +340,7 @@ class JournalWritingBloc
           if (kDebugMode) {
             print('Failed to delete audio file: $e');
           }
+          return file; // Return the file to satisfy the catchError handler
         });
       }
 

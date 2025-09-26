@@ -10,7 +10,7 @@ This document tracks actionable improvements across architecture, UI/UX, data, p
 
 ## Top Priorities (Next 1–2 sprints)
 
-- [x] Split `lib/screens/journal_writing.dart` into modular widgets + BLoC/service layers - _Created JournalWritingBloc with PlayerService/RecorderService integration_
+- [x] Split `lib/screens/journal_writing.dart` into modular widgets + BLoC/service layers - _COMPLETED: Full BLoC migration with events for image/audio/mood selection, text input, recording, and save validation requiring title + (content OR attachments)_
 - [x] Move Realm watching and audio controllers out of `lib/screens/journal_view.dart` into BLoC - _Created JournalViewBloc with proper separation_
 - [ ] Enable Android release shrinking and ABI splits; publish AAB; analyze size report
 - [ ] Introduce a design system: `AppSpacing`, `AppTextStyles`, `AppRadius`, `AppIcons`
@@ -25,7 +25,7 @@ This document tracks actionable improvements across architecture, UI/UX, data, p
 
 - [ ] Adopt a consistent state management pattern (`flutter_bloc` already present)
 - [x] Extract business logic from widgets into BLoC/ViewModels
-  - [x] `journal_writing.dart` → `JournalWritingBloc`, `RecorderService`, `MediaStore` - _Created full BLoC architecture with services_
+  - [x] `journal_writing.dart` → `JournalWritingBloc`, `RecorderService`, `MediaStore` - _COMPLETED: Complete BLoC refactor with proper save validation (title + content/attachments), removed template system, restored waveform visualization in audio chips_
   - [x] `journal_view.dart` → `JournalViewBloc` (Realm watch, mood lookup, audio controllers) - _Moved all business logic to BLoC_
 - [ ] Define repository interfaces and inject implementations
   - [ ] `MoodRepository`, `JournalRepository`, `MediaRepository`
@@ -74,6 +74,7 @@ This document tracks actionable improvements across architecture, UI/UX, data, p
   - [ ] Placeholder/error visuals
   - [ ] Optional pinch-to-zoom on tap-through
 - [ ] Text scaling verification at 1.3–1.5× (no clipping)
+- [ ] Journal writing keyboard toolbar (Notion-style) with formatting affordances and actions (bold, italic, bullets, checklist, quote, mic, photo, audio) — implement after base UI approval
 
 ## Audio & Media
 
@@ -104,36 +105,9 @@ This document tracks actionable improvements across architecture, UI/UX, data, p
 
 - [ ] Gradle (release): enable shrinking and resource stripping
   - [ ] `android/app/build.gradle.kts`
-    ```kts
-    android {
-        buildTypes {
-            release {
-                isMinifyEnabled = true
-                isShrinkResources = true
-                proguardFiles(
-                    getDefaultProguardFile("proguard-android-optimize.txt"),
-                    "proguard-rules.pro"
-                )
-                // Use a proper release signingConfig
-            }
-        }
-        defaultConfig {
-            // If sideloading only ARM64
-            // ndk { abiFilters += listOf("arm64-v8a") }
-        }
-    }
-    ```
-- [ ] Build per-ABI or AAB and analyze size
-  - [ ] `flutter build appbundle --release --analyze-size`
-  - [ ] `flutter build apk --release --split-per-abi --tree-shake-icons --obfuscate --split-debug-info=build/symbols`
-- [ ] Assets optimization
-  - [ ] Convert large PNG/JPG → WebP
-  - [ ] Compress Lottie JSONs
-  - [ ] Remove duplicates (e.g., duplicated `lofi_cover.png` entries)
-  - [ ] Audit unused assets/fonts
-- [ ] Dependency audit
-  - [ ] Remove unused heavy deps (confirm ongoing need for each)
-  - [ ] Ensure Spotify SDK stays removed; no stray transitive Jackson
+  - [ ] Build per-ABI or AAB and analyze size
+  - [ ] Assets optimization
+  - [ ] Dependency audit
 
 ## Navigation & Flow
 

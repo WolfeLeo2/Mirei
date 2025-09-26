@@ -26,14 +26,14 @@ class AudioRecordingData {
 
   factory AudioRecordingData.fromJson(String jsonString) {
     try {
-      final data = jsonDecode(jsonString);
-      return AudioRecordingData(
+    final data = jsonDecode(jsonString);
+    return AudioRecordingData(
         path: data['path'] ?? '',
         duration: Duration(milliseconds: data['duration'] ?? 0),
         timestamp: data['timestamp'] != null && data['timestamp'] != 0
             ? DateTime.fromMillisecondsSinceEpoch(data['timestamp'])
             : DateTime.now(),
-      );
+    );
     } catch (e) {
       debugPrint('Error parsing AudioRecordingData JSON: $e');
       // Return a default/fallback audio recording
@@ -163,7 +163,7 @@ class _JournalEntryRealm {
             )
             .whereType<AudioRecordingData>()
             .where((audio) => audio.path.isNotEmpty)
-            .toList();
+        .toList();
       }
       return [];
     } catch (e) {

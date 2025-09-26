@@ -3,9 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/realm_models.dart';
 import '../utils/realm_database_helper.dart';
 import '../utils/journal_grouping_service.dart';
-import '../components/journal_list/adaptive_folder_layout.dart';
-import '../components/journal_list/expanded_entries_overlay.dart';
+import '../components/folder_card.dart';
 import 'journal_writing.dart';
+import 'journal_entries_screen.dart';
 
 class JournalListScreen extends StatefulWidget {
   const JournalListScreen({super.key});
@@ -19,12 +19,6 @@ class _JournalListScreenState extends State<JournalListScreen>
   List<JournalEntryRealm> journals = [];
   Map<String, List<JournalEntryRealm>> journalsByMonth = {};
   bool isLoading = true;
-  String? expandedFolderId;
-
-  // View mode variables
-  FolderViewMode _viewMode = FolderViewMode.grid;
-
-  // Keep track of entry count to detect deletions
 
   @override
   void initState() {
@@ -55,7 +49,7 @@ class _JournalListScreenState extends State<JournalListScreen>
       // Filter out any invalidated entries
       final validJournals = _filterValidEntries(loadedJournals);
 
-      // Group journals by month using our new service
+      // Group journals by month using our service
       final groupedJournals = JournalGroupingService.groupJournalsByMonth(
         validJournals,
       );
@@ -80,14 +74,6 @@ class _JournalListScreenState extends State<JournalListScreen>
     }
   }
 
-  /// Force refresh journals immediately - used when returning from detail view
-  Future<void> _forceRefresh() async {
-    setState(() {
-      isLoading = true;
-    });
-    await _loadJournals();
-  }
-
   Future<void> _navigateToJournalWriting() async {
     final result = await Navigator.push(
       context,
@@ -106,68 +92,22 @@ class _JournalListScreenState extends State<JournalListScreen>
     await _loadJournals();
   }
 
-  /// Toggle between grid and carousel view modes
-  void _toggleViewMode() {
-    setState(() {
-      _viewMode = _viewMode == FolderViewMode.grid
-          ? FolderViewMode.carousel
-          : FolderViewMode.grid;
-    });
-  }
-
-  void _onFolderTap(String monthKey, Offset tapPosition) {
-    final entries = journalsByMonth[monthKey] ?? [];
+  void _onFolderTap(String monthKey, List<JournalEntryRealm> entries) {
     if (entries.isEmpty) return;
 
-    // Show overlay with entries using actual folder position
-    _showExpandedEntriesOverlay(monthKey, entries);
-  }
-
-  void _showExpandedEntriesOverlay(
-    String monthKey,
-    List<JournalEntryRealm> entries,
-  ) async {
-    // Calculate folder position based on layout
-    final screenSize = MediaQuery.of(context).size;
-    Offset folderPosition;
-
-    if (journalsByMonth.keys.length == 1) {
-      // Single folder is centered
-      folderPosition = Offset(screenSize.width / 2, screenSize.height / 2);
-    } else {
-      // Grid layout - approximate position based on grid
-      // This is a simplified calculation - in a real implementation,
-      // we'd get the actual folder widget position
-      folderPosition = Offset(screenSize.width / 2, screenSize.height * 0.4);
-    }
-
-    await showDialog<bool>(
-      context: context,
-      barrierColor: Colors.transparent,
-      barrierDismissible: false,
-      builder: (context) => ExpandedEntriesOverlay(
-        entries: entries,
-        folderPosition: folderPosition,
-        monthKey: monthKey,
-        onClose: () => Navigator.of(context).pop(),
-        onEntryDeleted: () async {
-          // Force immediate state refresh
-          if (mounted) {
-            setState(() {
-              isLoading = true;
-            });
-            await _loadJournals();
-          }
-        },
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            JournalEntriesScreen(monthTitle: monthKey, entries: entries),
       ),
     );
-
-    // Force refresh after overlay closes to ensure deleted entries are removed
-    await _forceRefresh();
   }
 
   @override
   Widget build(BuildContext context) {
+    final monthKeys = journalsByMonth.keys.toList();
+    final bool isEmpty = !isLoading && monthKeys.isEmpty;
     return Scaffold(
       backgroundColor: const Color(0xFFf0efeb),
       appBar: AppBar(
@@ -191,36 +131,68 @@ class _JournalListScreenState extends State<JournalListScreen>
           ),
         ),
         centerTitle: true,
-        actions: [
-          // View mode toggle (only show when there are multiple folders)
-          if (journalsByMonth.keys.length > 1)
-            IconButton(
-              icon: Icon(
-                _viewMode == FolderViewMode.grid
-                    ? Icons.view_carousel
-                    : Icons.grid_view,
-                color: const Color(0xFF115e5a),
-              ),
-              onPressed: _toggleViewMode,
-              tooltip: _viewMode == FolderViewMode.grid
-                  ? 'Switch to Carousel'
-                  : 'Switch to Grid',
-            ),
-        ],
       ),
       body: isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFF115e5a)),
             )
+          : isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      'assets/images/tabby_journal.png',
+                      width: 200,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No journal entries yet',
+                      style: GoogleFonts.inter(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Start your first entry by tapping the + button.',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: Colors.black54,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            )
           : RefreshIndicator(
               onRefresh: _refreshJournals,
               color: const Color(0xFF115e5a),
-              child: AdaptiveFolderLayout(
-                journalsByMonth: journalsByMonth,
-                expandedFolderId: expandedFolderId,
-                onFolderTap: _onFolderTap,
-                viewMode: _viewMode,
-                onViewModeChanged: (mode) => setState(() => _viewMode = mode),
+              child: GridView.builder(
+                padding: const EdgeInsets.all(16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.95,
+                ),
+                itemCount: monthKeys.length,
+                itemBuilder: (context, index) {
+                  final key = monthKeys[index];
+                  final items =
+                      journalsByMonth[key] ?? const <JournalEntryRealm>[];
+                  return FolderCard(
+                    title: key,
+                    count: items.length,
+                    // green for now
+                    onTap: () => _onFolderTap(key, items),
+                  );
+                },
               ),
             ),
       floatingActionButton: FloatingActionButton(

@@ -12,7 +12,7 @@ class AppColors {
   static const Color primaryLight = Color(0xFF4a9b96);
 
   // Secondary Colors
-  static const Color secondary = Color(0xFF6366F1);
+  static const Color secondary = Color.fromARGB(207, 17, 94, 90);
   static const Color secondaryDark = Color(0xFF4F46E5);
   static const Color secondaryLight = Color(0xFF8B7CF6);
 

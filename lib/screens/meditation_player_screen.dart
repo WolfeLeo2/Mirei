@@ -27,10 +27,10 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
   @override
   void initState() {
     super.initState();
-
+    
     // Parse duration from string (e.g., "10 min" -> Duration(minutes: 10))
     totalDuration = _parseDuration(widget.meditation.duration);
-
+    
     _waveAnimationController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -114,8 +114,8 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
 
   Color _getSecondaryColor(Color primaryColor) {
     final textColor = _getTextColor(primaryColor);
-    return textColor == Colors.black87
-        ? const Color.fromARGB(130, 0, 0, 0)
+    return textColor == Colors.black87 
+        ? const Color.fromARGB(130, 0, 0, 0) 
         : const Color.fromARGB(207, 255, 255, 255);
   }
 
@@ -301,7 +301,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                               thumbColor: textColor == Colors.white
                                   ? Colors.white
                                   : Colors.black,
-                              overlayColor: textColor != Colors.white
+                              overlayColor: textColor != Colors.white 
                                   ? Colors.black.withValues(alpha: 0.2)
                                   : Colors.white.withValues(alpha: 0.2),
                               trackHeight: 4,
@@ -328,7 +328,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                           ),
                         ),
                       ),
-
+                      
                       // Total duration
                       Text(
                         _formatDuration(totalDuration),
@@ -340,9 +340,9 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                       ),
                     ],
                   ),
-
+                  
                   SizedBox(height: screenHeight * 0.02),
-
+                  
                   // Playback controls
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -363,7 +363,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                           progress: _playButtonController,
                           color: textColor,
                           size: 44,
-                        ),
+                      ),
                       ),
                       const SizedBox(width: 8),
                       IconButton(
@@ -414,4 +414,4 @@ class WavePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant WavePainter oldDelegate) => true;
-}
+} 
