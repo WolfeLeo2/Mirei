@@ -21,6 +21,15 @@ This document tracks actionable improvements across architecture, UI/UX, data, p
 
 ---
 
+## Code Health & Dependencies
+
+- **[ ] Address Static Analysis Issues:** `flutter analyze` reported 127 issues, including deprecated API usage, potential null pointer exceptions, and inconsistent coding styles. A full breakdown can be found in the analysis report.
+- **[ ] Update Outdated Dependencies:** A significant number of dependencies are outdated. This poses a security risk and may lead to compatibility issues. Key packages to update include `firebase_core`, `firebase_auth`, `just_audio`, and `realm`.
+- **[ ] Replace Discontinued Packages:** The project uses `build_resolvers`, `build_runner_core`, and `js`, which have been discontinued. These should be replaced with alternatives to ensure long-term maintainability.
+- **[ ] Add `.env.example`:** Create a `.env.example` file to document the required environment variables for new contributors, improving the onboarding experience.
+
+---
+
 ## Architecture & State Management
 
 - [ ] Adopt a consistent state management pattern (`flutter_bloc` already present)

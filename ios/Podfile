@@ -40,5 +40,26 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+
+    # Reduce permission_handler compiled code (optional)
+    if target.name == 'permission_handler_apple'
+      target.build_configurations.each do |config|
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
+          '$(inherited)',
+          # Keep only what you use:
+          'PERMISSION_CAMERA=1',
+          'PERMISSION_MICROPHONE=1',
+          # Disable others:
+          'PERMISSION_PHOTOS=1', # keep if using image_picker (read)
+          'PERMISSION_SPEECH_RECOGNIZER=0',
+          'PERMISSION_LOCATION=0',
+          'PERMISSION_NOTIFICATIONS=0',
+          'PERMISSION_MEDIA_LIBRARY=0',
+          'PERMISSION_CONTACTS=0',
+          'PERMISSION_REMINDERS=0',
+          'PERMISSION_CALENDARS=0'
+        ]
+      end
+    end
   end
 end

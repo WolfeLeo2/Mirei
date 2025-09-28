@@ -102,3 +102,39 @@ class JournalSaveRequested extends JournalWritingEvent {
 class JournalWritingReset extends JournalWritingEvent {
   const JournalWritingReset();
 }
+
+class RecordingStatusChanged extends JournalWritingEvent {
+  final bool isRecording;
+
+  const RecordingStatusChanged(this.isRecording);
+
+  @override
+  List<Object> get props => [isRecording];
+}
+
+class WaveformAmplitudesChanged extends JournalWritingEvent {
+  final List<double> amplitudes;
+
+  const WaveformAmplitudesChanged(this.amplitudes);
+
+  @override
+  List<Object> get props => [amplitudes];
+}
+
+class AudioPlaybackChanged extends JournalWritingEvent {
+  final String? audioPath;
+
+  const AudioPlaybackChanged(this.audioPath);
+
+  @override
+  List<Object?> get props => [audioPath];
+}
+
+class RecordingDurationChanged extends JournalWritingEvent {
+  final Duration duration;
+
+  const RecordingDurationChanged(this.duration);
+
+  @override
+  List<Object> get props => [duration];
+}

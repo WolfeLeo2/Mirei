@@ -47,6 +47,10 @@ class JournalWritingBloc
     on<AudioPlaybackToggled>(_onAudioPlaybackToggled);
     on<JournalSaveRequested>(_onJournalSaveRequested);
     on<JournalWritingReset>(_onJournalWritingReset);
+    on<RecordingStatusChanged>(_onRecordingStatusChanged);
+    on<WaveformAmplitudesChanged>(_onWaveformAmplitudesChanged);
+    on<AudioPlaybackChanged>(_onAudioPlaybackChanged);
+    on<RecordingDurationChanged>(_onRecordingDurationChanged);
   }
 
   Future<void> _onInitialized(
@@ -59,35 +63,25 @@ class JournalWritingBloc
       await _recorderService.initialize();
 
       // Subscribe to recorder streams
-      _recordingSubscription = _recorderService.isRecordingStream.listen((
-        isRecording,
-      ) {
+      _recordingSubscription =
+          _recorderService.isRecordingStream.listen((isRecording) {
         if (!isClosed) {
-          add(
-            RecordingStopRequested(),
-          ); // This will be handled by the appropriate handler
+          add(RecordingStatusChanged(isRecording));
         }
       });
 
-      _waveformSubscription = _recorderService.waveAmplitudesStream.listen((
-        amplitudes,
-      ) {
+      _waveformSubscription =
+          _recorderService.waveAmplitudesStream.listen((amplitudes) {
         if (!isClosed) {
-          emit(state.copyWith(waveAmplitudes: amplitudes));
+          add(WaveformAmplitudesChanged(amplitudes));
         }
       });
 
       // Subscribe to player streams
-      _playerSubscription = _playerService.currentlyPlayingStream.listen((
-        path,
-      ) {
+      _playerSubscription =
+          _playerService.currentlyPlayingStream.listen((path) {
         if (!isClosed) {
-          emit(
-            state.copyWith(
-              currentlyPlayingAudio: path,
-              clearCurrentlyPlaying: path == null,
-            ),
-          );
+          add(AudioPlaybackChanged(path));
         }
       });
 
@@ -227,12 +221,12 @@ class JournalWritingBloc
         emit(state.copyWith(isRecording: true, clearError: true));
 
         // Listen to recording duration updates
-        final durationSubscription = _recorderService.recordingDurationStream
-            .listen((duration) {
-              if (!isClosed) {
-                emit(state.copyWith(recordingDuration: duration));
-              }
-            });
+        final durationSubscription =
+            _recorderService.recordingDurationStream.listen((duration) {
+          if (!isClosed) {
+            add(RecordingDurationChanged(duration));
+          }
+        });
 
         // Cancel subscription when recording stops
         _recorderService.isRecordingStream
@@ -417,6 +411,41 @@ class JournalWritingBloc
 
     // Reset to initial state
     emit(const JournalWritingState());
+  }
+
+  void _onRecordingStatusChanged(
+    RecordingStatusChanged event,
+    Emitter<JournalWritingState> emit,
+  ) {
+    if (!event.isRecording) {
+      add(RecordingStopRequested());
+    }
+  }
+
+  void _onWaveformAmplitudesChanged(
+    WaveformAmplitudesChanged event,
+    Emitter<JournalWritingState> emit,
+  ) {
+    emit(state.copyWith(waveAmplitudes: event.amplitudes));
+  }
+
+  void _onAudioPlaybackChanged(
+    AudioPlaybackChanged event,
+    Emitter<JournalWritingState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        currentlyPlayingAudio: event.audioPath,
+        clearCurrentlyPlaying: event.audioPath == null,
+      ),
+    );
+  }
+
+  void _onRecordingDurationChanged(
+    RecordingDurationChanged event,
+    Emitter<JournalWritingState> emit,
+  ) {
+    emit(state.copyWith(recordingDuration: event.duration));
   }
 
   @override

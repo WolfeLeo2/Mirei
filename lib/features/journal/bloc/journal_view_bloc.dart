@@ -32,6 +32,8 @@ class JournalViewBloc extends Bloc<JournalViewEvent, JournalViewState> {
     on<JournalShareRequested>(_onJournalShareRequested);
     on<JournalDeleteRequested>(_onJournalDeleteRequested);
     on<JournalDeleteConfirmed>(_onJournalDeleteConfirmed);
+    on<JournalEntryUpdated>(_onJournalEntryUpdated);
+    on<AudioPlaybackChanged>(_onAudioPlaybackChanged);
   }
 
   Future<void> _onInitialized(
@@ -49,12 +51,7 @@ class JournalViewBloc extends Bloc<JournalViewEvent, JournalViewState> {
         path,
       ) {
         if (!isClosed) {
-          emit(
-            state.copyWith(
-              currentlyPlayingAudio: path,
-              clearCurrentlyPlaying: path == null,
-            ),
-          );
+          add(AudioPlaybackChanged(path));
         }
       });
 
@@ -205,10 +202,7 @@ class JournalViewBloc extends Bloc<JournalViewEvent, JournalViewState> {
         // Subscribe to changes
         _entrySub = found.changes.listen((changes) {
           if (!isClosed) {
-            _liveEntry = changes.object;
-            emit(state.copyWith(entry: changes.object));
-            _setupAudioControllers();
-            _loadAssociatedMood();
+            add(JournalEntryUpdated(changes.object));
           }
         });
       } else {
@@ -300,6 +294,28 @@ class JournalViewBloc extends Bloc<JournalViewEvent, JournalViewState> {
       }
       rethrow;
     }
+  }
+
+  void _onJournalEntryUpdated(
+    JournalEntryUpdated event,
+    Emitter<JournalViewState> emit,
+  ) {
+    _liveEntry = event.entry;
+    emit(state.copyWith(entry: event.entry));
+    _setupAudioControllers();
+    _loadAssociatedMood();
+  }
+
+  void _onAudioPlaybackChanged(
+    AudioPlaybackChanged event,
+    Emitter<JournalViewState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        currentlyPlayingAudio: event.audioPath,
+        clearCurrentlyPlaying: event.audioPath == null,
+      ),
+    );
   }
 
   @override

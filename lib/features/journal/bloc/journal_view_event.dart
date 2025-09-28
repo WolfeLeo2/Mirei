@@ -45,3 +45,21 @@ class JournalDeleteRequested extends JournalViewEvent {
 class JournalDeleteConfirmed extends JournalViewEvent {
   const JournalDeleteConfirmed();
 }
+
+class JournalEntryUpdated extends JournalViewEvent {
+  final JournalEntryRealm entry;
+
+  const JournalEntryUpdated(this.entry);
+
+  @override
+  List<Object> get props => [entry];
+}
+
+class AudioPlaybackChanged extends JournalViewEvent {
+  final String? audioPath;
+
+  const AudioPlaybackChanged(this.audioPath);
+
+  @override
+  List<Object?> get props => [audioPath];
+}
