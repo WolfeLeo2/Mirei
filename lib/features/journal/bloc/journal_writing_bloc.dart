@@ -23,13 +23,13 @@ class JournalWritingBloc
   StreamSubscription? _playerSubscription;
 
   JournalWritingBloc({
-    PlayerService? playerService,
-    RecorderService? recorderService,
-    JournalMoodIntegration? moodIntegration,
+    required PlayerService playerService,
+    required RecorderService recorderService,
+    required JournalMoodIntegration moodIntegration,
     ImagePicker? imagePicker,
-  }) : _playerService = playerService ?? PlayerService(),
-       _recorderService = recorderService ?? RecorderService(),
-       _moodIntegration = moodIntegration ?? JournalMoodIntegration(),
+  }) : _playerService = playerService,
+       _recorderService = recorderService,
+       _moodIntegration = moodIntegration,
        _imagePicker = imagePicker ?? ImagePicker(),
        super(const JournalWritingState()) {
     on<JournalWritingInitialized>(_onInitialized);
@@ -47,7 +47,7 @@ class JournalWritingBloc
     on<AudioPlaybackToggled>(_onAudioPlaybackToggled);
     on<JournalSaveRequested>(_onJournalSaveRequested);
     on<JournalWritingReset>(_onJournalWritingReset);
-    on<RecordingStatusChanged>(_onRecordingStatusChanged);
+    // Removed RecordingStatusChanged indirection; explicit events control lifecycle.
     on<WaveformAmplitudesChanged>(_onWaveformAmplitudesChanged);
     on<AudioPlaybackChanged>(_onAudioPlaybackChanged);
     on<RecordingDurationChanged>(_onRecordingDurationChanged);
@@ -63,23 +63,23 @@ class JournalWritingBloc
       await _recorderService.initialize();
 
       // Subscribe to recorder streams
-      _recordingSubscription =
-          _recorderService.isRecordingStream.listen((isRecording) {
-        if (!isClosed) {
-          add(RecordingStatusChanged(isRecording));
-        }
-      });
+      // Still listen to recording duration & waveform via dedicated streams.
+      _recordingSubscription = _recorderService.isRecordingStream.listen(
+        (_) {},
+      );
 
-      _waveformSubscription =
-          _recorderService.waveAmplitudesStream.listen((amplitudes) {
+      _waveformSubscription = _recorderService.waveAmplitudesStream.listen((
+        amplitudes,
+      ) {
         if (!isClosed) {
           add(WaveformAmplitudesChanged(amplitudes));
         }
       });
 
       // Subscribe to player streams
-      _playerSubscription =
-          _playerService.currentlyPlayingStream.listen((path) {
+      _playerSubscription = _playerService.currentlyPlayingStream.listen((
+        path,
+      ) {
         if (!isClosed) {
           add(AudioPlaybackChanged(path));
         }
@@ -89,7 +89,11 @@ class JournalWritingBloc
         print('JournalWritingBloc: Initialized successfully');
       }
     } catch (e) {
-      emit(state.copyWith(error: 'Failed to initialize: $e'));
+      emit(
+        state.copyWith(
+          failure: JournalFailure.unknown('Failed to initialize: $e'),
+        ),
+      );
     }
   }
 
@@ -98,7 +102,7 @@ class JournalWritingBloc
       state.copyWith(
         title: event.title,
         hasUnsavedChanges: true,
-        clearError: true,
+        failure: null,
       ),
     );
   }
@@ -111,7 +115,7 @@ class JournalWritingBloc
       state.copyWith(
         content: event.content,
         hasUnsavedChanges: true,
-        clearError: true,
+        failure: null,
       ),
     );
   }
@@ -121,7 +125,7 @@ class JournalWritingBloc
       state.copyWith(
         selectedMood: event.mood,
         hasUnsavedChanges: true,
-        clearError: true,
+        failure: null,
       ),
     );
   }
@@ -134,7 +138,7 @@ class JournalWritingBloc
       state.copyWith(
         moodContext: event.context,
         hasUnsavedChanges: true,
-        clearError: true,
+        failure: null,
       ),
     );
   }
@@ -152,12 +156,16 @@ class JournalWritingBloc
           state.copyWith(
             selectedImages: updatedImages,
             hasUnsavedChanges: true,
-            clearError: true,
+            failure: null,
           ),
         );
       }
     } catch (e) {
-      emit(state.copyWith(error: 'Failed to pick images: $e'));
+      emit(
+        state.copyWith(
+          failure: JournalFailure.unknown('Failed to pick images: $e'),
+        ),
+      );
     }
   }
 
@@ -171,7 +179,13 @@ class JournalWritingBloc
       if (cameraStatus.isDenied) {
         final result = await Permission.camera.request();
         if (!result.isGranted) {
-          emit(state.copyWith(error: 'Camera permission denied'));
+          emit(
+            state.copyWith(
+              failure: const JournalFailure.validation(
+                'Camera permission denied',
+              ),
+            ),
+          );
           return;
         }
       }
@@ -186,12 +200,16 @@ class JournalWritingBloc
           state.copyWith(
             selectedImages: updatedImages,
             hasUnsavedChanges: true,
-            clearError: true,
+            failure: null,
           ),
         );
       }
     } catch (e) {
-      emit(state.copyWith(error: 'Failed to take photo: $e'));
+      emit(
+        state.copyWith(
+          failure: JournalFailure.unknown('Failed to take photo: $e'),
+        ),
+      );
     }
   }
 
@@ -203,7 +221,7 @@ class JournalWritingBloc
         state.copyWith(
           selectedImages: updatedImages,
           hasUnsavedChanges: true,
-          clearError: true,
+          failure: null,
         ),
       );
     }
@@ -218,15 +236,15 @@ class JournalWritingBloc
 
       final recordingPath = await _recorderService.startRecording();
       if (recordingPath != null) {
-        emit(state.copyWith(isRecording: true, clearError: true));
+        emit(state.copyWith(isRecording: true, failure: null));
 
         // Listen to recording duration updates
-        final durationSubscription =
-            _recorderService.recordingDurationStream.listen((duration) {
-          if (!isClosed) {
-            add(RecordingDurationChanged(duration));
-          }
-        });
+        final durationSubscription = _recorderService.recordingDurationStream
+            .listen((duration) {
+              if (!isClosed) {
+                add(RecordingDurationChanged(duration));
+              }
+            });
 
         // Cancel subscription when recording stops
         _recorderService.isRecordingStream
@@ -240,7 +258,7 @@ class JournalWritingBloc
       emit(
         state.copyWith(
           isRecording: false,
-          error: 'Failed to start recording: $e',
+          failure: JournalFailure.unknown('Failed to start recording: $e'),
         ),
       );
     }
@@ -253,19 +271,16 @@ class JournalWritingBloc
     try {
       if (!state.isRecording) return;
 
-      final recordingPath = await _recorderService.stopRecording();
-      if (recordingPath != null) {
-        // Add the recording to the list
+      final result = await _recorderService.stopRecording();
+      if (result != null) {
         final audioData = {
-          'path': recordingPath,
-          'duration': state.recordingDuration.inMilliseconds,
-          'timestamp': DateTime.now().millisecondsSinceEpoch,
+          'path': result.path,
+          'duration': result.duration.inMilliseconds,
+          'timestamp': result.startedAt.millisecondsSinceEpoch,
         };
-
         final updatedRecordings = List<Map<String, dynamic>>.from(
           state.audioRecordings,
         )..add(audioData);
-
         emit(
           state.copyWith(
             audioRecordings: updatedRecordings,
@@ -273,15 +288,17 @@ class JournalWritingBloc
             recordingDuration: Duration.zero,
             waveAmplitudes: [],
             hasUnsavedChanges: true,
-            clearError: true,
+            failure: null,
           ),
         );
+      } else {
+        emit(state.copyWith(isRecording: false));
       }
     } catch (e) {
       emit(
         state.copyWith(
           isRecording: false,
-          error: 'Failed to stop recording: $e',
+          failure: JournalFailure.unknown('Failed to stop recording: $e'),
         ),
       );
     }
@@ -300,14 +317,14 @@ class JournalWritingBloc
           isRecording: false,
           recordingDuration: Duration.zero,
           waveAmplitudes: [],
-          clearError: true,
+          failure: null,
         ),
       );
     } catch (e) {
       emit(
         state.copyWith(
           isRecording: false,
-          error: 'Failed to cancel recording: $e',
+          failure: JournalFailure.unknown('Failed to cancel recording: $e'),
         ),
       );
     }
@@ -346,7 +363,7 @@ class JournalWritingBloc
         state.copyWith(
           audioRecordings: updatedRecordings,
           hasUnsavedChanges: true,
-          clearError: true,
+          failure: null,
         ),
       );
     }
@@ -359,7 +376,11 @@ class JournalWritingBloc
     try {
       await _playerService.playAudio(event.audioPath);
     } catch (e) {
-      emit(state.copyWith(error: 'Failed to play audio: $e'));
+      emit(
+        state.copyWith(
+          failure: JournalFailure.unknown('Failed to play audio: $e'),
+        ),
+      );
     }
   }
 
@@ -369,7 +390,7 @@ class JournalWritingBloc
   ) async {
     if (!state.canSave) return;
 
-    emit(state.copyWith(isSaving: true, clearError: true));
+    emit(state.copyWith(saveStatus: JournalSaveStatus.saving, failure: null));
 
     try {
       // Convert XFile paths to string paths
@@ -387,14 +408,22 @@ class JournalWritingBloc
         audioRecordings: state.audioRecordings,
       );
 
-      emit(state.copyWith(isSaving: false, hasUnsavedChanges: false));
+      emit(
+        state.copyWith(
+          saveStatus: JournalSaveStatus.success,
+          hasUnsavedChanges: false,
+        ),
+      );
 
       if (kDebugMode) {
         print('JournalWritingBloc: Journal saved successfully');
       }
     } catch (e) {
       emit(
-        state.copyWith(isSaving: false, error: 'Failed to save journal: $e'),
+        state.copyWith(
+          saveStatus: JournalSaveStatus.failure,
+          failure: JournalFailure.storage('Failed to save journal: $e'),
+        ),
       );
     }
   }
@@ -413,15 +442,6 @@ class JournalWritingBloc
     emit(const JournalWritingState());
   }
 
-  void _onRecordingStatusChanged(
-    RecordingStatusChanged event,
-    Emitter<JournalWritingState> emit,
-  ) {
-    if (!event.isRecording) {
-      add(RecordingStopRequested());
-    }
-  }
-
   void _onWaveformAmplitudesChanged(
     WaveformAmplitudesChanged event,
     Emitter<JournalWritingState> emit,
@@ -433,12 +453,7 @@ class JournalWritingBloc
     AudioPlaybackChanged event,
     Emitter<JournalWritingState> emit,
   ) {
-    emit(
-      state.copyWith(
-        currentlyPlayingAudio: event.audioPath,
-        clearCurrentlyPlaying: event.audioPath == null,
-      ),
-    );
+    emit(state.copyWith(currentlyPlayingAudio: event.audioPath));
   }
 
   void _onRecordingDurationChanged(

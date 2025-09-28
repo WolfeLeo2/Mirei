@@ -1,95 +1,55 @@
-import 'package:equatable/equatable.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:image_picker/image_picker.dart';
 
-class JournalWritingState extends Equatable {
-  final String title;
-  final String content;
-  final String? selectedMood;
-  final String? moodContext;
-  final List<XFile> selectedImages;
-  final List<Map<String, dynamic>> audioRecordings;
-  final bool isRecording;
-  final Duration recordingDuration;
-  final List<double> waveAmplitudes;
-  final String? currentlyPlayingAudio;
-  final bool isSaving;
-  final String? error;
-  final bool hasUnsavedChanges;
+part 'journal_writing_state.freezed.dart';
 
-  const JournalWritingState({
-    this.title = '',
-    this.content = '',
-    this.selectedMood,
-    this.moodContext,
-    this.selectedImages = const [],
-    this.audioRecordings = const [],
-    this.isRecording = false,
-    this.recordingDuration = Duration.zero,
-    this.waveAmplitudes = const [],
-    this.currentlyPlayingAudio,
-    this.isSaving = false,
-    this.error,
-    this.hasUnsavedChanges = false,
-  });
+enum JournalSaveStatus { idle, saving, success, failure }
 
-  JournalWritingState copyWith({
-    String? title,
-    String? content,
+@freezed
+abstract class JournalFailure with _$JournalFailure {
+  const factory JournalFailure.validation(String message) = _ValidationFailure;
+  const factory JournalFailure.storage(String message) = _StorageFailure;
+  const factory JournalFailure.network(String message) = _NetworkFailure;
+  const factory JournalFailure.unknown(String message) = _UnknownFailure;
+}
+
+@freezed
+abstract class JournalWritingState with _$JournalWritingState {
+  const JournalWritingState._();
+  const factory JournalWritingState({
+    @Default('') String title,
+    @Default('') String content,
     String? selectedMood,
     String? moodContext,
-    List<XFile>? selectedImages,
-    List<Map<String, dynamic>>? audioRecordings,
-    bool? isRecording,
-    Duration? recordingDuration,
-    List<double>? waveAmplitudes,
+    @Default(<XFile>[]) List<XFile> selectedImages,
+    // audioRecordings: List<Map>{ path: String, duration: int(ms), timestamp: int(ms) }
+    //forced comment
+    @Default(<Map<String, dynamic>>[])
+    List<Map<String, dynamic>> audioRecordings,
+    @Default(false) bool isRecording,
+    @Default(Duration.zero) Duration recordingDuration,
+    @Default(<double>[]) List<double> waveAmplitudes,
     String? currentlyPlayingAudio,
-    bool? isSaving,
-    String? error,
-    bool? hasUnsavedChanges,
-    bool clearError = false,
-    bool clearCurrentlyPlaying = false,
-  }) {
-    return JournalWritingState(
-      title: title ?? this.title,
-      content: content ?? this.content,
-      selectedMood: selectedMood ?? this.selectedMood,
-      moodContext: moodContext ?? this.moodContext,
-      selectedImages: selectedImages ?? this.selectedImages,
-      audioRecordings: audioRecordings ?? this.audioRecordings,
-      isRecording: isRecording ?? this.isRecording,
-      recordingDuration: recordingDuration ?? this.recordingDuration,
-      waveAmplitudes: waveAmplitudes ?? this.waveAmplitudes,
-      currentlyPlayingAudio: clearCurrentlyPlaying
-          ? null
-          : (currentlyPlayingAudio ?? this.currentlyPlayingAudio),
-      isSaving: isSaving ?? this.isSaving,
-      error: clearError ? null : (error ?? this.error),
-      hasUnsavedChanges: hasUnsavedChanges ?? this.hasUnsavedChanges,
-    );
-  }
+    @Default(JournalSaveStatus.idle) JournalSaveStatus saveStatus,
+    JournalFailure? failure,
+    @Default(false) bool hasUnsavedChanges,
+  }) = _JournalWritingState;
 
+  bool get isSaving => saveStatus == JournalSaveStatus.saving;
+  bool get canSaveCore =>
+      title.trim().isNotEmpty ||
+      content.trim().isNotEmpty ||
+      selectedImages.isNotEmpty ||
+      audioRecordings.isNotEmpty;
   bool get canSave =>
-      (title.trim().isNotEmpty ||
-          content.trim().isNotEmpty ||
-          selectedImages.isNotEmpty ||
-          audioRecordings.isNotEmpty) &&
+      canSaveCore &&
       !isSaving &&
-      !isRecording;
-
-  @override
-  List<Object?> get props => [
-    title,
-    content,
-    selectedMood,
-    moodContext,
-    selectedImages,
-    audioRecordings,
-    isRecording,
-    recordingDuration,
-    waveAmplitudes,
-    currentlyPlayingAudio,
-    isSaving,
-    error,
-    hasUnsavedChanges,
-  ];
+      !isRecording &&
+      saveStatus != JournalSaveStatus.success;
+  String? get errorMessage => failure?.when(
+    validation: (m) => m,
+    storage: (m) => m,
+    network: (m) => m,
+    unknown: (m) => m,
+  );
 }

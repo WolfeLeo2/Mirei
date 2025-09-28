@@ -24,9 +24,16 @@ class RecorderService {
   Timer? _recordingTimer;
   Timer? _waveUpdateTimer;
 
-  // Waveform visualization data
+  // Waveform visualization configuration & buffers
   final int _numberOfWaveBars = 20;
+  // Public-facing (already normalized + smoothed) amplitudes 0..1
   List<double> _currentAmplitudes = [];
+  // Internal smoothing buffer (EMA)
+  List<double> _smoothedAmplitudes = [];
+  static const double _emaAlpha =
+      0.45; // 0 < alpha <= 1, higher = more reactive
+  static const double _minVisualFloor =
+      0.05; // avoid bars collapsing completely
 
   // Streams for UI updates
   final StreamController<bool> _isRecordingController =
@@ -63,7 +70,8 @@ class RecorderService {
       _recorderController = RecorderController();
       await _recorder!.openRecorder();
 
-      _currentAmplitudes = List.filled(_numberOfWaveBars, 0.1);
+      _currentAmplitudes = List.filled(_numberOfWaveBars, _minVisualFloor);
+      _smoothedAmplitudes = List.filled(_numberOfWaveBars, _minVisualFloor);
       _isInitialized = true;
 
       if (kDebugMode) {
@@ -146,9 +154,14 @@ class RecorderService {
   }
 
   /// Stop recording and return the audio file path
-  Future<String?> stopRecording() async {
+  Future<RecordingResult?> stopRecording() async {
     try {
       if (!_isRecording) return null;
+
+      // Capture metadata before we reset state
+      final recordingPath = _currentRecordingPath;
+      final startedAt = _recordingStartTime;
+      final finalDuration = _recordingDuration;
 
       // Stop recorders
       await _recorder?.stopRecorder();
@@ -158,16 +171,15 @@ class RecorderService {
       _recordingTimer?.cancel();
       _waveUpdateTimer?.cancel();
 
-      final recordingPath = _currentRecordingPath;
-
-      // Reset state
+      // Reset state AFTER capture
       _isRecording = false;
       _currentRecordingPath = null;
       _recordingStartTime = null;
       _recordingDuration = Duration.zero;
-      _currentAmplitudes = List.filled(_numberOfWaveBars, 0.1);
+      _currentAmplitudes = List.filled(_numberOfWaveBars, _minVisualFloor);
+      _smoothedAmplitudes = List.filled(_numberOfWaveBars, _minVisualFloor);
 
-      // Notify listeners
+      // Notify listeners of reset
       _isRecordingController.add(false);
       _recordingPathController.add(null);
       _recordingDurationController.add(Duration.zero);
@@ -177,7 +189,14 @@ class RecorderService {
         print('RecorderService: Stopped recording, saved to $recordingPath');
       }
 
-      return recordingPath;
+      return (recordingPath != null && startedAt != null)
+          ? RecordingResult(
+              path: recordingPath,
+              duration: finalDuration,
+              startedAt: startedAt,
+              endedAt: DateTime.now(),
+            )
+          : null;
     } catch (e) {
       if (kDebugMode) {
         print('RecorderService: Error stopping recording: $e');
@@ -190,13 +209,26 @@ class RecorderService {
   Future<void> cancelRecording() async {
     try {
       if (!_isRecording) return;
-
       final recordingPath = _currentRecordingPath;
 
-      // Stop recording first
-      await stopRecording();
+      // Stop low-level recorders without emitting a finalized result
+      await _recorder?.stopRecorder();
+      await _recorderController?.stop();
 
-      // Delete the recorded file
+      _recordingTimer?.cancel();
+      _waveUpdateTimer?.cancel();
+
+      _isRecording = false;
+      _currentRecordingPath = null;
+      _recordingStartTime = null;
+      _recordingDuration = Duration.zero;
+      _currentAmplitudes = List.filled(_numberOfWaveBars, _minVisualFloor);
+      _smoothedAmplitudes = List.filled(_numberOfWaveBars, _minVisualFloor);
+      _isRecordingController.add(false);
+      _recordingPathController.add(null);
+      _recordingDurationController.add(Duration.zero);
+      _waveAmplitudesController.add(List.from(_currentAmplitudes));
+
       if (recordingPath != null) {
         final file = File(recordingPath);
         if (await file.exists()) {
@@ -242,33 +274,71 @@ class RecorderService {
     });
   }
 
-  /// Update waveform amplitudes based on recorder data
+  /// Compute normalized & smoothed waveform amplitudes.
+  /// Steps:
+  /// 1. Take a capped sliding window of recent raw samples.
+  /// 2. Bucket into N segments (N = number of bars) and compute RMS per bucket.
+  /// 3. Normalize by max RMS (gives relative energy 0..1).
+  /// 4. Apply exponential moving average for temporal smoothing.
+  /// 5. Enforce a visual floor so silence still shows subtle motion.
   void _updateWaveAmplitudes() {
     if (_recorderController == null || !_isRecording) return;
 
-    final waveData = _recorderController!.waveData;
-    if (waveData.isEmpty) {
-      _currentAmplitudes = List.filled(_numberOfWaveBars, 0.1);
+    final data = _recorderController!.waveData;
+    if (data.isEmpty) {
+      _currentAmplitudes = List.filled(_numberOfWaveBars, _minVisualFloor);
+      _smoothedAmplitudes = List.filled(_numberOfWaveBars, _minVisualFloor);
       _waveAmplitudesController.add(List.from(_currentAmplitudes));
       return;
     }
 
-    // Sample recent waveform data
-    final recentData = waveData.length > 50
-        ? waveData.sublist(waveData.length - 50)
-        : waveData;
+    // Cap window size for performance & responsiveness
+    const int maxWindow = 400; // Tunable
+    final window = data.length > maxWindow
+        ? data.sublist(data.length - maxWindow)
+        : data;
 
-    // Generate amplitudes based on actual data with some randomization for visual appeal
-    final random = math.Random();
-    _currentAmplitudes = List.generate(_numberOfWaveBars, (i) {
-      final baseAmplitude = recentData.isNotEmpty
-          ? recentData[i % recentData.length].abs()
-          : 0.1;
-      final randomVariation = 0.2 + (random.nextDouble() * 0.8);
-      return (baseAmplitude * randomVariation).clamp(0.1, 1.0);
-    });
+    final bucketCount = _numberOfWaveBars;
+    final bucketSize = (window.length / bucketCount).floor().clamp(
+      1,
+      window.length,
+    );
+    final List<double> bucketRms = List.filled(bucketCount, 0.0);
 
-    _waveAmplitudesController.add(List.from(_currentAmplitudes));
+    for (int i = 0; i < bucketCount; i++) {
+      final start = i * bucketSize;
+      if (start >= window.length) break;
+      final end = math.min(start + bucketSize, window.length);
+      if (end <= start) continue;
+      double sumSquares = 0.0;
+      for (int j = start; j < end; j++) {
+        final v = window[j];
+        sumSquares += v * v;
+      }
+      bucketRms[i] = math.sqrt(sumSquares / (end - start));
+    }
+
+    double maxVal = 0.0001;
+    for (final v in bucketRms) {
+      if (v > maxVal) maxVal = v;
+    }
+
+    if (_smoothedAmplitudes.length != bucketCount) {
+      _smoothedAmplitudes = List.filled(bucketCount, _minVisualFloor);
+    }
+
+    for (int i = 0; i < bucketCount; i++) {
+      final normalized = (bucketRms[i] / maxVal).clamp(0.0, 1.0);
+      final target = normalized < _minVisualFloor
+          ? _minVisualFloor
+          : normalized;
+      final prev = _smoothedAmplitudes[i];
+      final smoothed = prev + _emaAlpha * (target - prev);
+      _smoothedAmplitudes[i] = smoothed.clamp(_minVisualFloor, 1.0);
+    }
+
+    _currentAmplitudes = List.from(_smoothedAmplitudes);
+    _waveAmplitudesController.add(_currentAmplitudes);
   }
 
   /// Get recording controller for external waveform display
@@ -289,4 +359,17 @@ class RecorderService {
       print('RecorderService: Disposed');
     }
   }
+}
+
+class RecordingResult {
+  final String path;
+  final Duration duration;
+  final DateTime startedAt;
+  final DateTime endedAt;
+  const RecordingResult({
+    required this.path,
+    required this.duration,
+    required this.startedAt,
+    required this.endedAt,
+  });
 }

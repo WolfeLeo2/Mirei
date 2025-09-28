@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import 'package:flutter_animate/flutter_animate.dart';
@@ -18,6 +17,9 @@ import '../components/mood_button.dart';
 import '../features/journal/bloc/journal_writing_bloc.dart';
 import '../features/journal/bloc/journal_writing_event.dart';
 import '../features/journal/bloc/journal_writing_state.dart';
+import '../services/player_service.dart';
+import '../services/recorder_service.dart';
+import '../services/journal_mood_integration.dart';
 
 class JournalWritingScreen extends StatelessWidget {
   const JournalWritingScreen({super.key});
@@ -25,8 +27,11 @@ class JournalWritingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) =>
-          JournalWritingBloc()..add(JournalWritingInitialized()),
+      create: (context) => JournalWritingBloc(
+        playerService: PlayerService(),
+        recorderService: RecorderService(),
+        moodIntegration: JournalMoodIntegration(),
+      )..add(JournalWritingInitialized()),
       child: const _JournalWritingView(),
     );
   }
@@ -46,6 +51,9 @@ class _JournalWritingViewState extends State<_JournalWritingView>
   final FocusNode _titleFocusNode = FocusNode();
   final FocusNode _contentFocusNode = FocusNode();
 
+  late VoidCallback _titleListener;
+  late VoidCallback _contentListener;
+
   // Real-time sound wave visualization
   late AnimationController _waveAnimationController;
   late List<AnimationController> _waveBarControllers;
@@ -60,16 +68,14 @@ class _JournalWritingViewState extends State<_JournalWritingView>
     _initializeWaveAnimations();
 
     // Listen for text changes and dispatch events to BLoC
-    _titleController.addListener(() {
-      context.read<JournalWritingBloc>().add(
-        TitleChanged(_titleController.text),
-      );
-    });
-    _contentController.addListener(() {
-      context.read<JournalWritingBloc>().add(
-        ContentChanged(_contentController.text),
-      );
-    });
+    _titleListener = () => context.read<JournalWritingBloc>().add(
+      TitleChanged(_titleController.text),
+    );
+    _contentListener = () => context.read<JournalWritingBloc>().add(
+      ContentChanged(_contentController.text),
+    );
+    _titleController.addListener(_titleListener);
+    _contentController.addListener(_contentListener);
   }
 
   void _initializeWaveAnimations() {
@@ -93,7 +99,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
       ).animate(CurvedAnimation(parent: controller, curve: Curves.easeInOut));
     }).toList();
 
-    _currentAmplitudes = List.filled(_numberOfWaveBars, 0.1);
+    _currentAmplitudes = List.filled(_numberOfWaveBars, 0.05);
 
     _waveAnimationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -109,19 +115,14 @@ class _JournalWritingViewState extends State<_JournalWritingView>
 
   void _updateWaveAmplitudes(List<double> waveData) {
     if (waveData.isEmpty) {
-      _currentAmplitudes = List.filled(_numberOfWaveBars, 0.1);
-      return;
+      _currentAmplitudes = List.filled(_numberOfWaveBars, 0.05);
+    } else {
+      // Use incoming normalized/smoothed amplitudes directly
+      _currentAmplitudes = List.generate(
+        _numberOfWaveBars,
+        (i) => (waveData[i % waveData.length]).clamp(0.05, 1.0),
+      );
     }
-
-    final random = math.Random();
-    _currentAmplitudes = List.generate(_numberOfWaveBars, (i) {
-      final baseAmplitude = waveData.isNotEmpty
-          ? waveData[i % waveData.length].abs()
-          : 0.1;
-      final randomVariation = 0.2 + (random.nextDouble() * 0.8);
-      return (baseAmplitude * randomVariation).clamp(0.1, 1.0);
-    });
-
     for (int i = 0; i < _waveBarControllers.length; i++) {
       _waveBarControllers[i].animateTo(_currentAmplitudes[i]);
     }
@@ -129,6 +130,8 @@ class _JournalWritingViewState extends State<_JournalWritingView>
 
   @override
   void dispose() {
+    _titleController.removeListener(_titleListener);
+    _contentController.removeListener(_contentListener);
     _titleController.dispose();
     _contentController.dispose();
     _titleFocusNode.dispose();
@@ -147,29 +150,19 @@ class _JournalWritingViewState extends State<_JournalWritingView>
   Widget build(BuildContext context) {
     return BlocListener<JournalWritingBloc, JournalWritingState>(
       listener: (context, state) {
-        if (state.error != null) {
+        if (state.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.error!), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(state.errorMessage!),
+              backgroundColor: Colors.red,
+            ),
           );
         }
 
-        // Update text controllers if needed (without triggering listeners)
-        if (_titleController.text != state.title) {
-          _titleController.removeListener(() {});
-          _titleController.text = state.title;
-          _titleController.addListener(() {
-            context.read<JournalWritingBloc>().add(
-              TitleChanged(_titleController.text),
-            );
-          });
-        }
-        if (_contentController.text != state.content) {
-          _contentController.removeListener(() {});
-          _contentController.text = state.content;
-          _contentController.addListener(() {
-            context.read<JournalWritingBloc>().add(
-              ContentChanged(_contentController.text),
-            );
+        // Navigate back only when explicit success state reached
+        if (state.saveStatus == JournalSaveStatus.success) {
+          Future.microtask(() {
+            if (mounted) Navigator.pop(context, true);
           });
         }
 
@@ -182,18 +175,6 @@ class _JournalWritingViewState extends State<_JournalWritingView>
         } else if (!state.isRecording) {
           _waveAnimationController.stop();
           _waveAnimationController.reset();
-        }
-
-        // Navigate back on successful save
-        if (!state.isSaving &&
-            !state.hasUnsavedChanges &&
-            state.error == null) {
-          // Check if we just finished saving (this is a simple check - in production you'd want a more robust state)
-          Future.delayed(Duration.zero, () {
-            if (mounted) {
-              Navigator.pop(context, true);
-            }
-          });
         }
       },
       child: BlocBuilder<JournalWritingBloc, JournalWritingState>(
@@ -295,7 +276,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
           ),
           _buildPillButton(
             label: 'Save',
-            onTap: _canSave(state)
+            onTap: state.canSave
                 ? () {
                     HapticFeedback.lightImpact();
                     context.read<JournalWritingBloc>().add(
@@ -307,19 +288,6 @@ class _JournalWritingViewState extends State<_JournalWritingView>
         ],
       ),
     );
-  }
-
-  bool _canSave(JournalWritingState state) {
-    // Entry needs title AND (content OR attachments)
-    final hasTitle = state.title.trim().isNotEmpty;
-    final hasContentOrAttachments =
-        state.content.trim().isNotEmpty ||
-        state.selectedImages.isNotEmpty ||
-        state.audioRecordings.isNotEmpty;
-    return hasTitle &&
-        hasContentOrAttachments &&
-        !state.isRecording &&
-        !state.isSaving;
   }
 
   Widget _buildEditorCard(BuildContext context, JournalWritingState state) {

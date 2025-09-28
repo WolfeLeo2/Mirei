@@ -103,15 +103,6 @@ class JournalWritingReset extends JournalWritingEvent {
   const JournalWritingReset();
 }
 
-class RecordingStatusChanged extends JournalWritingEvent {
-  final bool isRecording;
-
-  const RecordingStatusChanged(this.isRecording);
-
-  @override
-  List<Object> get props => [isRecording];
-}
-
 class WaveformAmplitudesChanged extends JournalWritingEvent {
   final List<double> amplitudes;
 
