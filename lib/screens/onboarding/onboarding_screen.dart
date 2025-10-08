@@ -6,6 +6,7 @@ import 'features_screen.dart';
 import 'mood_tracking_screen.dart';
 import 'meditation_screen.dart';
 import '../auth/login_screen.dart';
+import 'package:mirei/core/theme/typography.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -64,11 +65,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     onPressed: _skipToAuth,
                     child: Text(
                       'Skip',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontSize: 16, fontWeight: FontWeight.w500)
+                          .apply(color: AppColors.textSecondary),
                     ),
                   ),
                 ],
@@ -132,7 +131,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         _currentPage == _pages.length - 1
                             ? 'Get Started'
                             : 'Continue',
-                        style: GoogleFonts.inter(
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                         ),

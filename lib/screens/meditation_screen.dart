@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_swiper_view/flutter_swiper_view.dart';
-import 'package:glassmorphism/glassmorphism.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:mirei/models/meditation.dart';
-import 'package:animations/animations.dart';
+import '../models/meditation.dart';
+import '../components/hero_meditation_card.dart';
+import '../components/meditation_card.dart';
+import '../services/meditation_player_service.dart';
 import 'meditation_player_screen.dart';
 
 class MeditationScreen extends StatefulWidget {
@@ -14,387 +13,581 @@ class MeditationScreen extends StatefulWidget {
 }
 
 class _MeditationScreenState extends State<MeditationScreen> {
-  final SwiperController _controller = SwiperController();
+  final PageController _heroPageController = PageController();
+  final MeditationPlayerService _playerService = MeditationPlayerService();
+  int _currentHeroPage = 0;
 
-  final List<Meditation> _meditationData = [
+  final List<Meditation> _heroMeditations = [
     Meditation(
-      title: 'Walking',
-      duration: '10 min',
-      imagePath: 'assets/images/meditation.svg', // Changed to SVG icon
-      color: const Color(0xFFE49A7A), // Pastel orange
+      title: 'Relax Mode',
+      duration: '9 Minutes',
+      imagePath:
+          'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800',
+      color: const Color(0xFFfce5e7),
       audioUrl: 'https://wolfeleo2.github.io/audio-cdn/breathing.mp3',
+      category: 'SERENITY',
+      gradientColors: const [Color(0xFFfce5e7), Color(0xFFe8e0f9)],
     ),
     Meditation(
-      title: 'Calm Music',
-      duration: '15 min',
-      imagePath: 'assets/icons/meditation.svg', // Changed to SVG icon
-      color: const Color(0xFF9E9248), // Pastel olive
+      title: 'Deep Sleep',
+      duration: '15 Minutes',
+      imagePath:
+          'https://images.unsplash.com/photo-1511376777868-611b54f68947?w=800',
+      color: const Color(0xFFd9f0ff),
       audioUrl: 'https://wolfeleo2.github.io/audio-cdn/breathing.mp3',
+      category: 'SLEEP',
+      gradientColors: const [Color(0xFFd9f0ff), Color(0xFFcde5fe)],
     ),
     Meditation(
-      title: 'Sleep Well',
-      duration: '20 min',
-      imagePath: 'assets/icons/meditation.svg', // Changed to SVG icon
-      color: const Color(0xFFE1DBCB), // Pastel beige
+      title: 'Focus Mode',
+      duration: '10 Minutes',
+      imagePath:
+          'https://images.unsplash.com/photo-1528715471579-d1bcf0ba5e83?w=800',
+      color: const Color(0xFF6366f1),
       audioUrl: 'https://wolfeleo2.github.io/audio-cdn/breathing.mp3',
+      category: 'FOCUS',
+      gradientColors: const [Color(0xFF6366f1), Color(0xFF8b5cf6)],
     ),
+  ];
+
+  final List<Meditation> _morningMeditations = [
     Meditation(
-      title: 'Breath Exercise',
+      title: 'Morning Calm',
       duration: '5 min',
-      imagePath: 'assets/icons/meditation.svg', // Changed to SVG icon
-      color: const Color(0xFFC6BEEA), // Pastel purple
+      imagePath:
+          'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=600',
+      color: const Color(0xFFffd700),
       audioUrl: 'https://wolfeleo2.github.io/audio-cdn/breathing.mp3',
+      gradientColors: const [Color(0xFFffd700), Color(0xFFffa500)],
     ),
     Meditation(
-      title: 'Breathe Easy',
-      duration: '45 min',
-      imagePath: 'assets/icons/meditation.svg', // Changed to SVG icon
-      color: const Color(0xFF8B7355), // Pastel brown
+      title: 'Sunrise Energy',
+      duration: '7 min',
+      imagePath:
+          'https://images.unsplash.com/photo-1495954484750-af469f2f9be5?w=600',
+      color: const Color(0xFFff6b6b),
       audioUrl: 'https://wolfeleo2.github.io/audio-cdn/breathing.mp3',
+      gradientColors: const [Color(0xFFff6b6b), Color(0xFFfeca57)],
+    ),
+    Meditation(
+      title: 'Wake Up Flow',
+      duration: '10 min',
+      imagePath:
+          'https://images.unsplash.com/photo-1508672019048-805c876b67e2?w=600',
+      color: const Color(0xFF48dbfb),
+      audioUrl: 'https://wolfeleo2.github.io/audio-cdn/breathing.mp3',
+      gradientColors: const [Color(0xFF48dbfb), Color(0xFF0abde3)],
+    ),
+  ];
+
+  final List<Meditation> _sleepMeditations = [
+    Meditation(
+      title: 'Deep Rest',
+      duration: '20 min',
+      imagePath:
+          'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=600',
+      color: const Color(0xFF341f97),
+      audioUrl: 'https://wolfeleo2.github.io/audio-cdn/breathing.mp3',
+      gradientColors: const [Color(0xFF341f97), Color(0xFF5f27cd)],
+    ),
+    Meditation(
+      title: 'Night Peace',
+      duration: '15 min',
+      imagePath:
+          'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600',
+      color: const Color(0xFF192a56),
+      audioUrl: 'https://wolfeleo2.github.io/audio-cdn/breathing.mp3',
+      gradientColors: const [Color(0xFF192a56), Color(0xFF273c75)],
     ),
   ];
 
   @override
-  Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
+  void initState() {
+    super.initState();
+    _heroPageController.addListener(() {
+      final page = _heroPageController.page?.round() ?? 0;
+      if (page != _currentHeroPage) {
+        setState(() {
+          _currentHeroPage = page;
+        });
+      }
+    });
+  }
 
+  @override
+  void dispose() {
+    _heroPageController.dispose();
+    super.dispose();
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    if (hour < 21) return 'Good Evening';
+    return 'Good Night';
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        title: Text(
-          'Meditation',
-          style: TextStyle(
-            color: const Color(0xFF115e5a),
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/mesh-grad.png'),
+            fit: BoxFit.cover,
+            opacity: 0.9,
           ),
         ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Color(0xFF115e5a)),
-            onPressed: () {
-              // TODO: Implement search functionality
-            },
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Title section
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                screenWidth * 0.05,
-                screenHeight * 0.025,
-                screenWidth * 0.05,
-                screenHeight * 0.015,
-              ),
-            ),
-
-            // Filter chips section - moved to top for better UX
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: screenWidth * 0.05,
-                vertical:
-                    screenHeight *
-                    0.005, // Reduced from 0.01 to 0.005 to move cards higher
-              ),
-              child: _BottomNavBar(screenWidth: screenWidth),
-            ),
-
-            // Main content with cards
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  screenWidth * 0.05,
-                  screenHeight *
-                      0.04, // Changed from screenHeight * 0.01 to 0 to move cards higher
-                  screenWidth * 0.05,
-                  screenHeight * 0.02,
-                ),
-                child: _buildStackedCards(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStackedCards() {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-
-    return Align(
-      alignment: Alignment
-          .topCenter, // Changed from Center to topCenter to move cards higher
-      child: SizedBox(
-        height:
-            screenHeight *
-            0.65, // Slightly reduced from 0.7 to make room at top
-        child: Swiper(
-          controller: _controller,
-          itemCount: _meditationData.length,
-          layout: SwiperLayout.STACK,
-          itemWidth: screenWidth * 0.9,
-          itemHeight: screenHeight * 0.5,
-          loop: true,
-          scrollDirection: Axis.vertical,
-          itemBuilder: (BuildContext context, int index) {
-            return _buildCard(_meditationData[index]);
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCard(Meditation meditation) {
-    // Pre-calculate text color once
-    final textColor = _getTextColor(meditation.color);
-
-    return OpenContainer(
-      transitionType: ContainerTransitionType.fade,
-      transitionDuration: const Duration(milliseconds: 500),
-      closedElevation: 0,
-      openElevation: 0,
-      closedShape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30),
-      ),
-      openShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
-      closedColor: meditation.color,
-      openColor: meditation.color,
-      middleColor: meditation.color,
-      closedBuilder: (context, openContainer) => RepaintBoundary(
-        // Add RepaintBoundary for better performance
-        child: Container(
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(30)),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: Stack(
+        child: SafeArea( 
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 30),
+              physics: const BouncingScrollPhysics(),
               children: [
-                // Solid pastel color background (no image)
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(30),
-                      color: meditation.color, // Pure solid color
-                    ),
+                RepaintBoundary(child: _buildDynamicSubtitle()),
+                const SizedBox(height: 20),
+                RepaintBoundary(child: _buildHeroSection()),
+                const SizedBox(height: 20),
+                RepaintBoundary(child: _buildPageIndicators()),
+                const SizedBox(height: 30),
+                RepaintBoundary(child: _buildNowPlayingWidget()),
+                const SizedBox(height: 30),
+                RepaintBoundary(
+                  child: _buildSectionHeader('Morning Meditations'),
+                ),
+                const SizedBox(height: 16),
+                RepaintBoundary(
+                  child: _buildHorizontalList(_morningMeditations),
+                ),
+                const SizedBox(height: 30),
+                RepaintBoundary(
+                  child: _buildSectionHeader('Sleep Meditations'),
+                ),
+                const SizedBox(height: 16),
+                RepaintBoundary(child: _buildHorizontalList(_sleepMeditations)),
+                const SizedBox(height: 100),
+              ],
+            ),
+          ),
+      ),
+    );
+  }
+
+  Widget _buildDynamicSubtitle() {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Text(
+          _getGreeting(),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroSection() {
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    return SizedBox(
+      height: screenHeight * 0.3,
+      child: PageView.builder(
+        controller: _heroPageController,
+        itemCount: _heroMeditations.length,
+        itemBuilder: (context, index) {
+          final meditation = _heroMeditations[index];
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: HeroMeditationCard(
+              meditation: meditation,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        MeditationPlayerScreen(meditation: meditation),
                   ),
-                ),
+                );
+              },
+              onPlayPressed: () {
+                _playerService.playMeditation(meditation);
+              },
+              isPlaying:
+                  _playerService.currentMeditation?.audioUrl ==
+                      meditation.audioUrl &&
+                  _playerService.isPlaying,
+            ),
+          );
+        },
+      ),
+    );
+  }
 
-                // SVG/Image overlay on top of the card (centered)
-                Center(
-                  child: RepaintBoundary(
-                    child: SvgPicture.asset(
-                      meditation.imagePath,
-                      width: 80,
-                      height: 80,
-                      colorFilter: ColorFilter.mode(
-                        textColor.withOpacity(0.3),
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  ),
-                ),
+  Widget _buildPageIndicators() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(_heroMeditations.length, (index) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: _currentHeroPage == index ? 24 : 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: _currentHeroPage == index
+                ? const Color.fromARGB(255, 20, 50, 81)
+                : const Color.fromARGB(100, 20, 50, 81),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        );
+      }),
+    );
+  }
 
-                // Glass heart icon (top-right)
-                Positioned(
-                  top: 25,
-                  right: 25,
-                  child: RepaintBoundary(child: _GlassHeartIcon()),
-                ),
+  Widget _buildNowPlayingWidget() {
+    return StreamBuilder<Meditation?>(
+      stream: _playerService.currentMeditationStream,
+      builder: (context, snapshot) {
+        final currentMeditation = snapshot.data;
+        final isPlaying = currentMeditation != null;
 
-                // Title at top-left
-                Positioned(
-                  left: 25,
-                  top: 25,
-                  child: RepaintBoundary(
-                    child: Text(
-                      meditation.title,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: SizedBox(
+            height: 240,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left: Staggered stats grid (1x2 tall + two 1x1 tiles)
+                Expanded(
+                  flex: 2,
+                  child: _buildStatsGrid(),
                 ),
-
-                // Glass timer widget at bottom-left
-                Positioned(
-                  bottom: 25,
-                  left: 25,
-                  child: RepaintBoundary(
-                    child: _GlassTimer(
-                      duration: meditation.duration,
-                      textColor: textColor,
-                    ),
+                const SizedBox(width: 12),
+                // Right: Separate Now Playing card (same height as grid)
+                Expanded(
+                  flex: 3,
+                  child: SizedBox(
+                    height: 240,
+                    child: isPlaying
+                        ? _buildPlayingCard(currentMeditation)
+                        : _buildEmptyPlayingCard(),
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
-      openBuilder: (context, closeContainer) =>
-          MeditationPlayerScreen(meditation: meditation),
+        );
+      },
     );
   }
 
-  Color _getTextColor(Color backgroundColor) {
-    // Calculate relative luminance to determine text color
-    final luminance = backgroundColor.computeLuminance();
-    return luminance > 0.5 ? Colors.black87 : Colors.white;
-  }
-}
-
-class _BottomNavBar extends StatelessWidget {
-  const _BottomNavBar({required this.screenWidth});
-  final double screenWidth;
-
-  // Pre-calculate const styles for better performance
-  static const Color _backgroundColor = Colors.white;
-  static const Color _iconColor = Colors.black54;
-  static const Color _textColor = Colors.black;
-  static const FontWeight _fontWeight = FontWeight.bold;
-  static const double _fontSize = 13;
-  static const BorderRadius _borderRadius = BorderRadius.all(
-    Radius.circular(20),
-  );
-  static const List<BoxShadow> _boxShadow = [
-    BoxShadow(
-      color: Color(0x1A000000), // Colors.black.withOpacity(0.1)
-      blurRadius: 4,
-      offset: Offset(0, 2),
-    ),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    // Calculate responsive sizes based on screen width
-    final chipPadding = screenWidth * 0.04; // 4% of screen width
-    final iconSize = screenWidth * 0.05; // 5% of screen width
-    final spacing = screenWidth * 0.02; // 2% of screen width
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: EdgeInsets.symmetric(horizontal: spacing),
-      child: Row(
-        children: [
-          _FilterChip(label: 'Favorites', padding: chipPadding),
-          SizedBox(width: spacing),
-          _FilterChip(label: 'Daily meditation', padding: chipPadding),
-          SizedBox(width: spacing),
-          _FilterChip(label: 'New releases', padding: chipPadding),
-          SizedBox(width: spacing), // Extra spacing at the end
-        ],
-      ),
-    );
-  }
-}
-
-// Extract filter chip as const widget
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({required this.label, required this.padding});
-
-  final String label;
-  final double padding;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildStatCard(String value, String label) {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: padding,
-        vertical: padding * 0.3,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
       ),
-      decoration: const BoxDecoration(
-        color: _BottomNavBar._backgroundColor,
-        borderRadius: _BottomNavBar._borderRadius,
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: _BottomNavBar._textColor,
-          fontWeight: _BottomNavBar._fontWeight,
-          fontSize: _BottomNavBar._fontSize,
-        ),
-      ),
-    );
-  }
-}
-
-// Extract glass components as const widgets for better performance
-class _GlassHeartIcon extends StatelessWidget {
-  const _GlassHeartIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassmorphicContainer(
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      blur: 20,
-      alignment: Alignment.center,
-      border: 2,
-      linearGradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)],
-      ),
-      borderGradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Colors.white.withOpacity(0.5), Colors.white.withOpacity(0.2)],
-      ),
-      child: const Icon(Icons.favorite_border, color: Colors.white, size: 20),
-    );
-  }
-}
-
-class _GlassTimer extends StatelessWidget {
-  const _GlassTimer({required this.duration, required this.textColor});
-
-  final String duration;
-  final Color textColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassmorphicContainer(
-      width: 85,
-      height: 34,
-      borderRadius: 17,
-      blur: 20,
-      alignment: Alignment.center,
-      border: 1.5,
-      linearGradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Colors.white.withOpacity(0.2), Colors.white.withOpacity(0.1)],
-      ),
-      borderGradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Colors.white.withOpacity(0.6), Colors.white.withOpacity(0.3)],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.timer_outlined, color: textColor, size: 16),
-          const SizedBox(width: 6),
           Text(
-            duration,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+            value,
+            style: const TextStyle(
+              color: Color.fromARGB(255, 20, 50, 81),
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color.fromARGB(150, 20, 50, 81),
+              fontSize: 12,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Tall 1x2 stat tile with a simple "liquid" fill showing minutes/60
+  Widget _buildTallStatCard({required int minutes, required String label}) {
+    final clamped = minutes.clamp(0, 60);
+    final target = clamped / 60.0; // 0.0 - 1.0
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: target),
+      duration: const Duration(milliseconds: 800),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Stack(
+            children: [
+              // Liquid fill background
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: FractionallySizedBox(
+                      heightFactor: value, // fill from bottom to value
+                      widthFactor: 1,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              Color(0xFFE9D6FF),
+                              Color(0xFFDCC7FF),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // Content on top
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Text(
+                    '${clamped}m',
+                    style: const TextStyle(
+                      color: Color.fromARGB(255, 20, 50, 81),
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: Color.fromARGB(150, 20, 50, 81),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Stats grid matching the reference (1x2 tall tile + two 1x1 tiles)
+  Widget _buildStatsGrid() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 1x2 tall tile on the left
+        Expanded(
+          child: _buildTallStatCard(minutes: 25, label: 'Today'),
+        ),
+        const SizedBox(width: 12),
+        // Two stacked 1x1 tiles on the right
+        Expanded(
+          child: Column(
+            children: [
+              Expanded(child: _buildStatCard('7', 'Streak')),
+              const SizedBox(height: 12),
+              Expanded(child: _buildStatCard('3', 'Sessions')),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyPlayingCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4EC), // Solid per request
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: const Center(
+        child: Text(
+          'Nothing is playing',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color.fromARGB(255, 20, 50, 81),
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlayingCard(Meditation meditation) {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4EC), // Solid color even when active
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            meditation.category ?? 'Meditation',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color.fromARGB(150, 20, 50, 81),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            meditation.title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color.fromARGB(255, 20, 50, 81),
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 6),
+          StreamBuilder<Duration>(
+            stream: _playerService.positionStream,
+            builder: (context, positionSnapshot) {
+              final position = positionSnapshot.data ?? Duration.zero;
+              final minutes = position.inMinutes;
+              final seconds = position.inSeconds % 60;
+              return Text(
+                '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+                style: const TextStyle(
+                  color: Color.fromARGB(150, 20, 50, 81),
+                  fontSize: 13,
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+          // Controls centered to mimic reference
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.replay_10),
+                color: const Color.fromARGB(255, 20, 50, 81),
+                iconSize: 32,
+                onPressed: () {
+                  final currentPosition = _playerService.currentPosition;
+                  final newPosition = currentPosition - const Duration(seconds: 15);
+                  _playerService.seek(newPosition > Duration.zero ? newPosition : Duration.zero);
+                },
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  color: Color.fromARGB(255, 20, 50, 81),
+                  shape: BoxShape.circle,
+                ),
+                child: StreamBuilder<bool>(
+                  stream: _playerService.isPlayingStream,
+                  builder: (context, snapshot) {
+                    final playing = snapshot.data ?? false;
+                    return IconButton(
+                      icon: Icon(playing ? Icons.pause : Icons.play_arrow,
+                          color: Colors.white),
+                         
+                      onPressed: () {
+                        if (playing) {
+                          _playerService.pause();
+                        } else {
+                          _playerService.resume();
+                        }
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.forward_10),
+                color: const Color.fromARGB(255, 20, 50, 81),
+                iconSize: 32,
+                onPressed: () {
+                  final currentPosition = _playerService.currentPosition;
+                  final duration = _playerService.totalDuration;
+                  final newPosition = currentPosition + const Duration(seconds: 10);
+                  _playerService.seek(newPosition < duration ? newPosition : duration);
+                },
+              ),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: Color.fromARGB(255, 20, 50, 81),
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHorizontalList(List<Meditation> meditations) {
+    return SizedBox(
+      height: 170,
+      child: ListView.builder(
+        padding: const EdgeInsets.only(left: 20),
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: meditations.length,
+        itemBuilder: (context, index) {
+          final meditation = meditations[index];
+          return MeditationCard(
+            meditation: meditation,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) =>
+                      MeditationPlayerScreen(meditation: meditation),
+                ),
+              );
+            },
+            onPlayPressed: () {
+              _playerService.playMeditation(meditation);
+            },
+            isPlaying:
+                _playerService.currentMeditation?.audioUrl ==
+                    meditation.audioUrl &&
+                _playerService.isPlaying,
+          );
+        },
       ),
     );
   }

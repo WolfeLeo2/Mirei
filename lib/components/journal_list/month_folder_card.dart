@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/realm_models.dart';
 import 'folder_image_widget.dart';
+import 'package:mirei/core/theme/typography.dart';
 
 /// Stateful widget representing each month folder with performance optimizations
 class MonthFolderCard extends StatefulWidget {
@@ -38,7 +39,8 @@ class _MonthFolderCardState extends State<MonthFolderCard>
       duration: const Duration(milliseconds: 120), // Faster animation
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.03).animate( // Reduced scale
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.03).animate(
+      // Reduced scale
       CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
     );
   }
@@ -51,27 +53,28 @@ class _MonthFolderCardState extends State<MonthFolderCard>
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary( // Optimize repaints
+    return RepaintBoundary(
+      // Optimize repaints
       child: GestureDetector(
-      onTapDown: (_) => _scaleController.forward(),
-      onTapUp: (_) {
-        _scaleController.reverse();
-        widget.onTap();
-      },
-      onTapCancel: () => _scaleController.reverse(),
-      child: AnimatedBuilder(
-        animation: _scaleAnimation,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
+        onTapDown: (_) => _scaleController.forward(),
+        onTapUp: (_) {
+          _scaleController.reverse();
+          widget.onTap();
+        },
+        onTapCancel: () => _scaleController.reverse(),
+        child: AnimatedBuilder(
+          animation: _scaleAnimation,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _scaleAnimation.value,
               child: _FolderCardContent(
                 folderKey: widget.folderKey,
                 monthKey: widget.monthKey,
                 entries: widget.entries,
                 isLargeSize: widget.isLargeSize,
               ),
-          );
-        },
+            );
+          },
         ),
       ),
     );
@@ -118,10 +121,7 @@ class _FolderCardContent extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _MonthLabel(
-                monthKey: monthKey,
-                isLargeSize: isLargeSize,
-              ),
+              _MonthLabel(monthKey: monthKey, isLargeSize: isLargeSize),
               const SizedBox(height: 4),
               _EntryCountBadge(
                 entryCount: entries.length,
@@ -140,20 +140,18 @@ class _MonthLabel extends StatelessWidget {
   final String monthKey;
   final bool isLargeSize;
 
-  const _MonthLabel({
-    required this.monthKey,
-    required this.isLargeSize,
-  });
+  const _MonthLabel({required this.monthKey, required this.isLargeSize});
 
   @override
   Widget build(BuildContext context) {
     return Text(
       monthKey,
-      style: GoogleFonts.inter(
-        fontSize: isLargeSize ? 24 : 18,
-        fontWeight: FontWeight.w600,
-        color: const Color(0xFF115e5a),
-      ),
+      style: Theme.of(context).textTheme.bodyMedium
+          ?.copyWith(
+            fontSize: isLargeSize ? 24 : 18,
+            fontWeight: FontWeight.w600,
+          )
+          .apply(color: const Color(0xFF115e5a)),
     );
   }
 }
@@ -163,10 +161,7 @@ class _EntryCountBadge extends StatelessWidget {
   final int entryCount;
   final bool isLargeSize;
 
-  const _EntryCountBadge({
-    required this.entryCount,
-    required this.isLargeSize,
-  });
+  const _EntryCountBadge({required this.entryCount, required this.isLargeSize});
 
   @override
   Widget build(BuildContext context) {
@@ -174,10 +169,9 @@ class _EntryCountBadge extends StatelessWidget {
 
     return Text(
       '$entryCount $entryText',
-      style: GoogleFonts.inter(
-        fontSize: isLargeSize ? 16 : 14,
-        color: const Color(0xFF757575), // Use const color
-      ),
+      style: Theme.of(context).textTheme.bodyMedium
+          ?.copyWith(fontSize: isLargeSize ? 16 : 14)
+          .apply(color: const Color(0xFF757575)),
     );
   }
 }

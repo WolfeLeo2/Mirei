@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
-import 'dart:async';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../data/mood_constants.dart';
@@ -18,8 +15,10 @@ import '../features/journal/bloc/journal_writing_bloc.dart';
 import '../features/journal/bloc/journal_writing_event.dart';
 import '../features/journal/bloc/journal_writing_state.dart';
 import '../services/player_service.dart';
+import 'package:audio_waveforms/audio_waveforms.dart';
 import '../services/recorder_service.dart';
 import '../services/journal_mood_integration.dart';
+import '../core/theme/typography.dart';
 
 class JournalWritingScreen extends StatelessWidget {
   const JournalWritingScreen({super.key});
@@ -54,18 +53,12 @@ class _JournalWritingViewState extends State<_JournalWritingView>
   late VoidCallback _titleListener;
   late VoidCallback _contentListener;
 
-  // Real-time sound wave visualization
-  late AnimationController _waveAnimationController;
-  late List<AnimationController> _waveBarControllers;
-  late List<Animation<double>> _waveBarAnimations;
-  final int _numberOfWaveBars = 20;
-  List<double> _currentAmplitudes = [];
-  Timer? _waveUpdateTimer;
+  // Live waveform removed per request.
 
   @override
   void initState() {
     super.initState();
-    _initializeWaveAnimations();
+    // Live waveform removed; no animation initialization.
 
     // Listen for text changes and dispatch events to BLoC
     _titleListener = () => context.read<JournalWritingBloc>().add(
@@ -78,55 +71,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
     _contentController.addListener(_contentListener);
   }
 
-  void _initializeWaveAnimations() {
-    _waveAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 100),
-      vsync: this,
-    );
-
-    _waveBarControllers = List.generate(
-      _numberOfWaveBars,
-      (index) => AnimationController(
-        duration: Duration(milliseconds: 150 + (index * 50)),
-        vsync: this,
-      ),
-    );
-
-    _waveBarAnimations = _waveBarControllers.map((controller) {
-      return Tween<double>(
-        begin: 0.1,
-        end: 1.0,
-      ).animate(CurvedAnimation(parent: controller, curve: Curves.easeInOut));
-    }).toList();
-
-    _currentAmplitudes = List.filled(_numberOfWaveBars, 0.05);
-
-    _waveAnimationController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        final bloc = context.read<JournalWritingBloc>();
-        if (bloc.state.isRecording) {
-          _updateWaveAmplitudes(bloc.state.waveAmplitudes);
-          _waveAnimationController.reset();
-          _waveAnimationController.forward();
-        }
-      }
-    });
-  }
-
-  void _updateWaveAmplitudes(List<double> waveData) {
-    if (waveData.isEmpty) {
-      _currentAmplitudes = List.filled(_numberOfWaveBars, 0.05);
-    } else {
-      // Use incoming normalized/smoothed amplitudes directly
-      _currentAmplitudes = List.generate(
-        _numberOfWaveBars,
-        (i) => (waveData[i % waveData.length]).clamp(0.05, 1.0),
-      );
-    }
-    for (int i = 0; i < _waveBarControllers.length; i++) {
-      _waveBarControllers[i].animateTo(_currentAmplitudes[i]);
-    }
-  }
+  // Removed _initializeWaveAnimations and _updateWaveAmplitudes.
 
   @override
   void dispose() {
@@ -137,11 +82,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
     _titleFocusNode.dispose();
     _contentFocusNode.dispose();
 
-    _waveAnimationController.dispose();
-    for (var controller in _waveBarControllers) {
-      controller.dispose();
-    }
-    _waveUpdateTimer?.cancel();
+    // No waveform controllers to dispose.
 
     super.dispose();
   }
@@ -166,16 +107,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
           });
         }
 
-        // Handle recording animation
-        if (state.isRecording && state.waveAmplitudes.isNotEmpty) {
-          _updateWaveAmplitudes(state.waveAmplitudes);
-          if (!_waveAnimationController.isAnimating) {
-            _waveAnimationController.forward();
-          }
-        } else if (!state.isRecording) {
-          _waveAnimationController.stop();
-          _waveAnimationController.reset();
-        }
+        // Live waveform removed: no animation handling.
       },
       child: BlocBuilder<JournalWritingBloc, JournalWritingState>(
         builder: (context, state) {
@@ -202,20 +134,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
                             _buildMoodSection(context, state),
                             _buildAttachmentsSection(context, state),
                             const SizedBox(height: 16),
-                            if (state.isRecording)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                child: _buildWaveVisualization()
-                                    .animate()
-                                    .scale(
-                                      begin: const Offset(0.8, 0.8),
-                                      duration: 200.ms,
-                                      curve: Curves.easeOut,
-                                    )
-                                    .fadeIn(duration: 200.ms),
-                              ),
+                            // Live recording waveform removed.
                             if (state.selectedImages.isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -269,7 +188,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: const Color(0xFF115e5a),
-                  fontFamily: GoogleFonts.inter().fontFamily,
+                  fontFamily: AppTypography.primaryFontFamily,
                 ),
               ),
             ),
@@ -318,7 +237,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
                 fontSize: 22,
                 fontWeight: FontWeight.w600,
                 height: 1.25,
-                fontFamily: GoogleFonts.inter().fontFamily,
+                fontFamily: AppTypography.primaryFontFamily,
               ),
               decoration: InputDecoration(
                 isCollapsed: true,
@@ -327,7 +246,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
                   color: Colors.black26,
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
-                  fontFamily: GoogleFonts.inter().fontFamily,
+                  fontFamily: AppTypography.primaryFontFamily,
                 ),
                 border: InputBorder.none,
               ),
@@ -344,7 +263,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
               style: TextStyle(
                 fontSize: 16,
                 height: 1.5,
-                fontFamily: GoogleFonts.inter().fontFamily,
+                fontFamily: AppTypography.primaryFontFamily,
               ),
               decoration: InputDecoration(
                 isCollapsed: true,
@@ -352,7 +271,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
                 hintStyle: TextStyle(
                   color: Colors.black26,
                   fontSize: 16,
-                  fontFamily: GoogleFonts.inter().fontFamily,
+                  fontFamily: AppTypography.primaryFontFamily,
                 ),
                 border: InputBorder.none,
               ),
@@ -378,7 +297,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
               color: Colors.black87,
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              fontFamily: GoogleFonts.inter().fontFamily,
+              fontFamily: AppTypography.primaryFontFamily,
             ),
           ),
           Row(
@@ -490,7 +409,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
               color: enabled
                   ? const Color(0xFF115e5a)
                   : const Color(0xFF115e5a).withOpacity(0.4),
-              fontFamily: GoogleFonts.inter().fontFamily,
+              fontFamily: AppTypography.primaryFontFamily,
             ),
           ),
         ),
@@ -540,7 +459,16 @@ class _JournalWritingViewState extends State<_JournalWritingView>
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, i) {
         final audio = state.audioRecordings[i];
-        final duration = audio['duration'] as Duration? ?? Duration.zero;
+        // Stored as milliseconds (int) when added in the BLoC; convert to Duration safely.
+        final rawDuration = audio['duration'];
+        Duration duration;
+        if (rawDuration is Duration) {
+          duration = rawDuration;
+        } else if (rawDuration is int) {
+          duration = Duration(milliseconds: rawDuration);
+        } else {
+          duration = Duration.zero;
+        }
         return _buildAudioChip(
           context,
           state,
@@ -584,6 +512,9 @@ class _JournalWritingViewState extends State<_JournalWritingView>
     int index,
   ) {
     final isPlaying = state.currentlyPlayingAudio == path;
+    // Obtain (or create) a PlayerController via the bloc's injected PlayerService (consistent instance).
+    final bloc = context.read<JournalWritingBloc>();
+    final controller = bloc.getWaveformController(path);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -621,21 +552,20 @@ class _JournalWritingViewState extends State<_JournalWritingView>
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Placeholder for waveform
-                Container(
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'Waveform',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey.shade600,
-                        fontFamily: GoogleFonts.inter().fontFamily,
-                      ),
+                SizedBox(
+                  height: 40,
+                  child: AudioFileWaveforms(
+                    size: const Size(double.infinity, 40),
+                    playerController: controller,
+                    waveformType: WaveformType.fitWidth,
+                    playerWaveStyle: PlayerWaveStyle(
+                      fixedWaveColor: Colors.grey.shade300,
+                      liveWaveColor: const Color(0xFF115e5a),
+                      spacing: 2.5,
+                      waveThickness: 2,
+                      scaleFactor: 140,
+                      showSeekLine: true,
+                      waveCap: StrokeCap.round,
                     ),
                   ),
                 ),
@@ -646,7 +576,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
                     fontSize: 13,
                     color: Colors.black54,
                     fontWeight: FontWeight.w500,
-                    fontFamily: GoogleFonts.inter().fontFamily,
+                    fontFamily: AppTypography.primaryFontFamily,
                   ),
                 ),
               ],
@@ -673,39 +603,15 @@ class _JournalWritingViewState extends State<_JournalWritingView>
     );
   }
 
+  // Removed _buildMiniWaveform (replaced with AudioFileWaveforms widget)
+
   String _formatDuration(Duration d) {
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '$m:$s';
   }
 
-  Widget _buildWaveVisualization() {
-    return SizedBox(
-      height: 48,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(_numberOfWaveBars, (index) {
-          return AnimatedBuilder(
-            animation: _waveBarControllers[index],
-            builder: (context, child) {
-              final value = _waveBarAnimations[index].value;
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: Container(
-                  width: 4,
-                  height: 8 + (value * 24),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF115e5a),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              );
-            },
-          );
-        }),
-      ),
-    );
-  }
+  // _buildWaveVisualization removed.
 
   // Mood section (edge-to-edge)
   Widget _buildMoodSection(BuildContext context, JournalWritingState state) {
@@ -730,7 +636,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
                   color: Colors.black87,
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  fontFamily: GoogleFonts.inter().fontFamily,
+                  fontFamily: AppTypography.primaryFontFamily,
                 ),
               ),
               if (state.selectedMood != null)
@@ -761,7 +667,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
                           color: selectedMoodColor,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          fontFamily: GoogleFonts.inter().fontFamily,
+                          fontFamily: AppTypography.primaryFontFamily,
                         ),
                       ),
                     ],

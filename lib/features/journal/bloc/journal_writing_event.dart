@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:image_picker/image_picker.dart';
 
 abstract class JournalWritingEvent extends Equatable {
   const JournalWritingEvent();
@@ -103,14 +102,7 @@ class JournalWritingReset extends JournalWritingEvent {
   const JournalWritingReset();
 }
 
-class WaveformAmplitudesChanged extends JournalWritingEvent {
-  final List<double> amplitudes;
-
-  const WaveformAmplitudesChanged(this.amplitudes);
-
-  @override
-  List<Object> get props => [amplitudes];
-}
+// Removed WaveformAmplitudesChanged (live waveform no longer used).
 
 class AudioPlaybackChanged extends JournalWritingEvent {
   final String? audioPath;

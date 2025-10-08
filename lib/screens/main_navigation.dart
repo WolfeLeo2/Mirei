@@ -29,13 +29,12 @@ class _MainNavigationState extends State<MainNavigation>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
 
     // Initialize screens
     _screens = [
-      // const HomeScreenContent(), //HomeScreen removed
-      const MoodTrackerScreenContent(), 
-      const MeditationScreen(),
+      const MoodTrackerScreenContent(),
+      const MeditationScreenContent(),
     ];
   }
 
@@ -121,19 +120,14 @@ class _MainNavigationState extends State<MainNavigation>
                               size: 24,
                             ),
                           ),
-                          Tab(
-                            icon: Icon(
-                              FontAwesome.spa_solid,
-                              size: 24,
-                            ),
-                          ),
-                          //Tab(icon: Icon(FontAwesome.spa_solid, size: 24)),
+                          Tab(icon: Icon(FontAwesome.spa_solid, size: 24)),
                         ],
                       ),
                     ),
                   );
                 },
               ),
+              // Mini player removed per request
             ],
           ),
         ),
@@ -141,27 +135,6 @@ class _MainNavigationState extends State<MainNavigation>
     );
   }
 }
-
-// COMMENTED OUT - HomeScreen content wrapper removed
-// Content-only version of HomeScreen (without its own navigation)
-// class HomeScreenContent extends StatefulWidget {
-//   const HomeScreenContent({super.key});
-//
-//   @override
-//   State<HomeScreenContent> createState() => _HomeScreenContentState();
-// }
-//
-// class _HomeScreenContentState extends State<HomeScreenContent>
-//     with AutomaticKeepAliveClientMixin {
-//   @override
-//   bool get wantKeepAlive => true;
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     super.build(context);
-//     return const HomeScreen();
-//   }
-// }
 
 // Content-only version of MoodTrackerScreen (without its own navigation)
 class MoodTrackerScreenContent extends StatefulWidget {

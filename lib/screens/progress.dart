@@ -9,6 +9,7 @@ import '../services/enhanced_mood_analytics.dart';
 import '../core/constants/app_colors.dart';
 import '../core/theme/mood_colors.dart';
 import '../services/ai_service.dart';
+import '../core/theme/typography.dart';
 
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
@@ -484,7 +485,7 @@ class _ProgressScreenState extends State<ProgressScreen>
           children: [
             Text(
               'Journal AI Analysis',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+              style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
@@ -494,7 +495,7 @@ class _ProgressScreenState extends State<ProgressScreen>
               '• Personalized recommendations\n\n'
               'Your journal content will be processed by Google Gemini AI. '
               'This is optional and can be disabled anytime.',
-              style: GoogleFonts.inter(fontSize: 14, height: 1.4),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, height: 1.4),
             ),
           ],
         ),
@@ -538,11 +539,7 @@ class _ProgressScreenState extends State<ProgressScreen>
         ),
         title: Text(
           'Mood Analytics',
-          style: GoogleFonts.inter(
-            color: AppColors.surface,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 20, fontWeight: FontWeight.w600).apply(color: AppColors.surface),
         ),
         centerTitle: true,
         bottom: TabBar(
@@ -551,14 +548,8 @@ class _ProgressScreenState extends State<ProgressScreen>
           indicatorWeight: 3,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white60,
-          labelStyle: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-          unselectedLabelStyle: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-          ),
+          labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w600),
+          unselectedLabelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w400),
           tabs: const [
             Tab(text: 'Overview'),
             Tab(text: 'Patterns'),
@@ -763,11 +754,7 @@ class _ProgressScreenState extends State<ProgressScreen>
           const SizedBox(height: 12),
           Text(
             value,
-            style: GoogleFonts.inter(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 24, fontWeight: FontWeight.bold).apply(color: Colors.black87),
           ),
           const SizedBox(height: 4),
           Text(
@@ -780,7 +767,7 @@ class _ProgressScreenState extends State<ProgressScreen>
           ),
           Text(
             subtitle,
-            style: GoogleFonts.inter(fontSize: 10, color: Colors.black),
+            style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontSize: 10, color: Colors.black),
           ),
         ],
       ),
@@ -889,16 +876,12 @@ class _ProgressScreenState extends State<ProgressScreen>
         children: [
           Text(
             'Mood Distribution',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.w600).apply(color: Colors.black87),
           ),
           const SizedBox(height: 4),
           Text(
             'Last 30 days',
-            style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600]),
+            style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontSize: 12, color: Colors.grey[600]),
           ),
           const SizedBox(height: 20),
 
@@ -936,11 +919,7 @@ class _ProgressScreenState extends State<ProgressScreen>
         children: [
           Text(
             'Recent Mood Entries',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.w600).apply(color: Colors.black87),
           ),
           const SizedBox(height: 16),
 
@@ -948,7 +927,7 @@ class _ProgressScreenState extends State<ProgressScreen>
             Center(
               child: Text(
                 'No recent mood entries',
-                style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+                style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontSize: 14, color: Colors.grey[600]),
               ),
             )
           else
@@ -988,11 +967,7 @@ class _ProgressScreenState extends State<ProgressScreen>
               const SizedBox(width: 8),
               Text(
                 'Common Triggers',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.w600).apply(color: Colors.black87),
               ),
             ],
           ),
@@ -1002,7 +977,7 @@ class _ProgressScreenState extends State<ProgressScreen>
             Center(
               child: Text(
                 'No trigger patterns identified yet',
-                style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+                style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontSize: 14, color: Colors.grey[600]),
               ),
             )
           else
@@ -1044,11 +1019,7 @@ class _ProgressScreenState extends State<ProgressScreen>
               const SizedBox(width: 8),
               Text(
                 'Mood Boosting Activities',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.w600).apply(color: Colors.black87),
               ),
             ],
           ),
@@ -1058,7 +1029,7 @@ class _ProgressScreenState extends State<ProgressScreen>
             Center(
               child: Text(
                 'No positive activity patterns yet',
-                style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+                style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontSize: 14, color: Colors.grey[600]),
               ),
             )
           else
@@ -1095,11 +1066,7 @@ class _ProgressScreenState extends State<ProgressScreen>
               const SizedBox(width: 8),
               Text(
                 'Time Patterns',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.w600).apply(color: Colors.black87),
               ),
             ],
           ),
@@ -1161,11 +1128,7 @@ class _ProgressScreenState extends State<ProgressScreen>
               const SizedBox(width: 8),
               Text(
                 'Journal Insights',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.w600).apply(color: Colors.black87),
               ),
             ],
           ),
@@ -1213,18 +1176,14 @@ class _ProgressScreenState extends State<ProgressScreen>
               const SizedBox(width: 12),
               Text(
                 'Personal Insights',
-                style: GoogleFonts.inter(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.surface,
-                ),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 20, fontWeight: FontWeight.bold).apply(color: AppColors.surface),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             'AI-powered recommendations based on your mood patterns',
-            style: GoogleFonts.inter(fontSize: 14, color: Colors.white70),
+            style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontSize: 14, color: Colors.white70),
           ),
         ],
       ),
@@ -1253,16 +1212,12 @@ class _ProgressScreenState extends State<ProgressScreen>
               const SizedBox(height: 12),
               Text(
                 'Keep tracking your mood',
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[600],
-                ),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16, fontWeight: FontWeight.w600).apply(color: Colors.grey[600]),
               ),
               const SizedBox(height: 4),
               Text(
                 'More insights will appear as you log more entries',
-                style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[500]),
+                style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontSize: 12, color: Colors.grey[500]),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -1321,11 +1276,7 @@ class _ProgressScreenState extends State<ProgressScreen>
               Expanded(
                 child: Text(
                   recommendation.title,
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16, fontWeight: FontWeight.w600).apply(color: Colors.black87),
                 ),
               ),
               Container(
@@ -1336,11 +1287,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                 ),
                 child: Text(
                   recommendation.priority.name.toUpperCase(),
-                  style: GoogleFonts.inter(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: priorityColor,
-                  ),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10, fontWeight: FontWeight.bold).apply(color: priorityColor),
                 ),
               ),
             ],
@@ -1348,11 +1295,7 @@ class _ProgressScreenState extends State<ProgressScreen>
           const SizedBox(height: 12),
           Text(
             recommendation.message,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: Colors.grey[700],
-              height: 1.4,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, height: 1.4).apply(color: Colors.grey[700]),
           ),
           if (recommendation.actionSuggestions.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -1366,10 +1309,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                     Expanded(
                       child: Text(
                         action,
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12).apply(color: Colors.grey[600]),
                       ),
                     ),
                   ],
@@ -1525,7 +1465,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                   if (value.toInt() >= 0 && value.toInt() < labels.length) {
                     return Text(
                       labels[value.toInt()],
-                      style: GoogleFonts.inter(fontSize: 10),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10),
                     );
                   }
                   return const Text('');
@@ -1622,12 +1562,7 @@ class _ProgressScreenState extends State<ProgressScreen>
         value: moodEntry.value.toDouble(),
         title: '$percentage%',
         radius: radius,
-        titleStyle: GoogleFonts.inter(
-          fontSize: fontSize,
-          fontWeight: FontWeight.bold,
-          color: AppColors.surface,
-          shadows: const [Shadow(color: Colors.black26, blurRadius: 2)],
-        ),
+        titleStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: fontSize, fontWeight: FontWeight.bold, shadows: const [Shadow(color: Colors.black26, blurRadius: 2)]).apply(color: AppColors.surface),
         badgeWidget: _MoodBadge(
           mood: moodEntry.key,
           size: widgetSize,
@@ -1644,16 +1579,12 @@ class _ProgressScreenState extends State<ProgressScreen>
       children: [
         Text(
           value,
-          style: GoogleFonts.inter(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 20, fontWeight: FontWeight.bold).apply(color: color),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600]),
+          style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontSize: 12, color: Colors.grey[600]),
         ),
       ],
     );
@@ -1690,20 +1621,12 @@ class _ProgressScreenState extends State<ProgressScreen>
               Expanded(
                 child: Text(
                   entry.key,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF115e5a),
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w600).apply(color: const Color(0xFF115e5a)),
                 ),
               ),
               Text(
                 '$percentage% (${entry.value})',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, fontWeight: FontWeight.w500).apply(color: Colors.grey[600]),
               ),
             ],
           ),
@@ -1744,11 +1667,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                   children: [
                     Text(
                       mood.mood,
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w600).apply(color: color),
                     ),
                     if (mood.intensity != null) ...[
                       const SizedBox(width: 8),
@@ -1763,11 +1682,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                         ),
                         child: Text(
                           '${mood.intensity}/10',
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: color,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10, fontWeight: FontWeight.bold).apply(color: color),
                         ),
                       ),
                     ],
@@ -1780,19 +1695,12 @@ class _ProgressScreenState extends State<ProgressScreen>
                     const SizedBox(width: 4),
                     Text(
                       '$exactTime • $timeOfDay',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12).apply(color: Colors.grey[600]),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       timeAgo,
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: Colors.grey[500],
-                        fontStyle: FontStyle.italic,
-                      ),
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(fontSize: 11, fontStyle: FontStyle.italic).apply(color: Colors.grey[500]),
                     ),
                   ],
                 ),
@@ -1823,18 +1731,11 @@ class _ProgressScreenState extends State<ProgressScreen>
               children: [
                 Text(
                   activity.activityName,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w600).apply(color: Colors.black87),
                 ),
                 Text(
                   '${activity.occurrences} times • Avg intensity: ${activity.averageIntensity.toStringAsFixed(1)}/10',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12).apply(color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -1847,11 +1748,7 @@ class _ProgressScreenState extends State<ProgressScreen>
             ),
             child: Text(
               '+${activity.moodImprovement.toStringAsFixed(1)}',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: AppColors.surface,
-              ),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, fontWeight: FontWeight.bold).apply(color: AppColors.surface),
             ),
           ),
         ],
@@ -1878,18 +1775,11 @@ class _ProgressScreenState extends State<ProgressScreen>
               children: [
                 Text(
                   trigger.triggerName,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w600).apply(color: Colors.black87),
                 ),
                 Text(
                   '${trigger.occurrences} times • Most common: ${trigger.mostCommonMood}',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12).apply(color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -1902,11 +1792,7 @@ class _ProgressScreenState extends State<ProgressScreen>
             ),
             child: Text(
               '${trigger.averageIntensity.toStringAsFixed(1)}/10',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: AppColors.surface,
-              ),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, fontWeight: FontWeight.bold).apply(color: AppColors.surface),
             ),
           ),
         ],
@@ -1940,19 +1826,12 @@ class _ProgressScreenState extends State<ProgressScreen>
               children: [
                 Text(
                   activity.activityName,
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16, fontWeight: FontWeight.w600).apply(color: Colors.black87),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${activity.occurrences} sessions',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12).apply(color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -1962,15 +1841,11 @@ class _ProgressScreenState extends State<ProgressScreen>
             children: [
               Text(
                 '+${activity.moodImprovement.toStringAsFixed(1)}',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.success,
-                ),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.bold).apply(color: AppColors.success),
               ),
               Text(
                 'mood boost',
-                style: GoogleFonts.inter(fontSize: 10, color: Colors.grey[600]),
+                style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontSize: 10, color: Colors.grey[600]),
               ),
             ],
           ),
@@ -1997,15 +1872,11 @@ class _ProgressScreenState extends State<ProgressScreen>
           const SizedBox(height: 8),
           Text(
             value,
-            style: GoogleFonts.inter(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16, fontWeight: FontWeight.bold).apply(color: Colors.black87),
           ),
           Text(
             label,
-            style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600]),
+            style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontSize: 12, color: Colors.grey[600]),
           ),
         ],
       ),
@@ -2036,26 +1907,15 @@ class _ProgressScreenState extends State<ProgressScreen>
               children: [
                 Text(
                   label,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w600).apply(color: Colors.black87),
                 ),
                 Text(
                   value,
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.indigo,
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.bold).apply(color: Colors.indigo),
                 ),
                 Text(
                   description,
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    color: Colors.grey[600],
-                  ),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(fontSize: 11).apply(color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -2106,20 +1966,12 @@ class _ProgressScreenState extends State<ProgressScreen>
             children: [
               Text(
                 DateFormat('MMMM yyyy').format(selectedDate),
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.bold).apply(color: Colors.black87),
               ),
               if (isCurrentMonth)
                 Text(
                   'Current Month',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: const Color(0xFF115e5a),
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, fontWeight: FontWeight.w500).apply(color: const Color(0xFF115e5a)),
                 ),
             ],
           ),
@@ -2162,11 +2014,7 @@ class _ProgressScreenState extends State<ProgressScreen>
         children: [
           Text(
             'Mood Timeline',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.w600).apply(color: Colors.black87),
           ),
           const SizedBox(height: 16),
           SizedBox(height: 200, child: _buildTimelineChart()),
@@ -2205,18 +2053,14 @@ class _ProgressScreenState extends State<ProgressScreen>
               const SizedBox(width: 8),
               Text(
                 'Daily Entries',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.w600).apply(color: Colors.black87),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             'Showing exact timestamps for ${DateFormat('MMMM yyyy').format(selectedDate)}',
-            style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600]),
+            style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontSize: 12, color: Colors.grey[600]),
           ),
           const SizedBox(height: 16),
 
@@ -2224,7 +2068,7 @@ class _ProgressScreenState extends State<ProgressScreen>
             Center(
               child: Text(
                 'No mood entries for this month',
-                style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+                style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontSize: 14, color: Colors.grey[600]),
               ),
             )
           else
@@ -2261,11 +2105,7 @@ class _ProgressScreenState extends State<ProgressScreen>
         children: [
           Text(
             'Weekly Summary',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.w600).apply(color: Colors.black87),
           ),
           const SizedBox(height: 16),
           _buildWeeklyBars(),
@@ -2297,11 +2137,7 @@ class _ProgressScreenState extends State<ProgressScreen>
               const SizedBox(width: 8),
               Text(
                 'Your Progress',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.w600).apply(color: Colors.black87),
               ),
             ],
           ),
@@ -2358,15 +2194,11 @@ class _ProgressScreenState extends State<ProgressScreen>
             children: [
               Text(
                 label,
-                style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[700]),
+                style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontSize: 14, color: Colors.grey[700]),
               ),
               Text(
                 value,
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16, fontWeight: FontWeight.bold).apply(color: Colors.black87),
               ),
             ],
           ),
@@ -2380,7 +2212,7 @@ class _ProgressScreenState extends State<ProgressScreen>
       return Center(
         child: Text(
           'No mood data available',
-          style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+          style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontSize: 14, color: Colors.grey[600]),
         ),
       );
     }
@@ -2396,7 +2228,7 @@ class _ProgressScreenState extends State<ProgressScreen>
       return Center(
         child: Text(
           'No mood data for ${DateFormat('MMMM yyyy').format(selectedDate)}',
-          style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+          style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontSize: 14, color: Colors.grey[600]),
         ),
       );
     }
@@ -2443,10 +2275,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                 if (value % 2 == 0) {
                   return Text(
                     value.toInt().toString(),
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      color: Colors.grey[600],
-                    ),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10).apply(color: Colors.grey[600]),
                   );
                 }
                 return const SizedBox();
@@ -2461,10 +2290,7 @@ class _ProgressScreenState extends State<ProgressScreen>
               getTitlesWidget: (value, meta) {
                 return Text(
                   value.toInt().toString(),
-                  style: GoogleFonts.inter(
-                    fontSize: 10,
-                    color: Colors.grey[600],
-                  ),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10).apply(color: Colors.grey[600]),
                 );
               },
             ),
@@ -2513,7 +2339,7 @@ class _ProgressScreenState extends State<ProgressScreen>
       return Center(
         child: Text(
           'No mood data available',
-          style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
+          style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontSize: 14, color: Colors.grey[600]),
         ),
       );
     }
@@ -2551,10 +2377,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                 width: 60,
                 child: Text(
                   entry.key,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: Colors.grey[700],
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12).apply(color: Colors.grey[700]),
                 ),
               ),
               const SizedBox(width: 12),
@@ -2580,11 +2403,7 @@ class _ProgressScreenState extends State<ProgressScreen>
               const SizedBox(width: 12),
               Text(
                 '${entry.value.toStringAsFixed(1)}/10',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
-                ),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, fontWeight: FontWeight.w600).apply(color: Colors.grey[700]),
               ),
             ],
           ),
@@ -2659,11 +2478,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                   children: [
                     Text(
                       mood.mood,
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w600).apply(color: color),
                     ),
                     if (mood.intensity != null) ...[
                       const SizedBox(width: 8),
@@ -2678,11 +2493,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                         ),
                         child: Text(
                           '${mood.intensity}/10',
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: color,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10, fontWeight: FontWeight.bold).apply(color: color),
                         ),
                       ),
                     ],
@@ -2699,11 +2510,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                         ),
                         child: Text(
                           '#$sequenceNumber',
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10, fontWeight: FontWeight.bold).apply(color: Colors.blue),
                         ),
                       ),
                   ],
@@ -2715,11 +2522,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                     const SizedBox(width: 4),
                     Text(
                       exactTime,
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: Colors.grey[700],
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, fontWeight: FontWeight.w500).apply(color: Colors.grey[700]),
                     ),
                     const SizedBox(width: 8),
                     Container(
@@ -2737,11 +2540,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                   const SizedBox(height: 4),
                   Text(
                     mood.context!,
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      color: Colors.grey[600],
-                      fontStyle: FontStyle.italic,
-                    ),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(fontSize: 11, fontStyle: FontStyle.italic).apply(color: Colors.grey[600]),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -2842,29 +2641,17 @@ class _ProgressScreenState extends State<ProgressScreen>
                   children: [
                     Text(
                       'AI Wellness Insight',
-                      style: GoogleFonts.inter(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                      ),
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 17, fontWeight: FontWeight.w700).apply(color: Colors.black87),
                     ),
                     if (hasError)
                       Text(
                         'Connection failed',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: Colors.red[600],
-                          fontStyle: FontStyle.italic,
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, fontStyle: FontStyle.italic).apply(color: Colors.red[600]),
                       )
                     else if (!hasInsight)
                       Text(
                         'Analyzing your mood patterns...',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                          fontStyle: FontStyle.italic,
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, fontStyle: FontStyle.italic).apply(color: Colors.grey[600]),
                       ),
                   ],
                 ),
@@ -2893,11 +2680,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                       const SizedBox(width: 6),
                       Text(
                         'Updating...',
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.blue[700],
-                        ),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10, fontWeight: FontWeight.w600).apply(color: Colors.blue[700]),
                       ),
                     ],
                   ),
@@ -2923,11 +2706,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                       const SizedBox(width: 4),
                       Text(
                         'Fresh',
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.green[700],
-                        ),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10, fontWeight: FontWeight.w600).apply(color: Colors.green[700]),
                       ),
                     ],
                   ),
@@ -2958,21 +2737,14 @@ class _ProgressScreenState extends State<ProgressScreen>
                       const SizedBox(width: 8),
                       Text(
                         'Connection Error',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: Colors.red[700],
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w600).apply(color: Colors.red[700]),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
                     _aiWellnessError!,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      color: Colors.red[600],
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 13).apply(color: Colors.red[600]),
                   ),
                 ],
               ),
@@ -2998,11 +2770,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                   const SizedBox(width: 12),
                   Text(
                     'Generating personalized insights...',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: Colors.grey[700],
-                      fontStyle: FontStyle.italic,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontStyle: FontStyle.italic).apply(color: Colors.grey[700]),
                   ),
                 ],
               ),
@@ -3019,12 +2787,7 @@ class _ProgressScreenState extends State<ProgressScreen>
               ),
               child: Text(
                 _aiWellnessInsight!,
-                style: GoogleFonts.inter(
-                  fontSize: 15,
-                  height: 1.6,
-                  color: Colors.black87,
-                  fontWeight: FontWeight.w400,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15, fontWeight: FontWeight.w400, height: 1.6).apply(color: Colors.black87),
               ),
             ),
           if (_aiJournalAnalysis != null) ...[
@@ -3046,10 +2809,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                       ),
                       child: Text(
                         t,
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: const Color(0xFF115e5a),
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12).apply(color: const Color(0xFF115e5a)),
                       ),
                     ),
                   )
@@ -3080,34 +2840,21 @@ class _ProgressScreenState extends State<ProgressScreen>
                       const SizedBox(width: 8),
                       Text(
                         'Journal Privacy Protection',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.blue[700],
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, fontWeight: FontWeight.w600).apply(color: Colors.blue[700]),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Journal AI analysis is disabled for privacy. Enable to get personalized themes from your journal entries.',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      color: Colors.blue[600],
-                      height: 1.4,
-                    ),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(fontSize: 11, height: 1.4).apply(color: Colors.blue[600]),
                   ),
                   const SizedBox(height: 8),
                   InkWell(
                     onTap: _showJournalPrivacyDialog,
                     child: Text(
                       'Review Privacy Settings →',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.blue[700],
-                        decoration: TextDecoration.underline,
-                      ),
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(fontSize: 11, fontWeight: FontWeight.w600, decoration: TextDecoration.underline).apply(color: Colors.blue[700]),
                     ),
                   ),
                 ],
@@ -3165,11 +2912,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                   children: [
                     Text(
                       'Coping Strategies',
-                      style: GoogleFonts.inter(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                      ),
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 17, fontWeight: FontWeight.w700).apply(color: Colors.black87),
                     ),
                     Text(
                       hasError
@@ -3179,15 +2922,11 @@ class _ProgressScreenState extends State<ProgressScreen>
                           : hasStrategies
                           ? '${_aiCopingSuggestions.length} personalized suggestions'
                           : 'Generating strategies...',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: hasError
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 13, fontStyle: FontStyle.italic).apply(color: hasError
                             ? Colors.red[600]
                             : _isRefreshingCoping
                             ? Colors.blue[600]
-                            : Colors.grey[600],
-                        fontStyle: FontStyle.italic,
-                      ),
+                            : Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -3218,21 +2957,14 @@ class _ProgressScreenState extends State<ProgressScreen>
                       const SizedBox(width: 8),
                       Text(
                         'Connection Error',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: Colors.red[700],
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w600).apply(color: Colors.red[700]),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
                     _aiCopingError!,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      color: Colors.red[600],
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 13).apply(color: Colors.red[600]),
                   ),
                 ],
               ),
@@ -3258,11 +2990,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                   const SizedBox(width: 12),
                   Text(
                     'Generating coping strategies...',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: Colors.grey[700],
-                      fontStyle: FontStyle.italic,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontStyle: FontStyle.italic).apply(color: Colors.grey[700]),
                   ),
                 ],
               ),
@@ -3298,11 +3026,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                         child: Center(
                           child: Text(
                             '${index + 1}',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.orange[700],
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, fontWeight: FontWeight.w700).apply(color: Colors.orange[700]),
                           ),
                         ),
                       ),
@@ -3313,20 +3037,12 @@ class _ProgressScreenState extends State<ProgressScreen>
                           children: [
                             Text(
                               s.title,
-                              style: GoogleFonts.inter(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15, fontWeight: FontWeight.w600).apply(color: Colors.black87),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               s.reason,
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                color: Colors.black,
-                                height: 1.5,
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, height: 1.5).apply(color: Colors.black),
                             ),
                           ],
                         ),
@@ -3348,11 +3064,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                             const SizedBox(width: 4),
                             Text(
                               '${s.durationMins}m',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.orange[700],
-                              ),
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, fontWeight: FontWeight.w600).apply(color: Colors.orange[700]),
                             ),
                           ],
                         ),
@@ -3421,11 +3133,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                   children: [
                     Text(
                       'Mood Prediction',
-                      style: GoogleFonts.inter(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                      ),
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 17, fontWeight: FontWeight.w700).apply(color: Colors.black87),
                     ),
                     Text(
                       hasError
@@ -3435,15 +3143,11 @@ class _ProgressScreenState extends State<ProgressScreen>
                           : hasPrediction
                           ? 'Next 24 hours outlook'
                           : 'Analyzing patterns...',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: hasError
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, fontStyle: FontStyle.italic).apply(color: hasError
                             ? Colors.red[600]
                             : _isRefreshingPrediction
                             ? Colors.blue[600]
-                            : Colors.grey[600],
-                        fontStyle: FontStyle.italic,
-                      ),
+                            : Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -3472,11 +3176,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                       const SizedBox(width: 6),
                       Text(
                         'Updating...',
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.blue[700],
-                        ),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10, fontWeight: FontWeight.w600).apply(color: Colors.blue[700]),
                       ),
                     ],
                   ),
@@ -3508,13 +3208,9 @@ class _ProgressScreenState extends State<ProgressScreen>
                       const SizedBox(width: 4),
                       Text(
                         '$confidencePercent%',
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: confidencePercent >= 70
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10, fontWeight: FontWeight.w600).apply(color: confidencePercent >= 70
                               ? Colors.green[700]
-                              : Colors.amber[700],
-                        ),
+                              : Colors.amber[700]),
                       ),
                     ],
                   ),
@@ -3545,21 +3241,14 @@ class _ProgressScreenState extends State<ProgressScreen>
                       const SizedBox(width: 8),
                       Text(
                         'Connection Error',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: Colors.red[700],
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w600).apply(color: Colors.red[700]),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
                     _aiPredictionError!,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      color: Colors.red[600],
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 13).apply(color: Colors.red[600]),
                   ),
                 ],
               ),
@@ -3585,11 +3274,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                   const SizedBox(width: 12),
                   Text(
                     'Analyzing mood patterns...',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: Colors.grey[700],
-                      fontStyle: FontStyle.italic,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontStyle: FontStyle.italic).apply(color: Colors.grey[700]),
                   ),
                 ],
               ),
@@ -3612,11 +3297,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                     children: [
                       Text(
                         'Likely feeling:',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 14, fontWeight: FontWeight.w500).apply(color: Colors.grey[700]),
                       ),
 
                       Container(
@@ -3626,11 +3307,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                         ),
                         child: Text(
                           _aiMoodPrediction!.predictedMood,
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            color: Colors.purple[700],
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w700).apply(color: Colors.purple[700]),
                         ),
                       ),
                     ],
@@ -3657,11 +3334,7 @@ class _ProgressScreenState extends State<ProgressScreen>
                         Expanded(
                           child: Text(
                             _aiMoodPrediction!.reason,
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              color: Colors.black,
-                              height: 1.5,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, height: 1.5).apply(color: Colors.black),
                           ),
                         ),
                       ],

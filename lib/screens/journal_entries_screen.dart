@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../models/realm_models.dart';
 import '../components/entry_card.dart';
 import 'journal_view.dart';
+import '../core/theme/typography.dart';
 
 class JournalEntriesScreen extends StatelessWidget {
   final String monthTitle;
@@ -42,7 +42,7 @@ class JournalEntriesScreen extends StatelessWidget {
             color: const Color(0xFF115e5a),
             fontSize: 20,
             fontWeight: FontWeight.w600,
-            fontFamily: GoogleFonts.inter().fontFamily,
+            fontFamily: AppTypography.primaryFontFamily,
           ),
         ),
         centerTitle: true,

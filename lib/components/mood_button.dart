@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../core/theme/typography.dart';
 
 class MoodButton extends StatelessWidget {
   final String Mood;
@@ -56,7 +56,7 @@ class MoodButton extends StatelessWidget {
                     color: isSelected ? const Color(0xFF115e5a) : Colors.white,
                     fontSize: isSelected ? 17 : 16,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    fontFamily: GoogleFonts.inter().fontFamily,
+                    fontFamily: AppTypography.primaryFontFamily,
                     height: 1.2,
                   ),
                 ),

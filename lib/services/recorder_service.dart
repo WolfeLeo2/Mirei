@@ -1,113 +1,80 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
-import 'package:flutter_sound/flutter_sound.dart';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// Service to handle audio recording with real-time waveform visualization
+/// Service to handle audio recording using the audio_waveforms package.
 class RecorderService {
   static final RecorderService _instance = RecorderService._internal();
   factory RecorderService() => _instance;
   RecorderService._internal();
 
-  FlutterSoundRecorder? _recorder;
-  RecorderController? _recorderController;
+  final RecorderController _recorderController = RecorderController();
 
+  bool _isInitialized = false;
   bool _isRecording = false;
   String? _currentRecordingPath;
   DateTime? _recordingStartTime;
   Duration _recordingDuration = Duration.zero;
+  StreamSubscription<Duration>? _durationSubscription;
 
-  Timer? _recordingTimer;
-  Timer? _waveUpdateTimer;
-
-  // Waveform visualization configuration & buffers
-  final int _numberOfWaveBars = 20;
-  // Public-facing (already normalized + smoothed) amplitudes 0..1
-  List<double> _currentAmplitudes = [];
-  // Internal smoothing buffer (EMA)
-  List<double> _smoothedAmplitudes = [];
-  static const double _emaAlpha =
-      0.45; // 0 < alpha <= 1, higher = more reactive
-  static const double _minVisualFloor =
-      0.05; // avoid bars collapsing completely
-
-  // Streams for UI updates
   final StreamController<bool> _isRecordingController =
       StreamController<bool>.broadcast();
   final StreamController<Duration> _recordingDurationController =
       StreamController<Duration>.broadcast();
-  final StreamController<List<double>> _waveAmplitudesController =
-      StreamController<List<double>>.broadcast();
-  final StreamController<String?> _recordingPathController =
-      StreamController<String?>.broadcast();
 
-  bool _isInitialized = false;
-
-  // Public streams
   Stream<bool> get isRecordingStream => _isRecordingController.stream;
   Stream<Duration> get recordingDurationStream =>
       _recordingDurationController.stream;
-  Stream<List<double>> get waveAmplitudesStream =>
-      _waveAmplitudesController.stream;
-  Stream<String?> get recordingPathStream => _recordingPathController.stream;
 
-  // Public getters
   bool get isRecording => _isRecording;
   Duration get recordingDuration => _recordingDuration;
-  String? get currentRecordingPath => _currentRecordingPath;
-  List<double> get currentAmplitudes => List.from(_currentAmplitudes);
+  RecorderController get recorderController => _recorderController;
 
   /// Initialize the recording service (idempotent - safe to call multiple times)
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    try {
-      _recorder = FlutterSoundRecorder();
-      _recorderController = RecorderController();
-      await _recorder!.openRecorder();
+    _recorderController
+      ..androidEncoder = AndroidEncoder.aac
+      ..androidOutputFormat = AndroidOutputFormat.mpeg4
+      ..iosEncoder = IosEncoder.kAudioFormatMPEG4AAC
+      ..sampleRate = 44100
+      ..bitRate = 64000;
 
-      _currentAmplitudes = List.filled(_numberOfWaveBars, _minVisualFloor);
-      _smoothedAmplitudes = List.filled(_numberOfWaveBars, _minVisualFloor);
-      _isInitialized = true;
+    _isInitialized = true;
 
-      if (kDebugMode) {
-        print('RecorderService: Initialized successfully');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('RecorderService: Error initializing: $e');
-      }
-      rethrow;
+    if (kDebugMode) {
+      print('RecorderService: Initialized');
     }
   }
 
   /// Check and request microphone permission
-  Future<bool> checkMicrophonePermission() async {
-    PermissionStatus status = await Permission.microphone.status;
+  Future<bool> checkMicrophonePermission() => _ensurePermission();
 
-    if (status.isDenied) {
-      status = await Permission.microphone.request();
-    }
+  Future<bool> _ensurePermission() async {
+    final hasPermission = await _recorderController.checkPermission();
+    if (hasPermission) return true;
 
+    final status = await Permission.microphone.request();
     return status.isGranted;
   }
 
   /// Start recording audio
   Future<String?> startRecording() async {
     try {
-      // Check permission
+      if (_isRecording) {
+        return _currentRecordingPath;
+      }
+
+      // Ensure permission
       if (!await checkMicrophonePermission()) {
         throw Exception('Microphone permission not granted');
       }
 
-      // Check if recorder is available
-      if (_recorder == null) {
-        await initialize();
-      }
+      await initialize();
 
       // Create audio directory and file path
       final directory = await getTemporaryDirectory();
@@ -119,11 +86,7 @@ class RecorderService {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final audioPath = '${audioDir.path}/audio_$timestamp.aac';
 
-      // Start flutter_sound recorder for audio file
-      await _recorder!.startRecorder(toFile: audioPath, codec: Codec.aacADTS);
-
-      // Start waveform recording (uses internal recording)
-      await _recorderController!.record();
+      await _recorderController.record(path: audioPath);
 
       // Update state
       _isRecording = true;
@@ -133,12 +96,15 @@ class RecorderService {
 
       // Notify listeners
       _isRecordingController.add(true);
-      _recordingPathController.add(audioPath);
       _recordingDurationController.add(Duration.zero);
 
-      // Start timers
-      _startRecordingTimer();
-      _startWaveformUpdates();
+      _durationSubscription?.cancel();
+      _durationSubscription = _recorderController.onCurrentDuration.listen((
+        duration,
+      ) {
+        _recordingDuration = duration;
+        _recordingDurationController.add(duration);
+      });
 
       if (kDebugMode) {
         print('RecorderService: Started recording to $audioPath');
@@ -158,45 +124,45 @@ class RecorderService {
     try {
       if (!_isRecording) return null;
 
-      // Capture metadata before we reset state
-      final recordingPath = _currentRecordingPath;
-      final startedAt = _recordingStartTime;
-      final finalDuration = _recordingDuration;
+      final startedAt = _recordingStartTime ?? DateTime.now();
+      final endedAt = DateTime.now();
 
-      // Stop recorders
-      await _recorder?.stopRecorder();
-      await _recorderController?.stop();
+      String? recordedPath;
+      try {
+        recordedPath = await _recorderController.stop();
+      } finally {
+        await _durationSubscription?.cancel();
+        _durationSubscription = null;
+      }
 
-      // Stop timers
-      _recordingTimer?.cancel();
-      _waveUpdateTimer?.cancel();
+      final path = recordedPath ?? _currentRecordingPath;
 
-      // Reset state AFTER capture
       _isRecording = false;
       _currentRecordingPath = null;
       _recordingStartTime = null;
       _recordingDuration = Duration.zero;
-      _currentAmplitudes = List.filled(_numberOfWaveBars, _minVisualFloor);
-      _smoothedAmplitudes = List.filled(_numberOfWaveBars, _minVisualFloor);
-
-      // Notify listeners of reset
       _isRecordingController.add(false);
-      _recordingPathController.add(null);
       _recordingDurationController.add(Duration.zero);
-      _waveAmplitudesController.add(List.from(_currentAmplitudes));
 
       if (kDebugMode) {
-        print('RecorderService: Stopped recording, saved to $recordingPath');
+        print('RecorderService: Stopped recording, saved to $path');
       }
 
-      return (recordingPath != null && startedAt != null)
-          ? RecordingResult(
-              path: recordingPath,
-              duration: finalDuration,
-              startedAt: startedAt,
-              endedAt: DateTime.now(),
-            )
-          : null;
+      if (path == null) {
+        return null;
+      }
+
+      final recordedDuration = _recorderController.recordedDuration;
+      final duration = recordedDuration != Duration.zero
+          ? recordedDuration
+          : endedAt.difference(startedAt);
+
+      return RecordingResult(
+        path: path,
+        duration: duration,
+        startedAt: startedAt,
+        endedAt: endedAt,
+      );
     } catch (e) {
       if (kDebugMode) {
         print('RecorderService: Error stopping recording: $e');
@@ -211,23 +177,22 @@ class RecorderService {
       if (!_isRecording) return;
       final recordingPath = _currentRecordingPath;
 
-      // Stop low-level recorders without emitting a finalized result
-      await _recorder?.stopRecorder();
-      await _recorderController?.stop();
+      // Stop recorder without emitting a finalized result
+      try {
+        await _recorderController.stop();
+      } catch (_) {
+        // Ignore stop failures when recorder is already stopped
+      }
 
-      _recordingTimer?.cancel();
-      _waveUpdateTimer?.cancel();
+      await _durationSubscription?.cancel();
+      _durationSubscription = null;
 
       _isRecording = false;
       _currentRecordingPath = null;
       _recordingStartTime = null;
       _recordingDuration = Duration.zero;
-      _currentAmplitudes = List.filled(_numberOfWaveBars, _minVisualFloor);
-      _smoothedAmplitudes = List.filled(_numberOfWaveBars, _minVisualFloor);
       _isRecordingController.add(false);
-      _recordingPathController.add(null);
       _recordingDurationController.add(Duration.zero);
-      _waveAmplitudesController.add(List.from(_currentAmplitudes));
 
       if (recordingPath != null) {
         final file = File(recordingPath);
@@ -248,112 +213,15 @@ class RecorderService {
     }
   }
 
-  /// Start the recording duration timer
-  void _startRecordingTimer() {
-    _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!_isRecording || _recordingStartTime == null) {
-        timer.cancel();
-        return;
-      }
-
-      _recordingDuration = DateTime.now().difference(_recordingStartTime!);
-      _recordingDurationController.add(_recordingDuration);
-    });
-  }
-
-  /// Start waveform visualization updates
-  void _startWaveformUpdates() {
-    _waveUpdateTimer = Timer.periodic(const Duration(milliseconds: 100), (
-      timer,
-    ) {
-      if (!_isRecording) {
-        timer.cancel();
-        return;
-      }
-      _updateWaveAmplitudes();
-    });
-  }
-
-  /// Compute normalized & smoothed waveform amplitudes.
-  /// Steps:
-  /// 1. Take a capped sliding window of recent raw samples.
-  /// 2. Bucket into N segments (N = number of bars) and compute RMS per bucket.
-  /// 3. Normalize by max RMS (gives relative energy 0..1).
-  /// 4. Apply exponential moving average for temporal smoothing.
-  /// 5. Enforce a visual floor so silence still shows subtle motion.
-  void _updateWaveAmplitudes() {
-    if (_recorderController == null || !_isRecording) return;
-
-    final data = _recorderController!.waveData;
-    if (data.isEmpty) {
-      _currentAmplitudes = List.filled(_numberOfWaveBars, _minVisualFloor);
-      _smoothedAmplitudes = List.filled(_numberOfWaveBars, _minVisualFloor);
-      _waveAmplitudesController.add(List.from(_currentAmplitudes));
-      return;
-    }
-
-    // Cap window size for performance & responsiveness
-    const int maxWindow = 400; // Tunable
-    final window = data.length > maxWindow
-        ? data.sublist(data.length - maxWindow)
-        : data;
-
-    final bucketCount = _numberOfWaveBars;
-    final bucketSize = (window.length / bucketCount).floor().clamp(
-      1,
-      window.length,
-    );
-    final List<double> bucketRms = List.filled(bucketCount, 0.0);
-
-    for (int i = 0; i < bucketCount; i++) {
-      final start = i * bucketSize;
-      if (start >= window.length) break;
-      final end = math.min(start + bucketSize, window.length);
-      if (end <= start) continue;
-      double sumSquares = 0.0;
-      for (int j = start; j < end; j++) {
-        final v = window[j];
-        sumSquares += v * v;
-      }
-      bucketRms[i] = math.sqrt(sumSquares / (end - start));
-    }
-
-    double maxVal = 0.0001;
-    for (final v in bucketRms) {
-      if (v > maxVal) maxVal = v;
-    }
-
-    if (_smoothedAmplitudes.length != bucketCount) {
-      _smoothedAmplitudes = List.filled(bucketCount, _minVisualFloor);
-    }
-
-    for (int i = 0; i < bucketCount; i++) {
-      final normalized = (bucketRms[i] / maxVal).clamp(0.0, 1.0);
-      final target = normalized < _minVisualFloor
-          ? _minVisualFloor
-          : normalized;
-      final prev = _smoothedAmplitudes[i];
-      final smoothed = prev + _emaAlpha * (target - prev);
-      _smoothedAmplitudes[i] = smoothed.clamp(_minVisualFloor, 1.0);
-    }
-
-    _currentAmplitudes = List.from(_smoothedAmplitudes);
-    _waveAmplitudesController.add(_currentAmplitudes);
-  }
-
-  /// Get recording controller for external waveform display
-  RecorderController? get recorderController => _recorderController;
-
   /// Clean up resources
   Future<void> dispose() async {
-    await stopRecording();
-    await _recorder?.closeRecorder();
-    _recorderController?.dispose();
+    await cancelRecording();
+    await _durationSubscription?.cancel();
+    _durationSubscription = null;
+    _recorderController.dispose();
 
     await _isRecordingController.close();
     await _recordingDurationController.close();
-    await _waveAmplitudesController.close();
-    await _recordingPathController.close();
 
     if (kDebugMode) {
       print('RecorderService: Disposed');

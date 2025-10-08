@@ -18,8 +18,8 @@ class MusicCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return RepaintBoundary(
       child: Container(
-        width: 265,
-        height: 265,
+        width: 200,
+        height: 200,
         margin: const EdgeInsets.only(right: 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28),
@@ -40,8 +40,8 @@ class MusicCard extends StatelessWidget {
                 child: Image.asset(
                   imagePath,
                   fit: BoxFit.cover,
-                  cacheWidth: 265, // Cache at display size
-                  cacheHeight: 265,
+                  cacheWidth: 200, // Cache at display size
+                  cacheHeight: 200,
                 ),
               ),
 

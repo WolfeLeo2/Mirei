@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/realm_models.dart';
 import '../utils/realm_database_helper.dart';
@@ -10,6 +9,8 @@ import 'package:realm/realm.dart';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'dart:async';
 import '../services/media_store.dart';
+import '../services/player_service.dart';
+import '../core/theme/typography.dart';
 import 'package:path/path.dart' as p;
 
 class JournalViewScreen extends StatefulWidget {
@@ -34,6 +35,9 @@ class _JournalViewScreenState extends State<JournalViewScreen>
   // Floating buttons are static; no visibility animation required.
 
   final Map<String, PlayerController> _playerControllers = {};
+  final Map<String, String> _resolvedAudioPaths = {};
+  final PlayerService _playerService = PlayerService();
+  StreamSubscription<String?>? _playerSubscription;
   final RealmDatabaseHelper _dbHelper = RealmDatabaseHelper();
   Realm? _realm;
   JournalEntryRealm? _liveEntry;
@@ -57,6 +61,14 @@ class _JournalViewScreenState extends State<JournalViewScreen>
 
     _contentController.forward();
 
+    _playerService.initialize();
+    _playerSubscription = _playerService.currentlyPlayingStream.listen((path) {
+      if (!mounted) return;
+      setState(() {
+        _currentlyPlayingPath = path;
+      });
+    });
+
     _setupInitialControllers();
     _initEntryWatcher();
   }
@@ -69,23 +81,20 @@ class _JournalViewScreenState extends State<JournalViewScreen>
 
       // Prepare resolved absolute path
       MediaStore.instance.resolvePath(originalKey).then((resolvedPath) {
+        if (!mounted) return;
         final key = resolvedPath;
         if (_playerControllers.containsKey(originalKey) ||
             _playerControllers.containsKey(key)) {
-          // Already prepared
+          _resolvedAudioPaths[originalKey] = key;
           return;
         }
-        final controller = PlayerController();
-        controller.preparePlayer(
-          path: key,
-          shouldExtractWaveform: true,
-          noOfSamples: 100,
-          volume: 1.0,
-        );
-        // Map by resolved key
-        _playerControllers[key] = controller;
-        // Also map the original relative key for UI references
-        _playerControllers[originalKey] = controller;
+
+        final controller = _playerService.getWaveformController(key);
+        _resolvedAudioPaths[originalKey] = key;
+        setState(() {
+          _playerControllers[key] = controller;
+          _playerControllers[originalKey] = controller;
+        });
       });
     }
   }
@@ -223,22 +232,13 @@ class _JournalViewScreenState extends State<JournalViewScreen>
         children: [
           Text(
             DateFormat('MMMM d, yyyy').format(createdAt.toLocal()),
-            style: GoogleFonts.inter(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: _moodColor,
-            ),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 16, fontWeight: FontWeight.w500).apply(color: _moodColor),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             title.isNotEmpty ? title : 'Untitled Entry',
-            style: GoogleFonts.inter(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-              height: 1.5,
-            ),
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 24, fontWeight: FontWeight.w700, height: 1.5).apply(color: AppColors.textPrimary),
             textAlign: TextAlign.center,
           ),
         ],
@@ -274,11 +274,7 @@ class _JournalViewScreenState extends State<JournalViewScreen>
             const SizedBox(width: 8),
             Text(
               _associatedMood!.mood,
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: _moodColor,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w600).apply(color: _moodColor),
             ),
           ],
         ),
@@ -329,18 +325,12 @@ class _JournalViewScreenState extends State<JournalViewScreen>
                                 const SizedBox(height: 12),
                                 Text(
                                   'Image not found (missing or moved)',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 16,
-                                    color: AppColors.textSecondary,
-                                  ),
+                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16).apply(color: AppColors.textSecondary),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'This file path no longer exists on device.',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    color: AppColors.textSecondary,
-                                  ),
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12).apply(color: AppColors.textSecondary),
                                   textAlign: TextAlign.center,
                                 ),
                               ],
@@ -366,7 +356,8 @@ class _JournalViewScreenState extends State<JournalViewScreen>
   }
 
   Widget _buildAudioPlayer(AudioRecordingData audio) {
-    final isPlaying = _currentlyPlayingPath == audio.path;
+    final resolvedPath = _resolvedAudioPaths[audio.path] ?? audio.path;
+    final isPlaying = _currentlyPlayingPath == resolvedPath;
     final displayPathFuture = MediaStore.instance.resolvePath(audio.path);
     final controller = _playerControllers[audio.path];
 
@@ -437,10 +428,7 @@ class _JournalViewScreenState extends State<JournalViewScreen>
                     const SizedBox(width: 6),
                     Text(
                       _formatDuration(audio.duration),
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 13).apply(color: AppColors.textSecondary),
                     ),
                     const SizedBox(width: 12),
                     FutureBuilder<String>(
@@ -450,10 +438,7 @@ class _JournalViewScreenState extends State<JournalViewScreen>
                         return Expanded(
                           child: Text(
                             p.basename(show),
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12).apply(color: AppColors.textSecondary),
                             overflow: TextOverflow.ellipsis,
                           ),
                         );
@@ -479,7 +464,7 @@ class _JournalViewScreenState extends State<JournalViewScreen>
       children: [
         Text(
           content,
-          style: GoogleFonts.nunitoSans(
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             fontSize: 16,
             height: 1.6,
             color: Colors.black,
@@ -564,11 +549,7 @@ class _JournalViewScreenState extends State<JournalViewScreen>
         ),
         title: Text(
           'Journal Entry',
-          style: GoogleFonts.inter(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: AppColors.primary,
-          ),
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 20, fontWeight: FontWeight.w600).apply(color: AppColors.primary),
         ),
         centerTitle: true,
       ),
@@ -580,19 +561,12 @@ class _JournalViewScreenState extends State<JournalViewScreen>
             const SizedBox(height: 16),
             Text(
               'Entry Not Found',
-              style: GoogleFonts.inter(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 24, fontWeight: FontWeight.w600).apply(color: AppColors.textPrimary),
             ),
             const SizedBox(height: 8),
             Text(
               'This journal entry has been deleted or is no longer available.',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                color: AppColors.textSecondary,
-              ),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16).apply(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -604,7 +578,7 @@ class _JournalViewScreenState extends State<JournalViewScreen>
               ),
               child: Text(
                 'Go Back',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -650,7 +624,7 @@ class _JournalViewScreenState extends State<JournalViewScreen>
       SnackBar(
         content: Text(
           'Edit functionality coming soon!',
-          style: GoogleFonts.inter(color: AppColors.surface),
+          style: TextStyle(fontFamily: AppTypography.primaryFontFamily, color: AppColors.surface),
         ),
         backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
@@ -666,7 +640,7 @@ class _JournalViewScreenState extends State<JournalViewScreen>
       SnackBar(
         content: Text(
           'Share functionality coming soon!',
-          style: GoogleFonts.inter(color: AppColors.surface),
+          style: TextStyle(fontFamily: AppTypography.primaryFontFamily, color: AppColors.surface),
         ),
         backgroundColor: AppColors.secondary,
         behavior: SnackBarBehavior.floating,
@@ -683,29 +657,18 @@ class _JournalViewScreenState extends State<JournalViewScreen>
       builder: (context) => AlertDialog(
         title: Text(
           'Delete Entry',
-          style: GoogleFonts.inter(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 20, fontWeight: FontWeight.w600).apply(color: AppColors.textPrimary),
         ),
         content: Text(
           'Are you sure you want to delete this journal entry? This action cannot be undone.',
-          style: GoogleFonts.inter(
-            fontSize: 16,
-            color: AppColors.textSecondary,
-          ),
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16).apply(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
               'Cancel',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
-              ),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16, fontWeight: FontWeight.w600).apply(color: AppColors.textSecondary),
             ),
           ),
           TextButton(
@@ -715,11 +678,7 @@ class _JournalViewScreenState extends State<JournalViewScreen>
             },
             child: Text(
               'Delete',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.error,
-              ),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16, fontWeight: FontWeight.w600).apply(color: AppColors.error),
             ),
           ),
         ],
@@ -736,7 +695,7 @@ class _JournalViewScreenState extends State<JournalViewScreen>
           SnackBar(
             content: Text(
               'Journal entry deleted',
-              style: GoogleFonts.inter(color: AppColors.surface),
+              style: TextStyle(fontFamily: AppTypography.primaryFontFamily, color: AppColors.surface),
             ),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
@@ -752,7 +711,7 @@ class _JournalViewScreenState extends State<JournalViewScreen>
           SnackBar(
             content: Text(
               'Failed to delete entry: $e',
-              style: GoogleFonts.inter(color: AppColors.surface),
+              style: TextStyle(fontFamily: AppTypography.primaryFontFamily, color: AppColors.surface),
             ),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
@@ -803,31 +762,29 @@ class _JournalViewScreenState extends State<JournalViewScreen>
 
   void _playAudio(String audioPath) async {
     // Resolve relative path to absolute if needed
-    final resolved = await MediaStore.instance.resolvePath(audioPath);
-    final controller =
-        _playerControllers[resolved] ?? _playerControllers[audioPath];
-    if (controller == null) return;
+    final resolved =
+        _resolvedAudioPaths[audioPath] ??
+        await MediaStore.instance.resolvePath(audioPath);
+    _resolvedAudioPaths[audioPath] = resolved;
 
-    final isSame =
-        _currentlyPlayingPath == resolved || _currentlyPlayingPath == audioPath;
-    if (isSame) {
-      if (controller.playerState.isPlaying) {
-        await controller.pausePlayer();
-      } else {
-        await controller.startPlayer();
-      }
-      setState(() {});
-      return;
+    try {
+      await _playerService.playAudio(resolved);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Unable to play audio: $e',
+            style: TextStyle(fontFamily: AppTypography.primaryFontFamily, color: AppColors.surface),
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: const RoundedSuperellipseBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
+        ),
+      );
     }
-
-    if (_currentlyPlayingPath != null) {
-      final prev = _playerControllers[_currentlyPlayingPath!];
-      await prev?.stopPlayer();
-    }
-
-    _currentlyPlayingPath = resolved;
-    await controller.startPlayer();
-    setState(() {});
   }
 
   String _formatDuration(Duration duration) {
@@ -842,9 +799,8 @@ class _JournalViewScreenState extends State<JournalViewScreen>
     _scrollController.dispose();
     _imagePageController.dispose();
     _entrySub?.cancel();
-    for (final controller in _playerControllers.values) {
-      controller.dispose();
-    }
+    _playerSubscription?.cancel();
+    _playerService.stop();
     super.dispose();
   }
 }

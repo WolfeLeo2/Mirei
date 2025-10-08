@@ -8,6 +8,7 @@ import '../../models/realm_models.dart';
 import '../../utils/realm_database_helper.dart';
 import 'scattered_entry_card.dart';
 import 'package:realm/realm.dart';
+import 'package:mirei/core/theme/typography.dart';
 
 /// Full-screen overlay that handles the expanded folder state with performance optimizations
 class ExpandedEntriesOverlay extends StatefulWidget {
@@ -294,11 +295,9 @@ class _ExpandedEntriesOverlayState extends State<ExpandedEntriesOverlay>
                 ),
                 child: Text(
                   widget.monthKey,
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF115e5a),
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge
+                      ?.copyWith(fontSize: 18, fontWeight: FontWeight.w600)
+                      .apply(color: const Color(0xFF115e5a)),
                 ),
               ),
             );

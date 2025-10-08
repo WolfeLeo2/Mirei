@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../services/image_upload_service.dart';
 import '../../services/auth_service.dart';
 import 'welcome_disclaimer_screen.dart';
+import '../../core/theme/typography.dart';
 
 class AvatarUploadScreen extends StatefulWidget {
   final String username;
@@ -54,7 +55,7 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
           children: [
             Text(
               'Choose Photo',
-              style: GoogleFonts.inter(
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -109,7 +110,11 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
           const SizedBox(height: 8),
           Text(
             label,
-            style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              fontFamily: AppTypography.primaryFontFamily,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -188,11 +193,9 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
             onPressed: _isLoading ? null : _handleSkip,
             child: Text(
               'Skip',
-              style: GoogleFonts.inter(
-                color: AppColors.primary,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontSize: 16, fontWeight: FontWeight.w500)
+                  .apply(color: AppColors.primary),
             ),
           ),
         ],
@@ -208,11 +211,9 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
               // Title
               Text(
                 'Add Profile Photo',
-                style: GoogleFonts.inter(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+                style: Theme.of(context).textTheme.displaySmall
+                    ?.copyWith(fontSize: 32, fontWeight: FontWeight.bold)
+                    .apply(color: Colors.black),
               ),
 
               const SizedBox(height: 8),
@@ -220,10 +221,9 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
               // Subtitle
               Text(
                 'Choose a photo that represents you best.',
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  color: AppColors.textSecondary,
-                ),
+                style: Theme.of(context).textTheme.bodyLarge
+                    ?.copyWith(fontSize: 16)
+                    .apply(color: AppColors.textSecondary),
               ),
 
               const SizedBox(height: 60),
@@ -273,7 +273,10 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
                         icon: const Icon(Icons.add_a_photo),
                         label: Text(
                           'Add Photo',
-                          style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                            fontFamily: AppTypography.primaryFontFamily,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
@@ -296,9 +299,8 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
                             icon: const Icon(Icons.edit),
                             label: Text(
                               'Change Photo',
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w500,
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w500),
                             ),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.primary,
@@ -315,9 +317,8 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
                             icon: const Icon(Icons.delete),
                             label: Text(
                               'Remove',
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w500,
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w500),
                             ),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.red,
@@ -335,11 +336,9 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
                     // Username preview
                     Text(
                       'Hello, ${widget.username}!',
-                      style: GoogleFonts.inter(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontSize: 20, fontWeight: FontWeight.w600)
+                          .apply(color: Colors.black),
                     ),
                   ],
                 ),
@@ -372,10 +371,11 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
                         )
                       : Text(
                           'Continue',
-                          style: GoogleFonts.inter(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
                 ),
               ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import 'mood_colors.dart';
+import 'typography.dart';
 
 class AppTheme {
   static const RoundedRectangleBorder _fallbackRounded = RoundedRectangleBorder(
@@ -29,7 +29,7 @@ class AppTheme {
       colorScheme: scheme,
       primaryColor: AppColors.primary,
       scaffoldBackgroundColor: const Color(0xFFf0efeb),
-      textTheme: GoogleFonts.interTextTheme(),
+      textTheme: AppTypography.googleSansTextTheme(),
       extensions: <ThemeExtension<dynamic>>[
         MoodColors.fromScheme(colorScheme: scheme),
       ],
@@ -75,7 +75,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: const Color(0xFF0F1115),
-      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+      textTheme: AppTypography.openSansTextThemeDark(ThemeData.dark().textTheme),
       extensions: <ThemeExtension<dynamic>>[
         MoodColors.fromScheme(colorScheme: scheme),
       ],

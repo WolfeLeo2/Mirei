@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/realm_models.dart';
 import '../core/constants/app_colors.dart';
@@ -47,12 +46,13 @@ class EntryCard extends StatelessWidget {
                     entry.content.isNotEmpty
                         ? entry.content
                         : 'No content available',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.black87,
-                      height: 1.4,
-                    ),
+                    style: Theme.of(context).textTheme.labelSmall
+                        ?.copyWith(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w400,
+                          height: 1.4,
+                        )
+                        .apply(color: Colors.black87),
                     maxLines: 8,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -67,11 +67,9 @@ class EntryCard extends StatelessWidget {
           Text(
             entry.title.isNotEmpty ? entry.title : 'Untitled Entry',
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge
+                ?.copyWith(fontSize: 16, fontWeight: FontWeight.w600)
+                .apply(color: AppColors.primary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -80,12 +78,9 @@ class EntryCard extends StatelessWidget {
           Text(
             formattedDate,
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.secondary,
-              height: 2,
-            ),
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(fontSize: 12, fontWeight: FontWeight.w500, height: 2)
+                .apply(color: AppColors.secondary),
           ),
         ],
       ),

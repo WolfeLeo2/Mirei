@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:io';
 import '../../core/constants/app_colors.dart';
 import '../main_navigation.dart';
+import '../../core/theme/typography.dart';
 
 class WelcomeDisclaimerScreen extends StatelessWidget {
   const WelcomeDisclaimerScreen({super.key});
@@ -23,18 +24,24 @@ class WelcomeDisclaimerScreen extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Exit App?',
-          style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontFamily: AppTypography.primaryFontFamily,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Text(
           'Are you sure you want to exit Mirei?',
-          style: GoogleFonts.inter(),
+          style: TextStyle(fontFamily: AppTypography.primaryFontFamily),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Cancel',
-              style: GoogleFonts.inter(color: AppColors.textSecondary),
+              style: TextStyle(
+                fontFamily: AppTypography.primaryFontFamily,
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
           TextButton(
@@ -42,7 +49,13 @@ class WelcomeDisclaimerScreen extends StatelessWidget {
               Navigator.pop(context);
               exit(0); // Exit the app
             },
-            child: Text('Exit', style: GoogleFonts.inter(color: Colors.red)),
+            child: Text(
+              'Exit',
+              style: TextStyle(
+                fontFamily: AppTypography.primaryFontFamily,
+                color: Colors.red,
+              ),
+            ),
           ),
         ],
       ),
@@ -77,11 +90,9 @@ class WelcomeDisclaimerScreen extends StatelessWidget {
               // Subtitle
               Text(
                 'Our community commitment',
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontSize: 16, fontWeight: FontWeight.w500)
+                    .apply(color: AppColors.textSecondary),
               ),
 
               const SizedBox(height: 12),
@@ -89,12 +100,13 @@ class WelcomeDisclaimerScreen extends StatelessWidget {
               // Main title
               Text(
                 'Mirei is more than a mental wellness app, it\'s a shared journey.',
-                style: GoogleFonts.inter(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                  height: 1.3,
-                ),
+                style: Theme.of(context).textTheme.headlineLarge
+                    ?.copyWith(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      height: 1.3,
+                    )
+                    .apply(color: Colors.black),
               ),
 
               const SizedBox(height: 32),
@@ -102,11 +114,9 @@ class WelcomeDisclaimerScreen extends StatelessWidget {
               // Community guidelines text
               Text(
                 'To keep this space safe, kind, and welcoming, we ask you to agree to the following:',
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  color: AppColors.textSecondary,
-                  height: 1.5,
-                ),
+                style: Theme.of(context).textTheme.bodyLarge
+                    ?.copyWith(fontSize: 16, height: 1.5)
+                    .apply(color: AppColors.textSecondary),
               ),
 
               const SizedBox(height: 24),
@@ -126,11 +136,9 @@ class WelcomeDisclaimerScreen extends StatelessWidget {
                       children: [
                         Text(
                           'I agree to use Mirei with respect — honoring different perspectives, experiences, and healing journeys. I will treat all fellow users and the community with kindness, without bias or judgment — regardless of background, beliefs, identity, or mental health status.',
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            color: Colors.black87,
-                            height: 1.6,
-                          ),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontSize: 16, height: 1.6)
+                              .apply(color: Colors.black87),
                         ),
 
                         const SizedBox(height: 20),
@@ -143,12 +151,13 @@ class WelcomeDisclaimerScreen extends StatelessWidget {
                           },
                           child: Text(
                             'Learn More',
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                              decoration: TextDecoration.underline,
-                            ),
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                )
+                                .apply(color: AppColors.primary),
                           ),
                         ),
                       ],
@@ -177,7 +186,7 @@ class WelcomeDisclaimerScreen extends StatelessWidget {
                   ),
                   child: Text(
                     'Agree and Continue',
-                    style: GoogleFonts.inter(
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),
@@ -202,7 +211,7 @@ class WelcomeDisclaimerScreen extends StatelessWidget {
                   ),
                   child: Text(
                     'Decline',
-                    style: GoogleFonts.inter(
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
                     ),
@@ -225,7 +234,11 @@ class WelcomeDisclaimerScreen extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Community Guidelines',
-          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 20),
+          style: TextStyle(
+            fontFamily: AppTypography.primaryFontFamily,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -235,26 +248,32 @@ class WelcomeDisclaimerScreen extends StatelessWidget {
               _buildGuidelineItem(
                 '🤝',
                 'Be respectful and supportive of others\' mental health journeys',
+                context,
               ),
               _buildGuidelineItem(
                 '💬',
                 'Share experiences constructively and avoid giving medical advice',
+                context,
               ),
               _buildGuidelineItem(
                 '🔒',
                 'Respect privacy and confidentiality of personal stories',
+                context,
               ),
               _buildGuidelineItem(
                 '🌟',
                 'Encourage positivity while acknowledging struggles',
+                context,
               ),
               _buildGuidelineItem(
                 '🚫',
                 'No harassment, discrimination, or harmful content',
+                context,
               ),
               _buildGuidelineItem(
                 '💝',
                 'Practice self-care and encourage others to do the same',
+                context,
               ),
             ],
           ),
@@ -264,10 +283,9 @@ class WelcomeDisclaimerScreen extends StatelessWidget {
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Got it',
-              style: GoogleFonts.inter(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w600,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w600)
+                  .apply(color: AppColors.primary),
             ),
           ),
         ],
@@ -275,7 +293,7 @@ class WelcomeDisclaimerScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGuidelineItem(String emoji, String text) {
+  Widget _buildGuidelineItem(String emoji, String text, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -286,15 +304,13 @@ class WelcomeDisclaimerScreen extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: Colors.black87,
-                height: 1.4,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(fontSize: 14, height: 1.4)
+                  .apply(color: Colors.black87),
             ),
           ),
         ],
       ),
-    );
+    ); 
   }
 }

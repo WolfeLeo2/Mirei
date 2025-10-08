@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
 import '../../core/constants/app_colors.dart';
+import 'package:mirei/core/theme/typography.dart';
 
 class MoodTrackingOnboardingScreen extends StatelessWidget {
   const MoodTrackingOnboardingScreen({super.key});
@@ -95,12 +96,13 @@ class MoodTrackingOnboardingScreen extends StatelessWidget {
           // Title
           Text(
             'Track Your\nEmotional Journey',
-            style: GoogleFonts.inter(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-              height: 1.2,
-            ),
+            style: Theme.of(context).textTheme.displaySmall
+                ?.copyWith(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  height: 1.2,
+                )
+                .apply(color: AppColors.textPrimary),
             textAlign: TextAlign.center,
           ),
 
@@ -108,11 +110,9 @@ class MoodTrackingOnboardingScreen extends StatelessWidget {
 
           Text(
             'Understand your emotional patterns with beautiful analytics and insights that help you grow.',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              color: AppColors.textSecondary,
-              height: 1.5,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge
+                ?.copyWith(fontSize: 18, height: 1.5)
+                .apply(color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
 

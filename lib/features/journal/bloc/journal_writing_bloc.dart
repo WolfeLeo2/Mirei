@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:audio_waveforms/audio_waveforms.dart';
 
 import '../../../services/player_service.dart';
 import '../../../services/recorder_service.dart';
@@ -19,7 +20,6 @@ class JournalWritingBloc
   final ImagePicker _imagePicker;
 
   StreamSubscription? _recordingSubscription;
-  StreamSubscription? _waveformSubscription;
   StreamSubscription? _playerSubscription;
 
   JournalWritingBloc({
@@ -48,10 +48,19 @@ class JournalWritingBloc
     on<JournalSaveRequested>(_onJournalSaveRequested);
     on<JournalWritingReset>(_onJournalWritingReset);
     // Removed RecordingStatusChanged indirection; explicit events control lifecycle.
-    on<WaveformAmplitudesChanged>(_onWaveformAmplitudesChanged);
+    // Removed live waveform support per simplification request.
     on<AudioPlaybackChanged>(_onAudioPlaybackChanged);
     on<RecordingDurationChanged>(_onRecordingDurationChanged);
   }
+
+  // Public accessors (read-only) for UI helpers needing services
+  PlayerService get playerService => _playerService;
+  RecorderService get recorderService => _recorderService;
+
+  // Convenience passthrough to obtain (and lazily prepare) a waveform controller
+  // for a given audio file path without exposing the entire player service API.
+  PlayerController getWaveformController(String path) =>
+      _playerService.getWaveformController(path);
 
   Future<void> _onInitialized(
     JournalWritingInitialized event,
@@ -62,19 +71,12 @@ class JournalWritingBloc
       await _playerService.initialize();
       await _recorderService.initialize();
 
-      // Subscribe to recorder streams
-      // Still listen to recording duration & waveform via dedicated streams.
+      // Subscribe to recorder streams (duration updates only).
       _recordingSubscription = _recorderService.isRecordingStream.listen(
         (_) {},
       );
 
-      _waveformSubscription = _recorderService.waveAmplitudesStream.listen((
-        amplitudes,
-      ) {
-        if (!isClosed) {
-          add(WaveformAmplitudesChanged(amplitudes));
-        }
-      });
+      // Live waveform subscription removed.
 
       // Subscribe to player streams
       _playerSubscription = _playerService.currentlyPlayingStream.listen((
@@ -286,7 +288,6 @@ class JournalWritingBloc
             audioRecordings: updatedRecordings,
             isRecording: false,
             recordingDuration: Duration.zero,
-            waveAmplitudes: [],
             hasUnsavedChanges: true,
             failure: null,
           ),
@@ -316,7 +317,6 @@ class JournalWritingBloc
         state.copyWith(
           isRecording: false,
           recordingDuration: Duration.zero,
-          waveAmplitudes: [],
           failure: null,
         ),
       );
@@ -442,12 +442,7 @@ class JournalWritingBloc
     emit(const JournalWritingState());
   }
 
-  void _onWaveformAmplitudesChanged(
-    WaveformAmplitudesChanged event,
-    Emitter<JournalWritingState> emit,
-  ) {
-    emit(state.copyWith(waveAmplitudes: event.amplitudes));
-  }
+  // Live waveform event handler removed.
 
   void _onAudioPlaybackChanged(
     AudioPlaybackChanged event,
@@ -466,7 +461,6 @@ class JournalWritingBloc
   @override
   Future<void> close() async {
     await _recordingSubscription?.cancel();
-    await _waveformSubscription?.cancel();
     await _playerSubscription?.cancel();
     return super.close();
   }

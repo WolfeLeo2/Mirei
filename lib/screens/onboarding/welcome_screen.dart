@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
+import 'package:mirei/core/theme/typography.dart';
 
 class WelcomeOnboardingScreen extends StatelessWidget {
   const WelcomeOnboardingScreen({super.key});
@@ -68,11 +69,9 @@ class WelcomeOnboardingScreen extends StatelessWidget {
           // Welcome text
           Text(
             'Welcome to Mirei',
-            style: GoogleFonts.inter(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
+            style: Theme.of(context).textTheme.displaySmall
+                ?.copyWith(fontSize: 32, fontWeight: FontWeight.bold)
+                .apply(color: AppColors.textPrimary),
             textAlign: TextAlign.center,
           ),
 
@@ -80,11 +79,9 @@ class WelcomeOnboardingScreen extends StatelessWidget {
 
           Text(
             'Your personal companion for mental wellness, mindful journaling, and emotional growth.',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              color: AppColors.textSecondary,
-              height: 1.5,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge
+                ?.copyWith(fontSize: 18, height: 1.5)
+                .apply(color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
 

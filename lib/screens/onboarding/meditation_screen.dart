@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/theme/typography.dart';
+import 'package:mirei/core/theme/typography.dart';
 
 class MeditationOnboardingScreen extends StatelessWidget {
   const MeditationOnboardingScreen({super.key});
@@ -101,12 +103,13 @@ class MeditationOnboardingScreen extends StatelessWidget {
           // Title
           Text(
             'Find Your Inner\nPeace & Balance',
-            style: GoogleFonts.inter(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-              height: 1.2,
-            ),
+            style: Theme.of(context).textTheme.displaySmall
+                ?.copyWith(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  height: 1.2,
+                )
+                .apply(color: AppColors.textPrimary),
             textAlign: TextAlign.center,
           ),
 
@@ -114,11 +117,9 @@ class MeditationOnboardingScreen extends StatelessWidget {
 
           Text(
             'Guided meditations, breathing exercises, and mindfulness practices tailored to your needs.',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              color: AppColors.textSecondary,
-              height: 1.5,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge
+                ?.copyWith(fontSize: 18, height: 1.5)
+                .apply(color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
 

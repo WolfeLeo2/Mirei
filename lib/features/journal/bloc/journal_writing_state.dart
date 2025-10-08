@@ -28,7 +28,6 @@ abstract class JournalWritingState with _$JournalWritingState {
     List<Map<String, dynamic>> audioRecordings,
     @Default(false) bool isRecording,
     @Default(Duration.zero) Duration recordingDuration,
-    @Default(<double>[]) List<double> waveAmplitudes,
     String? currentlyPlayingAudio,
     @Default(JournalSaveStatus.idle) JournalSaveStatus saveStatus,
     JournalFailure? failure,

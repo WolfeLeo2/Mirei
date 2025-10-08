@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/theme/typography.dart';
+import 'package:mirei/core/theme/typography.dart';
 
 class FeaturesOnboardingScreen extends StatelessWidget {
   const FeaturesOnboardingScreen({super.key});
@@ -74,12 +76,13 @@ class FeaturesOnboardingScreen extends StatelessWidget {
           // Title
           Text(
             'Rich Journaling\nExperience',
-            style: GoogleFonts.inter(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-              height: 1.2,
-            ),
+            style: Theme.of(context).textTheme.displaySmall
+                ?.copyWith(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  height: 1.2,
+                )
+                .apply(color: AppColors.textPrimary),
             textAlign: TextAlign.center,
           ),
 
@@ -87,11 +90,9 @@ class FeaturesOnboardingScreen extends StatelessWidget {
 
           Text(
             'Express yourself with rich text, photos, voice recordings, and drawings. Your thoughts, your way.',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              color: AppColors.textSecondary,
-              height: 1.5,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge
+                ?.copyWith(fontSize: 18, height: 1.5)
+                .apply(color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
 

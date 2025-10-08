@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../main_navigation.dart';
 import '../../services/auth_service.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'email_signup_screen.dart';
+import '../../core/theme/typography.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -42,10 +42,9 @@ class LoginScreen extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           'English',
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontSize: 14)
+                              .apply(color: Colors.grey[600]),
                         ),
                         const SizedBox(width: 4),
                         Icon(
@@ -64,11 +63,9 @@ class LoginScreen extends StatelessWidget {
               // Main content
               Text(
                 'Start Your Journey',
-                style: GoogleFonts.inter(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+                style: Theme.of(context).textTheme.headlineLarge
+                    ?.copyWith(fontSize: 28, fontWeight: FontWeight.bold)
+                    .apply(color: Colors.black),
                 textAlign: TextAlign.center,
               ),
 
@@ -76,7 +73,11 @@ class LoginScreen extends StatelessWidget {
 
               Text(
                 'Sign in and explore with ease.',
-                style: GoogleFonts.inter(fontSize: 16, color: Colors.grey[600]),
+                style: TextStyle(
+                  fontFamily: AppTypography.primaryFontFamily,
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
                 textAlign: TextAlign.center,
               ),
 
@@ -84,26 +85,29 @@ class LoginScreen extends StatelessWidget {
 
               // Social login buttons
               _buildSocialButton(
+                context,
                 'Sign in with Facebook',
                 Brands.facebook,
                 () => _handleSocialAuth(context, 'facebook'),
               ),
 
               const SizedBox(height: 16),
-
               _buildSocialButton(
+                context,
                 'Sign in with Google',
                 Brands.google,
                 () => _handleSocialAuth(context, 'google'),
               ),
 
               const SizedBox(height: 16),
-
               _buildSocialButton(
+                context,
                 'Sign in with Apple',
                 Brands.apple_logo,
                 () => _handleSocialAuth(context, 'apple'),
               ),
+
+              const SizedBox(height: 32),
 
               const SizedBox(height: 32),
 
@@ -112,12 +116,13 @@ class LoginScreen extends StatelessWidget {
                 onTap: () => _showEmailLogin(context),
                 child: Text(
                   'Continue with email',
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    color: AppColors.primary,
-                    decoration: TextDecoration.underline,
-                    decorationColor: AppColors.primary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge
+                      ?.copyWith(
+                        fontSize: 16,
+                        decoration: TextDecoration.underline,
+                        decorationColor: AppColors.primary,
+                      )
+                      .apply(color: AppColors.primary),
                 ),
               ),
 
@@ -129,10 +134,9 @@ class LoginScreen extends StatelessWidget {
                 child: RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall
+                        ?.copyWith(fontSize: 12)
+                        .apply(color: Colors.grey[600]),
                     children: [
                       const TextSpan(
                         text: 'By continuing, you automatically accept our ',
@@ -180,10 +184,10 @@ class LoginScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
+        );
   }
 
-  Widget _buildSocialButton(String text, String icon, VoidCallback onPressed) {
+  Widget _buildSocialButton(BuildContext context, String text, String icon, VoidCallback onPressed) {
     return SizedBox(
       width: double.infinity,
       height: 56,
@@ -204,11 +208,9 @@ class LoginScreen extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               text,
-              style: GoogleFonts.inter(
-                color: Colors.black,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontSize: 16, fontWeight: FontWeight.w500)
+                  .apply(color: Colors.black),
             ),
           ],
         ),
@@ -222,20 +224,28 @@ class LoginScreen extends StatelessWidget {
         case 'google':
           final userCredential = await AuthService().signInWithGoogle();
           if (userCredential != null) {
-            _navigateToMainApp(context);
+            if (context.mounted) {
+              _navigateToMainApp(context);
+            }
           }
           break;
         case 'facebook':
           // TODO: Implement Facebook authentication
-          _showSnackBar(context, 'Facebook sign-in coming soon!');
+          if (context.mounted) {
+            _showSnackBar(context, 'Facebook sign-in coming soon!');
+          }
           break;
         case 'apple':
           // TODO: Implement Apple authentication
-          _showSnackBar(context, 'Apple sign-in coming soon!');
+          if (context.mounted) {
+            _showSnackBar(context, 'Apple sign-in coming soon!');
+          }
           break;
       }
     } catch (e) {
-      _showSnackBar(context, AuthService().getErrorMessage(e));
+      if (context.mounted) {
+        _showSnackBar(context, AuthService().getErrorMessage(e));
+      }
     }
   }
 
@@ -295,10 +305,9 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
         ),
         title: Text(
           'Sign In',
-          style: GoogleFonts.inter(
-            color: Colors.black,
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(fontWeight: FontWeight.w600)
+              .apply(color: Colors.black),
         ),
         centerTitle: true,
       ),
@@ -315,21 +324,18 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
                 // Sign In title
                 Text(
                   'Welcome Back',
-                  style: GoogleFonts.inter(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
+                  style: Theme.of(context).textTheme.headlineLarge
+                      ?.copyWith(fontSize: 28, fontWeight: FontWeight.bold)
+                      .apply(color: Colors.black),
                 ),
 
                 const SizedBox(height: 8),
 
                 Text(
                   'Sign in to your account',
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge
+                      ?.copyWith(fontSize: 16)
+                      .apply(color: AppColors.textSecondary),
                 ),
 
                 const SizedBox(height: 40),
@@ -384,10 +390,9 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
                     onPressed: _handleForgotPassword,
                     child: Text(
                       'Forgot Password?',
-                      style: GoogleFonts.inter(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w500)
+                          .apply(color: AppColors.primary),
                     ),
                   ),
                 ),
@@ -419,10 +424,11 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
                           )
                         : Text(
                             'Sign In',
-                            style: GoogleFonts.inter(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                   ),
                 ),
@@ -436,20 +442,20 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
                     children: [
                       Text(
                         'No account? ',
-                        style: GoogleFonts.inter(
-                          color: AppColors.textSecondary,
-                          fontSize: 16,
-                        ),
+                        style: Theme.of(context).textTheme.bodyLarge
+                            ?.copyWith(fontSize: 16)
+                            .apply(color: AppColors.textSecondary),
                       ),
                       GestureDetector(
                         onTap: _navigateToSignUp,
                         child: Text(
                           'Sign Up',
-                          style: GoogleFonts.inter(
-                            color: AppColors.primary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              )
+                              .apply(color: AppColors.primary),
                         ),
                       ),
                     ],
@@ -463,11 +469,12 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
                     onPressed: _handleSkip,
                     child: Text(
                       'Continue without account',
-                      style: GoogleFonts.inter(
-                        color: AppColors.textSecondary,
-                        decoration: TextDecoration.underline,
-                        fontSize: 16,
-                      ),
+                      style: Theme.of(context).textTheme.bodyLarge
+                          ?.copyWith(
+                            fontSize: 16,
+                            decoration: TextDecoration.underline,
+                          )
+                          .apply(color: AppColors.textSecondary),
                     ),
                   ),
                 ),
@@ -493,13 +500,12 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
       keyboardType: keyboardType,
       obscureText: obscureText,
       validator: validator,
-      style: GoogleFonts.inter(fontSize: 16),
+      style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.inter(
-          color: AppColors.textSecondary,
-          fontSize: 16,
-        ),
+        labelStyle: Theme.of(context).textTheme.bodyLarge
+            ?.copyWith(fontSize: 16)
+            .apply(color: AppColors.textSecondary),
         prefixIcon: Icon(icon, color: AppColors.textSecondary),
         suffixIcon: suffixIcon,
         border: OutlineInputBorder(
@@ -539,12 +545,18 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
       );
 
       // Navigate to main app on success
-      _navigateToMainApp();
+      if (mounted) {
+        _navigateToMainApp();
+      }
     } catch (e) {
       // Show error message
-      _showSnackBar(AuthService().getErrorMessage(e));
+      if (mounted) {
+        _showSnackBar(AuthService().getErrorMessage(e));
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -578,9 +590,13 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
 
     try {
       await AuthService().sendPasswordResetEmail(email);
-      _showSnackBar('Password reset email sent! Check your inbox.');
+      if (mounted) {
+        _showSnackBar('Password reset email sent! Check your inbox.');
+      }
     } catch (e) {
-      _showSnackBar(AuthService().getErrorMessage(e));
+      if (mounted) {
+        _showSnackBar(AuthService().getErrorMessage(e));
+      }
     }
   }
 

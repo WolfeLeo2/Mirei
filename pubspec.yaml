@@ -78,15 +78,15 @@ dependencies:
   shared_preferences: ^2.5.3
   firebase_ai: ^2.3.0
 
-  # Local audio for journal recordings (kept)
+  # Local audio for playback/recording
   just_audio: ^0.9.45
   audio_session: ^0.1.24
-  flutter_sound: ^9.28.0
-  audio_waveforms: ^1.1.0
+  audio_waveforms: ^1.3.0
 
   # Image compression and UUIDs for media filenames
   flutter_image_compress: ^2.4.0
   uuid: ^4.5.1
+  mesh_gradient: ^1.3.8 # For beautiful mesh gradients
 
 dev_dependencies:
   flutter_test:
@@ -138,6 +138,7 @@ flutter:
     - assets/images/color.jpg
     - assets/images/tabby_journal.png
     - assets/images/tabby.svg
+    - assets/images/mesh-grad.png
     # New emotion icons
     - assets/emotion-icons/angry.svg
     - assets/emotion-icons/awkward.svg
@@ -154,3 +155,7 @@ flutter:
     - family: MyFlutterApp
       fonts:
         - asset: assets/fonts/MyFlutterApp.ttf
+    - family: GoogleSans
+      fonts:
+        - asset: assets/fonts/google_sans_rounded_regular.ttf
+          weight: 400

@@ -1,51 +1,39 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:just_audio/just_audio.dart' as just_audio;
 import 'package:audio_waveforms/audio_waveforms.dart';
 
-/// Centralized audio player service that manages all audio playback in the app
+/// Centralized audio player service that manages audio playback using
+/// the audio_waveforms package.
 class PlayerService {
   static final PlayerService _instance = PlayerService._internal();
   factory PlayerService() => _instance;
   PlayerService._internal();
 
-  final just_audio.AudioPlayer _player = just_audio.AudioPlayer();
-  final Map<String, PlayerController> _waveformControllers = {};
+  final Map<String, PlayerController> _controllers = {};
+  final Map<String, Future<void>> _preparingControllers = {};
+  final Map<String, StreamSubscription<void>> _completionSubscriptions = {};
+  final Set<String> _preparedPaths = <String>{};
 
   String? _currentlyPlayingPath;
   final StreamController<String?> _currentlyPlayingController =
       StreamController<String?>.broadcast();
-  final StreamController<just_audio.PlayerState> _playerStateController =
-      StreamController<just_audio.PlayerState>.broadcast();
-  final StreamController<Duration> _positionController =
-      StreamController<Duration>.broadcast();
-  final StreamController<Duration?> _durationController =
-      StreamController<Duration?>.broadcast();
 
   bool _isInitialized = false;
 
-  // Public streams
   Stream<String?> get currentlyPlayingStream =>
       _currentlyPlayingController.stream;
-  Stream<just_audio.PlayerState> get playerStateStream =>
-      _player.playerStateStream;
-  Stream<Duration> get positionStream => _player.positionStream;
-  Stream<Duration?> get durationStream => _player.durationStream;
 
   String? get currentlyPlayingPath => _currentlyPlayingPath;
-  bool get isPlaying => _player.playing;
-  Duration get position => _player.position;
-  Duration? get duration => _player.duration;
+
+  bool get isPlaying {
+    if (_currentlyPlayingPath == null) return false;
+    final controller = _controllers[_currentlyPlayingPath!];
+    return controller?.playerState == PlayerState.playing;
+  }
 
   /// Initialize the service (idempotent - safe to call multiple times)
   Future<void> initialize() async {
     if (_isInitialized) return;
-
-    // Subscribe to player streams and re-broadcast
-    _player.playerStateStream.listen(_playerStateController.add);
-    _player.positionStream.listen(_positionController.add);
-    _player.durationStream.listen(_durationController.add);
-
     _isInitialized = true;
 
     if (kDebugMode) {
@@ -53,52 +41,56 @@ class PlayerService {
     }
   }
 
-  /// Get or create a waveform controller for a specific audio path
+  /// Get or create a waveform/player controller for a specific audio path.
   PlayerController getWaveformController(String audioPath) {
-    if (!_waveformControllers.containsKey(audioPath)) {
-      final controller = PlayerController();
-      controller.preparePlayer(
-        path: audioPath,
-        shouldExtractWaveform: true,
-        noOfSamples: 100,
-        volume: 1.0,
-      );
-      _waveformControllers[audioPath] = controller;
+    final existing = _controllers[audioPath];
+    if (existing != null) {
+      if (!_preparedPaths.contains(audioPath) &&
+          !_preparingControllers.containsKey(audioPath)) {
+        unawaited(_ensurePrepared(audioPath));
+      }
+      return existing;
     }
-    return _waveformControllers[audioPath]!;
+
+    final controller = PlayerController();
+    _controllers[audioPath] = controller;
+
+    _completionSubscriptions[audioPath] = controller.onCompletion.listen(
+      (_) => _handleCompletion(audioPath),
+    );
+
+    unawaited(_ensurePrepared(audioPath));
+
+    return controller;
   }
 
-  /// Play audio from a file path
+  /// Play or toggle playback for a local audio file.
   Future<void> playAudio(String audioPath) async {
     try {
+      await initialize();
+
+      final controller = getWaveformController(audioPath);
+      await _ensurePrepared(audioPath);
+
       if (_currentlyPlayingPath == audioPath) {
-        // Toggle play/pause for current audio
-        if (_player.playing) {
-          await _player.pause();
-          final controller = _waveformControllers[audioPath];
-          await controller?.pausePlayer();
+        if (controller.playerState == PlayerState.playing) {
+          await controller.pausePlayer();
+          _currentlyPlayingPath = null;
+          _currentlyPlayingController.add(null);
         } else {
-          await _player.play();
-          final controller = _waveformControllers[audioPath];
-          await controller?.startPlayer();
+          await controller.startPlayer();
+          _currentlyPlayingPath = audioPath;
+          _currentlyPlayingController.add(audioPath);
         }
         return;
       }
 
-      // Stop current audio if playing different file
       if (_currentlyPlayingPath != null) {
-        await _player.stop();
-        final prevController = _waveformControllers[_currentlyPlayingPath!];
-        await prevController?.stopPlayer();
+        final previous = _controllers[_currentlyPlayingPath!];
+        await previous?.stopPlayer();
       }
 
-      // Start new audio
-      await _player.setFilePath(audioPath);
-      await _player.play();
-
-      final controller = _waveformControllers[audioPath];
-      await controller?.startPlayer();
-
+      await controller.startPlayer();
       _currentlyPlayingPath = audioPath;
       _currentlyPlayingController.add(audioPath);
 
@@ -113,108 +105,80 @@ class PlayerService {
     }
   }
 
-  /// Play audio from URL (for streaming)
-  Future<void> playUrl(String url) async {
-    try {
-      if (_currentlyPlayingPath != null) {
-        await stop();
-      }
-
-      await _player.setUrl(url);
-      await _player.play();
-
-      _currentlyPlayingPath = url;
-      _currentlyPlayingController.add(url);
-
-      if (kDebugMode) {
-        print('PlayerService: Started streaming $url');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('PlayerService: Error streaming audio $url: $e');
-      }
-      rethrow;
-    }
-  }
-
-  /// Pause current audio
-  Future<void> pause() async {
-    await _player.pause();
-    if (_currentlyPlayingPath != null) {
-      final controller = _waveformControllers[_currentlyPlayingPath!];
-      await controller?.pausePlayer();
-    }
-  }
-
-  /// Resume current audio
-  Future<void> resume() async {
-    await _player.play();
-    if (_currentlyPlayingPath != null) {
-      final controller = _waveformControllers[_currentlyPlayingPath!];
-      await controller?.startPlayer();
-    }
-  }
-
-  /// Stop current audio
+  /// Stop the currently playing audio, if any.
   Future<void> stop() async {
-    await _player.stop();
-    if (_currentlyPlayingPath != null) {
-      final controller = _waveformControllers[_currentlyPlayingPath!];
-      await controller?.stopPlayer();
+    if (_currentlyPlayingPath == null) {
+      return;
     }
+
+    final controller = _controllers[_currentlyPlayingPath!];
+    await controller?.stopPlayer();
+
     _currentlyPlayingPath = null;
     _currentlyPlayingController.add(null);
   }
 
-  /// Seek to position
-  Future<void> seek(Duration position) async {
-    await _player.seek(position);
-    if (_currentlyPlayingPath != null) {
-      final controller = _waveformControllers[_currentlyPlayingPath!];
-      await controller?.seekTo(position.inMilliseconds);
-    }
-  }
-
-  /// Skip forward by duration
-  Future<void> skipForward(Duration duration) async {
-    final newPosition = _player.position + duration;
-    final maxDuration = _player.duration ?? Duration.zero;
-    final clampedPosition = newPosition > maxDuration
-        ? maxDuration
-        : newPosition;
-    await seek(clampedPosition);
-  }
-
-  /// Skip backward by duration
-  Future<void> skipBackward(Duration duration) async {
-    final newPosition = _player.position - duration;
-    final clampedPosition = newPosition < Duration.zero
-        ? Duration.zero
-        : newPosition;
-    await seek(clampedPosition);
-  }
-
-  /// Set volume (0.0 to 1.0)
-  Future<void> setVolume(double volume) async {
-    await _player.setVolume(volume.clamp(0.0, 1.0));
-  }
-
-  /// Clean up resources for a specific audio path
-  void disposeWaveformController(String audioPath) {
-    final controller = _waveformControllers.remove(audioPath);
-    controller?.dispose();
-  }
-
-  /// Clean up all resources
+  /// Dispose all controllers and clean up resources.
   Future<void> dispose() async {
-    await _player.dispose();
-    for (final controller in _waveformControllers.values) {
+    await stop();
+
+    for (final subscription in _completionSubscriptions.values) {
+      await subscription.cancel();
+    }
+    _completionSubscriptions.clear();
+
+    for (final controller in _controllers.values) {
       controller.dispose();
     }
-    _waveformControllers.clear();
+    _controllers.clear();
+    _preparingControllers.clear();
+    _preparedPaths.clear();
+
     await _currentlyPlayingController.close();
-    await _playerStateController.close();
-    await _positionController.close();
-    await _durationController.close();
+
+    if (kDebugMode) {
+      print('PlayerService: Disposed');
+    }
+  }
+
+  Future<void> _ensurePrepared(String audioPath) async {
+    if (_preparedPaths.contains(audioPath)) {
+      return;
+    }
+
+    var future = _preparingControllers[audioPath];
+    if (future != null) {
+      await future;
+      return;
+    }
+
+    future = _prepareController(audioPath);
+    _preparingControllers[audioPath] = future;
+    try {
+      await future;
+      _preparedPaths.add(audioPath);
+    } finally {
+      _preparingControllers.remove(audioPath);
+    }
+  }
+
+  Future<void> _prepareController(String audioPath) async {
+    final controller = _controllers[audioPath];
+    if (controller == null) return;
+
+    await controller.preparePlayer(
+      path: audioPath,
+      shouldExtractWaveform: true,
+      noOfSamples: 120,
+      volume: 1.0,
+    );
+    await controller.setFinishMode(finishMode: FinishMode.stop);
+  }
+
+  void _handleCompletion(String completedPath) {
+    if (_currentlyPlayingPath == completedPath) {
+      _currentlyPlayingPath = null;
+      _currentlyPlayingController.add(null);
+    }
   }
 }

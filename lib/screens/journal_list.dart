@@ -6,6 +6,7 @@ import '../utils/journal_grouping_service.dart';
 import '../components/folder_card.dart';
 import 'journal_writing.dart';
 import 'journal_entries_screen.dart';
+import '../core/theme/typography.dart';
 
 class JournalListScreen extends StatefulWidget {
   const JournalListScreen({super.key});
@@ -127,7 +128,7 @@ class _JournalListScreenState extends State<JournalListScreen>
             color: const Color(0xFF115e5a),
             fontSize: 20,
             fontWeight: FontWeight.w600,
-            fontFamily: GoogleFonts.inter().fontFamily,
+            fontFamily: AppTypography.primaryFontFamily,
           ),
         ),
         centerTitle: true,
@@ -151,19 +152,16 @@ class _JournalListScreenState extends State<JournalListScreen>
                     const SizedBox(height: 16),
                     Text(
                       'No journal entries yet',
-                      style: GoogleFonts.inter(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                      ),
+                      style: Theme.of(context).textTheme.bodyLarge
+                          ?.copyWith(fontSize: 18, fontWeight: FontWeight.w700)
+                          .apply(color: Colors.black87),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Start your first entry by tapping the + button.',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: Colors.black54,
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(fontSize: 13)
+                          .apply(color: Colors.black54),
                       textAlign: TextAlign.center,
                     ),
                   ],

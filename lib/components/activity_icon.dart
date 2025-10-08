@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../core/theme/typography.dart';
 
 class ActivityIcon extends StatelessWidget {
   final String label;
@@ -68,7 +68,7 @@ class ActivityIcon extends StatelessWidget {
               color: Colors.black54,
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              fontFamily: GoogleFonts.inter().fontFamily,
+              fontFamily: AppTypography.primaryFontFamily,
             ),
             textAlign: TextAlign.center,
           ),

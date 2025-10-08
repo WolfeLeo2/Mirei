@@ -70,7 +70,9 @@ class JournalViewBloc extends Bloc<JournalViewEvent, JournalViewState> {
         print('JournalViewBloc: Initialized successfully');
       }
     } catch (e) {
-      emit(state.copyWith(isLoading: false, error: 'Failed to initialize: $e'));
+      emit(
+        state.copyWith(isLoading: false, error: 'Failed to initialize: $e'),
+      );
     }
   }
 

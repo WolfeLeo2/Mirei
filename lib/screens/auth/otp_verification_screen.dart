@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../../services/auth_service.dart';
 import 'profile_setup_screen.dart';
+import '../../core/theme/typography.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
   final String email;
@@ -103,7 +104,6 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -125,7 +125,10 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                   ),
                   // Language selector (matching the design)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.grey[100],
                       borderRadius: BorderRadius.circular(20),
@@ -133,11 +136,19 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.language, size: 16, color: Colors.black54),
+                        const Icon(
+                          Icons.language,
+                          size: 16,
+                          color: Colors.black54,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'English',
-                          style: GoogleFonts.inter(fontSize: 14, color: Colors.black54),
+                          style: TextStyle(
+                            fontFamily: AppTypography.primaryFontFamily,
+                            fontSize: 14,
+                            color: Colors.black54,
+                          ),
                         ),
                         const Icon(
                           Icons.keyboard_arrow_down,
@@ -172,11 +183,9 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
               // Title
               Text(
                 'Confirmation link',
-                style: GoogleFonts.inter(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+                style: Theme.of(context).textTheme.headlineLarge
+                    ?.copyWith(fontSize: 28, fontWeight: FontWeight.bold)
+                    .apply(color: Colors.black),
               ),
 
               const SizedBox(height: 12),
@@ -184,10 +193,9 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
               // Subtitle
               Text(
                 'Go to your email to open the link',
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  color: AppColors.textSecondary,
-                ),
+                style: Theme.of(context).textTheme.bodyLarge
+                    ?.copyWith(fontSize: 16)
+                    .apply(color: AppColors.textSecondary),
               ),
 
               const SizedBox(height: 32),
@@ -206,10 +214,9 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                     Text(
                       'We\'ve sent a verification link to ${widget.email}. Please check your email and click the link to verify your account.',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        color: Colors.blue[700],
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium
+                          ?.copyWith(fontSize: 14)
+                          .apply(color: Colors.blue[700]),
                     ),
                   ],
                 ),
@@ -242,10 +249,11 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                         )
                       : Text(
                           'I\'ve verified my email',
-                          style: GoogleFonts.inter(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
                 ),
               ),
@@ -263,11 +271,12 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                       )
                     : Text(
                         'Resend verification email',
-                        style: GoogleFonts.inter(
-                          color: AppColors.primary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            )
+                            .apply(color: AppColors.primary),
                       ),
               ),
             ],

@@ -7,6 +7,7 @@ import '../../core/constants/app_colors.dart';
 import '../../screens/journal_view.dart';
 import '../../utils/realm_database_helper.dart';
 import 'package:realm/realm.dart';
+import '../../core/theme/typography.dart';
 
 /// Individual journal entry card for scattered display with performance optimizations
 class ScatteredEntryCard extends StatelessWidget {
@@ -43,40 +44,33 @@ class ScatteredEntryCard extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: Text(
           'Delete Journal Entry',
-          style: GoogleFonts.inter(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF2D3748),
-          ),
+          style: Theme.of(context).textTheme.bodyLarge
+              ?.copyWith(fontSize: 18, fontWeight: FontWeight.w600)
+              .apply(color: const Color(0xFF2D3748)),
         ),
         content: Text(
           'Are you sure you want to delete this journal entry? This action cannot be undone.',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            color: const Color(0xFF718096),
-          ),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(fontSize: 14)
+              .apply(color: const Color(0xFF718096)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
               'Cancel',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF718096),
-              ),
+              style: Theme.of(context).textTheme.titleSmall
+                  ?.copyWith(fontSize: 14, fontWeight: FontWeight.w500)
+                  .apply(color: const Color(0xFF718096)),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: Text(
               'Delete',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.red,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(fontSize: 14, fontWeight: FontWeight.w600)
+                  .apply(color: Colors.red),
             ),
           ),
         ],
@@ -108,7 +102,10 @@ class ScatteredEntryCard extends StatelessWidget {
         SnackBar(
           content: Text(
             'Journal entry deleted successfully',
-            style: GoogleFonts.inter(color: Colors.white),
+            style: TextStyle(
+              fontFamily: AppTypography.primaryFontFamily,
+              color: Colors.white,
+            ),
           ),
           backgroundColor: const Color(0xFF115e5a),
           behavior: SnackBarBehavior.floating,
@@ -127,7 +124,10 @@ class ScatteredEntryCard extends StatelessWidget {
         SnackBar(
           content: Text(
             'Error deleting journal entry: $e',
-            style: GoogleFonts.inter(color: Colors.white),
+            style: TextStyle(
+              fontFamily: AppTypography.primaryFontFamily,
+              color: Colors.white,
+            ),
           ),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
@@ -343,19 +343,15 @@ class _DateWidget extends StatelessWidget {
       children: [
         Text(
           _formatDate(date),
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF115e5a),
-          ),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(fontSize: 12, fontWeight: FontWeight.w500)
+              .apply(color: const Color(0xFF115e5a)),
         ),
         Text(
           _formatTime(date),
-          style: GoogleFonts.inter(
-            fontSize: 10,
-            fontWeight: FontWeight.w400,
-            color: const Color(0xFF718096),
-          ),
+          style: Theme.of(context).textTheme.labelSmall
+              ?.copyWith(fontSize: 10, fontWeight: FontWeight.w400)
+              .apply(color: const Color(0xFF718096)),
         ),
       ],
     );
@@ -383,11 +379,9 @@ class _TitleWidget extends StatelessWidget {
       title,
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
-      style: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: Colors.black87,
-      ),
+      style: Theme.of(context).textTheme.bodyMedium
+          ?.copyWith(fontSize: 14, fontWeight: FontWeight.w600)
+          .apply(color: Colors.black87),
     );
   }
 }
@@ -405,11 +399,9 @@ class _ContentPreview extends StatelessWidget {
       content,
       maxLines: hasTitle ? 4 : 6,
       overflow: TextOverflow.ellipsis,
-      style: GoogleFonts.inter(
-        fontSize: 12,
-        color: const Color(0xFF616161), // Use const color
-        height: 1.3,
-      ),
+      style: Theme.of(context).textTheme.bodySmall
+          ?.copyWith(fontSize: 12, height: 1.3)
+          .apply(color: const Color(0xFF616161)),
     );
   }
 }
@@ -468,7 +460,14 @@ class _ImageIndicator extends StatelessWidget {
         children: [
           Icon(Icons.image, size: 10, color: color),
           const SizedBox(width: 2),
-          Text('$count', style: GoogleFonts.inter(fontSize: 10, color: color)),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontFamily: AppTypography.primaryFontFamily,
+              fontSize: 10,
+              color: color,
+            ),
+          ),
         ],
       ),
     );
@@ -499,7 +498,14 @@ class _AudioIndicator extends StatelessWidget {
         children: [
           Icon(Icons.mic, size: 10, color: color),
           const SizedBox(width: 2),
-          Text('$count', style: GoogleFonts.inter(fontSize: 10, color: color)),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontFamily: AppTypography.primaryFontFamily,
+              fontSize: 10,
+              color: color,
+            ),
+          ),
         ],
       ),
     );
@@ -529,11 +535,9 @@ class _MoodIndicator extends StatelessWidget {
       ),
       child: Text(
         emotion,
-        style: GoogleFonts.inter(
-          color: color,
-          fontWeight: FontWeight.w500,
-          fontSize: 8,
-        ),
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(fontSize: 8, fontWeight: FontWeight.w500)
+            .apply(color: color),
       ),
     );
   }

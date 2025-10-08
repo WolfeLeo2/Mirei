@@ -489,7 +489,7 @@ mixin _$JournalWritingState {
 
  String get title; String get content; String? get selectedMood; String? get moodContext; List<XFile> get selectedImages;// audioRecordings: List<Map>{ path: String, duration: int(ms), timestamp: int(ms) }
 //forced comment
- List<Map<String, dynamic>> get audioRecordings; bool get isRecording; Duration get recordingDuration; List<double> get waveAmplitudes; String? get currentlyPlayingAudio; JournalSaveStatus get saveStatus; JournalFailure? get failure; bool get hasUnsavedChanges;
+ List<Map<String, dynamic>> get audioRecordings; bool get isRecording; Duration get recordingDuration; String? get currentlyPlayingAudio; JournalSaveStatus get saveStatus; JournalFailure? get failure; bool get hasUnsavedChanges;
 /// Create a copy of JournalWritingState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -500,16 +500,16 @@ $JournalWritingStateCopyWith<JournalWritingState> get copyWith => _$JournalWriti
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is JournalWritingState&&(identical(other.title, title) || other.title == title)&&(identical(other.content, content) || other.content == content)&&(identical(other.selectedMood, selectedMood) || other.selectedMood == selectedMood)&&(identical(other.moodContext, moodContext) || other.moodContext == moodContext)&&const DeepCollectionEquality().equals(other.selectedImages, selectedImages)&&const DeepCollectionEquality().equals(other.audioRecordings, audioRecordings)&&(identical(other.isRecording, isRecording) || other.isRecording == isRecording)&&(identical(other.recordingDuration, recordingDuration) || other.recordingDuration == recordingDuration)&&const DeepCollectionEquality().equals(other.waveAmplitudes, waveAmplitudes)&&(identical(other.currentlyPlayingAudio, currentlyPlayingAudio) || other.currentlyPlayingAudio == currentlyPlayingAudio)&&(identical(other.saveStatus, saveStatus) || other.saveStatus == saveStatus)&&(identical(other.failure, failure) || other.failure == failure)&&(identical(other.hasUnsavedChanges, hasUnsavedChanges) || other.hasUnsavedChanges == hasUnsavedChanges));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is JournalWritingState&&(identical(other.title, title) || other.title == title)&&(identical(other.content, content) || other.content == content)&&(identical(other.selectedMood, selectedMood) || other.selectedMood == selectedMood)&&(identical(other.moodContext, moodContext) || other.moodContext == moodContext)&&const DeepCollectionEquality().equals(other.selectedImages, selectedImages)&&const DeepCollectionEquality().equals(other.audioRecordings, audioRecordings)&&(identical(other.isRecording, isRecording) || other.isRecording == isRecording)&&(identical(other.recordingDuration, recordingDuration) || other.recordingDuration == recordingDuration)&&(identical(other.currentlyPlayingAudio, currentlyPlayingAudio) || other.currentlyPlayingAudio == currentlyPlayingAudio)&&(identical(other.saveStatus, saveStatus) || other.saveStatus == saveStatus)&&(identical(other.failure, failure) || other.failure == failure)&&(identical(other.hasUnsavedChanges, hasUnsavedChanges) || other.hasUnsavedChanges == hasUnsavedChanges));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,title,content,selectedMood,moodContext,const DeepCollectionEquality().hash(selectedImages),const DeepCollectionEquality().hash(audioRecordings),isRecording,recordingDuration,const DeepCollectionEquality().hash(waveAmplitudes),currentlyPlayingAudio,saveStatus,failure,hasUnsavedChanges);
+int get hashCode => Object.hash(runtimeType,title,content,selectedMood,moodContext,const DeepCollectionEquality().hash(selectedImages),const DeepCollectionEquality().hash(audioRecordings),isRecording,recordingDuration,currentlyPlayingAudio,saveStatus,failure,hasUnsavedChanges);
 
 @override
 String toString() {
-  return 'JournalWritingState(title: $title, content: $content, selectedMood: $selectedMood, moodContext: $moodContext, selectedImages: $selectedImages, audioRecordings: $audioRecordings, isRecording: $isRecording, recordingDuration: $recordingDuration, waveAmplitudes: $waveAmplitudes, currentlyPlayingAudio: $currentlyPlayingAudio, saveStatus: $saveStatus, failure: $failure, hasUnsavedChanges: $hasUnsavedChanges)';
+  return 'JournalWritingState(title: $title, content: $content, selectedMood: $selectedMood, moodContext: $moodContext, selectedImages: $selectedImages, audioRecordings: $audioRecordings, isRecording: $isRecording, recordingDuration: $recordingDuration, currentlyPlayingAudio: $currentlyPlayingAudio, saveStatus: $saveStatus, failure: $failure, hasUnsavedChanges: $hasUnsavedChanges)';
 }
 
 
@@ -520,7 +520,7 @@ abstract mixin class $JournalWritingStateCopyWith<$Res>  {
   factory $JournalWritingStateCopyWith(JournalWritingState value, $Res Function(JournalWritingState) _then) = _$JournalWritingStateCopyWithImpl;
 @useResult
 $Res call({
- String title, String content, String? selectedMood, String? moodContext, List<XFile> selectedImages, List<Map<String, dynamic>> audioRecordings, bool isRecording, Duration recordingDuration, List<double> waveAmplitudes, String? currentlyPlayingAudio, JournalSaveStatus saveStatus, JournalFailure? failure, bool hasUnsavedChanges
+ String title, String content, String? selectedMood, String? moodContext, List<XFile> selectedImages, List<Map<String, dynamic>> audioRecordings, bool isRecording, Duration recordingDuration, String? currentlyPlayingAudio, JournalSaveStatus saveStatus, JournalFailure? failure, bool hasUnsavedChanges
 });
 
 
@@ -537,7 +537,7 @@ class _$JournalWritingStateCopyWithImpl<$Res>
 
 /// Create a copy of JournalWritingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? content = null,Object? selectedMood = freezed,Object? moodContext = freezed,Object? selectedImages = null,Object? audioRecordings = null,Object? isRecording = null,Object? recordingDuration = null,Object? waveAmplitudes = null,Object? currentlyPlayingAudio = freezed,Object? saveStatus = null,Object? failure = freezed,Object? hasUnsavedChanges = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? content = null,Object? selectedMood = freezed,Object? moodContext = freezed,Object? selectedImages = null,Object? audioRecordings = null,Object? isRecording = null,Object? recordingDuration = null,Object? currentlyPlayingAudio = freezed,Object? saveStatus = null,Object? failure = freezed,Object? hasUnsavedChanges = null,}) {
   return _then(_self.copyWith(
 title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
@@ -547,8 +547,7 @@ as String?,selectedImages: null == selectedImages ? _self.selectedImages : selec
 as List<XFile>,audioRecordings: null == audioRecordings ? _self.audioRecordings : audioRecordings // ignore: cast_nullable_to_non_nullable
 as List<Map<String, dynamic>>,isRecording: null == isRecording ? _self.isRecording : isRecording // ignore: cast_nullable_to_non_nullable
 as bool,recordingDuration: null == recordingDuration ? _self.recordingDuration : recordingDuration // ignore: cast_nullable_to_non_nullable
-as Duration,waveAmplitudes: null == waveAmplitudes ? _self.waveAmplitudes : waveAmplitudes // ignore: cast_nullable_to_non_nullable
-as List<double>,currentlyPlayingAudio: freezed == currentlyPlayingAudio ? _self.currentlyPlayingAudio : currentlyPlayingAudio // ignore: cast_nullable_to_non_nullable
+as Duration,currentlyPlayingAudio: freezed == currentlyPlayingAudio ? _self.currentlyPlayingAudio : currentlyPlayingAudio // ignore: cast_nullable_to_non_nullable
 as String?,saveStatus: null == saveStatus ? _self.saveStatus : saveStatus // ignore: cast_nullable_to_non_nullable
 as JournalSaveStatus,failure: freezed == failure ? _self.failure : failure // ignore: cast_nullable_to_non_nullable
 as JournalFailure?,hasUnsavedChanges: null == hasUnsavedChanges ? _self.hasUnsavedChanges : hasUnsavedChanges // ignore: cast_nullable_to_non_nullable
@@ -649,10 +648,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String title,  String content,  String? selectedMood,  String? moodContext,  List<XFile> selectedImages,  List<Map<String, dynamic>> audioRecordings,  bool isRecording,  Duration recordingDuration,  List<double> waveAmplitudes,  String? currentlyPlayingAudio,  JournalSaveStatus saveStatus,  JournalFailure? failure,  bool hasUnsavedChanges)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String title,  String content,  String? selectedMood,  String? moodContext,  List<XFile> selectedImages,  List<Map<String, dynamic>> audioRecordings,  bool isRecording,  Duration recordingDuration,  String? currentlyPlayingAudio,  JournalSaveStatus saveStatus,  JournalFailure? failure,  bool hasUnsavedChanges)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _JournalWritingState() when $default != null:
-return $default(_that.title,_that.content,_that.selectedMood,_that.moodContext,_that.selectedImages,_that.audioRecordings,_that.isRecording,_that.recordingDuration,_that.waveAmplitudes,_that.currentlyPlayingAudio,_that.saveStatus,_that.failure,_that.hasUnsavedChanges);case _:
+return $default(_that.title,_that.content,_that.selectedMood,_that.moodContext,_that.selectedImages,_that.audioRecordings,_that.isRecording,_that.recordingDuration,_that.currentlyPlayingAudio,_that.saveStatus,_that.failure,_that.hasUnsavedChanges);case _:
   return orElse();
 
 }
@@ -670,10 +669,10 @@ return $default(_that.title,_that.content,_that.selectedMood,_that.moodContext,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String title,  String content,  String? selectedMood,  String? moodContext,  List<XFile> selectedImages,  List<Map<String, dynamic>> audioRecordings,  bool isRecording,  Duration recordingDuration,  List<double> waveAmplitudes,  String? currentlyPlayingAudio,  JournalSaveStatus saveStatus,  JournalFailure? failure,  bool hasUnsavedChanges)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String title,  String content,  String? selectedMood,  String? moodContext,  List<XFile> selectedImages,  List<Map<String, dynamic>> audioRecordings,  bool isRecording,  Duration recordingDuration,  String? currentlyPlayingAudio,  JournalSaveStatus saveStatus,  JournalFailure? failure,  bool hasUnsavedChanges)  $default,) {final _that = this;
 switch (_that) {
 case _JournalWritingState():
-return $default(_that.title,_that.content,_that.selectedMood,_that.moodContext,_that.selectedImages,_that.audioRecordings,_that.isRecording,_that.recordingDuration,_that.waveAmplitudes,_that.currentlyPlayingAudio,_that.saveStatus,_that.failure,_that.hasUnsavedChanges);case _:
+return $default(_that.title,_that.content,_that.selectedMood,_that.moodContext,_that.selectedImages,_that.audioRecordings,_that.isRecording,_that.recordingDuration,_that.currentlyPlayingAudio,_that.saveStatus,_that.failure,_that.hasUnsavedChanges);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -690,10 +689,10 @@ return $default(_that.title,_that.content,_that.selectedMood,_that.moodContext,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String title,  String content,  String? selectedMood,  String? moodContext,  List<XFile> selectedImages,  List<Map<String, dynamic>> audioRecordings,  bool isRecording,  Duration recordingDuration,  List<double> waveAmplitudes,  String? currentlyPlayingAudio,  JournalSaveStatus saveStatus,  JournalFailure? failure,  bool hasUnsavedChanges)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String title,  String content,  String? selectedMood,  String? moodContext,  List<XFile> selectedImages,  List<Map<String, dynamic>> audioRecordings,  bool isRecording,  Duration recordingDuration,  String? currentlyPlayingAudio,  JournalSaveStatus saveStatus,  JournalFailure? failure,  bool hasUnsavedChanges)?  $default,) {final _that = this;
 switch (_that) {
 case _JournalWritingState() when $default != null:
-return $default(_that.title,_that.content,_that.selectedMood,_that.moodContext,_that.selectedImages,_that.audioRecordings,_that.isRecording,_that.recordingDuration,_that.waveAmplitudes,_that.currentlyPlayingAudio,_that.saveStatus,_that.failure,_that.hasUnsavedChanges);case _:
+return $default(_that.title,_that.content,_that.selectedMood,_that.moodContext,_that.selectedImages,_that.audioRecordings,_that.isRecording,_that.recordingDuration,_that.currentlyPlayingAudio,_that.saveStatus,_that.failure,_that.hasUnsavedChanges);case _:
   return null;
 
 }
@@ -705,7 +704,7 @@ return $default(_that.title,_that.content,_that.selectedMood,_that.moodContext,_
 
 
 class _JournalWritingState extends JournalWritingState {
-  const _JournalWritingState({this.title = '', this.content = '', this.selectedMood, this.moodContext, final  List<XFile> selectedImages = const <XFile>[], final  List<Map<String, dynamic>> audioRecordings = const <Map<String, dynamic>>[], this.isRecording = false, this.recordingDuration = Duration.zero, final  List<double> waveAmplitudes = const <double>[], this.currentlyPlayingAudio, this.saveStatus = JournalSaveStatus.idle, this.failure, this.hasUnsavedChanges = false}): _selectedImages = selectedImages,_audioRecordings = audioRecordings,_waveAmplitudes = waveAmplitudes,super._();
+  const _JournalWritingState({this.title = '', this.content = '', this.selectedMood, this.moodContext, final  List<XFile> selectedImages = const <XFile>[], final  List<Map<String, dynamic>> audioRecordings = const <Map<String, dynamic>>[], this.isRecording = false, this.recordingDuration = Duration.zero, this.currentlyPlayingAudio, this.saveStatus = JournalSaveStatus.idle, this.failure, this.hasUnsavedChanges = false}): _selectedImages = selectedImages,_audioRecordings = audioRecordings,super._();
   
 
 @override@JsonKey() final  String title;
@@ -732,13 +731,6 @@ class _JournalWritingState extends JournalWritingState {
 
 @override@JsonKey() final  bool isRecording;
 @override@JsonKey() final  Duration recordingDuration;
- final  List<double> _waveAmplitudes;
-@override@JsonKey() List<double> get waveAmplitudes {
-  if (_waveAmplitudes is EqualUnmodifiableListView) return _waveAmplitudes;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_waveAmplitudes);
-}
-
 @override final  String? currentlyPlayingAudio;
 @override@JsonKey() final  JournalSaveStatus saveStatus;
 @override final  JournalFailure? failure;
@@ -754,16 +746,16 @@ _$JournalWritingStateCopyWith<_JournalWritingState> get copyWith => __$JournalWr
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _JournalWritingState&&(identical(other.title, title) || other.title == title)&&(identical(other.content, content) || other.content == content)&&(identical(other.selectedMood, selectedMood) || other.selectedMood == selectedMood)&&(identical(other.moodContext, moodContext) || other.moodContext == moodContext)&&const DeepCollectionEquality().equals(other._selectedImages, _selectedImages)&&const DeepCollectionEquality().equals(other._audioRecordings, _audioRecordings)&&(identical(other.isRecording, isRecording) || other.isRecording == isRecording)&&(identical(other.recordingDuration, recordingDuration) || other.recordingDuration == recordingDuration)&&const DeepCollectionEquality().equals(other._waveAmplitudes, _waveAmplitudes)&&(identical(other.currentlyPlayingAudio, currentlyPlayingAudio) || other.currentlyPlayingAudio == currentlyPlayingAudio)&&(identical(other.saveStatus, saveStatus) || other.saveStatus == saveStatus)&&(identical(other.failure, failure) || other.failure == failure)&&(identical(other.hasUnsavedChanges, hasUnsavedChanges) || other.hasUnsavedChanges == hasUnsavedChanges));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _JournalWritingState&&(identical(other.title, title) || other.title == title)&&(identical(other.content, content) || other.content == content)&&(identical(other.selectedMood, selectedMood) || other.selectedMood == selectedMood)&&(identical(other.moodContext, moodContext) || other.moodContext == moodContext)&&const DeepCollectionEquality().equals(other._selectedImages, _selectedImages)&&const DeepCollectionEquality().equals(other._audioRecordings, _audioRecordings)&&(identical(other.isRecording, isRecording) || other.isRecording == isRecording)&&(identical(other.recordingDuration, recordingDuration) || other.recordingDuration == recordingDuration)&&(identical(other.currentlyPlayingAudio, currentlyPlayingAudio) || other.currentlyPlayingAudio == currentlyPlayingAudio)&&(identical(other.saveStatus, saveStatus) || other.saveStatus == saveStatus)&&(identical(other.failure, failure) || other.failure == failure)&&(identical(other.hasUnsavedChanges, hasUnsavedChanges) || other.hasUnsavedChanges == hasUnsavedChanges));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,title,content,selectedMood,moodContext,const DeepCollectionEquality().hash(_selectedImages),const DeepCollectionEquality().hash(_audioRecordings),isRecording,recordingDuration,const DeepCollectionEquality().hash(_waveAmplitudes),currentlyPlayingAudio,saveStatus,failure,hasUnsavedChanges);
+int get hashCode => Object.hash(runtimeType,title,content,selectedMood,moodContext,const DeepCollectionEquality().hash(_selectedImages),const DeepCollectionEquality().hash(_audioRecordings),isRecording,recordingDuration,currentlyPlayingAudio,saveStatus,failure,hasUnsavedChanges);
 
 @override
 String toString() {
-  return 'JournalWritingState(title: $title, content: $content, selectedMood: $selectedMood, moodContext: $moodContext, selectedImages: $selectedImages, audioRecordings: $audioRecordings, isRecording: $isRecording, recordingDuration: $recordingDuration, waveAmplitudes: $waveAmplitudes, currentlyPlayingAudio: $currentlyPlayingAudio, saveStatus: $saveStatus, failure: $failure, hasUnsavedChanges: $hasUnsavedChanges)';
+  return 'JournalWritingState(title: $title, content: $content, selectedMood: $selectedMood, moodContext: $moodContext, selectedImages: $selectedImages, audioRecordings: $audioRecordings, isRecording: $isRecording, recordingDuration: $recordingDuration, currentlyPlayingAudio: $currentlyPlayingAudio, saveStatus: $saveStatus, failure: $failure, hasUnsavedChanges: $hasUnsavedChanges)';
 }
 
 
@@ -774,7 +766,7 @@ abstract mixin class _$JournalWritingStateCopyWith<$Res> implements $JournalWrit
   factory _$JournalWritingStateCopyWith(_JournalWritingState value, $Res Function(_JournalWritingState) _then) = __$JournalWritingStateCopyWithImpl;
 @override @useResult
 $Res call({
- String title, String content, String? selectedMood, String? moodContext, List<XFile> selectedImages, List<Map<String, dynamic>> audioRecordings, bool isRecording, Duration recordingDuration, List<double> waveAmplitudes, String? currentlyPlayingAudio, JournalSaveStatus saveStatus, JournalFailure? failure, bool hasUnsavedChanges
+ String title, String content, String? selectedMood, String? moodContext, List<XFile> selectedImages, List<Map<String, dynamic>> audioRecordings, bool isRecording, Duration recordingDuration, String? currentlyPlayingAudio, JournalSaveStatus saveStatus, JournalFailure? failure, bool hasUnsavedChanges
 });
 
 
@@ -791,7 +783,7 @@ class __$JournalWritingStateCopyWithImpl<$Res>
 
 /// Create a copy of JournalWritingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? content = null,Object? selectedMood = freezed,Object? moodContext = freezed,Object? selectedImages = null,Object? audioRecordings = null,Object? isRecording = null,Object? recordingDuration = null,Object? waveAmplitudes = null,Object? currentlyPlayingAudio = freezed,Object? saveStatus = null,Object? failure = freezed,Object? hasUnsavedChanges = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? content = null,Object? selectedMood = freezed,Object? moodContext = freezed,Object? selectedImages = null,Object? audioRecordings = null,Object? isRecording = null,Object? recordingDuration = null,Object? currentlyPlayingAudio = freezed,Object? saveStatus = null,Object? failure = freezed,Object? hasUnsavedChanges = null,}) {
   return _then(_JournalWritingState(
 title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
@@ -801,8 +793,7 @@ as String?,selectedImages: null == selectedImages ? _self._selectedImages : sele
 as List<XFile>,audioRecordings: null == audioRecordings ? _self._audioRecordings : audioRecordings // ignore: cast_nullable_to_non_nullable
 as List<Map<String, dynamic>>,isRecording: null == isRecording ? _self.isRecording : isRecording // ignore: cast_nullable_to_non_nullable
 as bool,recordingDuration: null == recordingDuration ? _self.recordingDuration : recordingDuration // ignore: cast_nullable_to_non_nullable
-as Duration,waveAmplitudes: null == waveAmplitudes ? _self._waveAmplitudes : waveAmplitudes // ignore: cast_nullable_to_non_nullable
-as List<double>,currentlyPlayingAudio: freezed == currentlyPlayingAudio ? _self.currentlyPlayingAudio : currentlyPlayingAudio // ignore: cast_nullable_to_non_nullable
+as Duration,currentlyPlayingAudio: freezed == currentlyPlayingAudio ? _self.currentlyPlayingAudio : currentlyPlayingAudio // ignore: cast_nullable_to_non_nullable
 as String?,saveStatus: null == saveStatus ? _self.saveStatus : saveStatus // ignore: cast_nullable_to_non_nullable
 as JournalSaveStatus,failure: freezed == failure ? _self.failure : failure // ignore: cast_nullable_to_non_nullable
 as JournalFailure?,hasUnsavedChanges: null == hasUnsavedChanges ? _self.hasUnsavedChanges : hasUnsavedChanges // ignore: cast_nullable_to_non_nullable

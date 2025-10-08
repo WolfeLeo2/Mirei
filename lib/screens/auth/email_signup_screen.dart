@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../../services/auth_service.dart';
 import 'otp_verification_screen.dart';
+import '../../core/theme/typography.dart';
 
 class EmailSignupScreen extends StatefulWidget {
   const EmailSignupScreen({super.key});
@@ -156,11 +157,9 @@ class _EmailSignupScreenState extends State<EmailSignupScreen> {
                 const SizedBox(width: 4),
                 Text(
                   'EN',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black54,
-                  ),
+                  style: Theme.of(context).textTheme.titleSmall
+                      ?.copyWith(fontSize: 14, fontWeight: FontWeight.w500)
+                      .apply(color: Colors.black54),
                 ),
               ],
             ),
@@ -179,207 +178,208 @@ class _EmailSignupScreenState extends State<EmailSignupScreen> {
                 // Header
                 Text(
                   'Create Account',
-                  style: GoogleFonts.inter(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                    height: 1.2,
-                  ),
+                  style: Theme.of(context).textTheme.displaySmall
+                      ?.copyWith(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        height: 1.2,
+                      )
+                      .apply(color: Colors.black87),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Join Mirei to start your mental wellness journey',
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    color: Colors.black54,
-                    height: 1.4,
+                  style: Theme.of(context).textTheme.bodyLarge
+                      ?.copyWith(fontSize: 16, height: 1.4)
+                      .apply(color: Colors.black54),
+                ),
+
+                const SizedBox(height: 40),
+
+                // Email Field
+                _buildTextField(
+                  controller: _emailController,
+                  label: 'Email Address',
+                  hintText: 'Enter your email',
+                  prefixIcon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  validator: _validateEmail,
+                ),
+
+                const SizedBox(height: 20),
+
+                // Password Field
+                _buildTextField(
+                  controller: _passwordController,
+                  label: 'Password',
+                  hintText: 'Create a strong password',
+                  prefixIcon: Icons.lock_outlined,
+                  obscureText: !_isPasswordVisible,
+                  textInputAction: TextInputAction.next,
+                  validator: _validatePassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                      color: Colors.black54,
+                    ),
+                    onPressed: () {
+                      setState(() => _isPasswordVisible = !_isPasswordVisible);
+                    },
                   ),
                 ),
 
-                      const SizedBox(height: 40),
+                const SizedBox(height: 20),
 
-                      // Email Field
-                      _buildTextField(
-                        controller: _emailController,
-                        label: 'Email Address',
-                        hintText: 'Enter your email',
-                        prefixIcon: Icons.email_outlined,
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        validator: _validateEmail,
+                // Confirm Password Field
+                _buildTextField(
+                  controller: _confirmPasswordController,
+                  label: 'Confirm Password',
+                  hintText: 'Re-enter your password',
+                  prefixIcon: Icons.lock_outlined,
+                  obscureText: !_isConfirmPasswordVisible,
+                  textInputAction: TextInputAction.done,
+                  validator: _validateConfirmPassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isConfirmPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                      color: Colors.black54,
+                    ),
+                    onPressed: () {
+                      setState(
+                        () => _isConfirmPasswordVisible =
+                            !_isConfirmPasswordVisible,
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Terms and Conditions
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: Checkbox(
+                        value: _acceptedTerms,
+                        onChanged: (value) {
+                          setState(() => _acceptedTerms = value ?? false);
+                        },
+                        activeColor: AppColors.primary,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-
-                      const SizedBox(height: 20),
-
-                      // Password Field
-                      _buildTextField(
-                        controller: _passwordController,
-                        label: 'Password',
-                        hintText: 'Create a strong password',
-                        prefixIcon: Icons.lock_outlined,
-                        obscureText: !_isPasswordVisible,
-                        textInputAction: TextInputAction.next,
-                        validator: _validatePassword,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _isPasswordVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                            color: Colors.black54,
-                          ),
-                          onPressed: () {
-                            setState(() => _isPasswordVisible = !_isPasswordVisible);
-                          },
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Confirm Password Field
-                      _buildTextField(
-                        controller: _confirmPasswordController,
-                        label: 'Confirm Password',
-                        hintText: 'Re-enter your password',
-                        prefixIcon: Icons.lock_outlined,
-                        obscureText: !_isConfirmPasswordVisible,
-                        textInputAction: TextInputAction.done,
-                        validator: _validateConfirmPassword,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _isConfirmPasswordVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                            color: Colors.black54,
-                          ),
-                          onPressed: () {
-                            setState(
-                              () => _isConfirmPasswordVisible =
-                                  !_isConfirmPasswordVisible,
-                            );
-                          },
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Terms and Conditions
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: Checkbox(
-                              value: _acceptedTerms,
-                              onChanged: (value) {
-                                setState(() => _acceptedTerms = value ?? false);
-                              },
-                              activeColor: AppColors.primary,
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() => _acceptedTerms = !_acceptedTerms);
-                              },
-                              child: Text.rich(
-                                TextSpan(
-                                  text: 'I agree to the ',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 14,
-                                    color: Colors.black54,
-                                  ),
-                                  children: [
-                                    TextSpan(
-                                      text: 'Terms of Service',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 14,
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    const TextSpan(text: ' and '),
-                                    TextSpan(
-                                      text: 'Privacy Policy',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 14,
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() => _acceptedTerms = !_acceptedTerms);
+                        },
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'I agree to the ',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(fontSize: 14)
+                                .apply(color: Colors.black54),
+                            children: [
+                              TextSpan(
+                                text: 'Terms of Service',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    )
+                                    .apply(color: AppColors.primary),
                               ),
-                            ),
+                              const TextSpan(text: ' and '),
+                              TextSpan(
+                                text: 'Privacy Policy',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    )
+                                    .apply(color: AppColors.primary),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
+                    ),
+                  ],
+                ),
 
                 const SizedBox(height: 32),
 
-                      // Sign Up Button
-                      SizedBox(
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _handleSignup,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            disabledBackgroundColor: Colors.grey[300],
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  height: 24,
-                                  width: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : Text(
-                                  'Create Account',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                        ),
+                // Sign Up Button
+                SizedBox(
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _handleSignup,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-
-                      const SizedBox(height: 24),
-
-                      // Sign In Link
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Already have an account? ',
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              color: Colors.black54,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: Text(
-                              'Sign In',
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w600,
+                      disabledBackgroundColor: Colors.grey[300],
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
                               ),
                             ),
+                          )
+                        : Text(
+                            'Create Account',
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
-                        ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Sign In Link
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Already have an account? ',
+                      style: Theme.of(context).textTheme.bodyMedium
+                          ?.copyWith(fontSize: 14)
+                          .apply(color: Colors.black54),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Text(
+                        'Sign In',
+                        style: Theme.of(context).textTheme.bodyMedium
+                            ?.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            )
+                            .apply(color: AppColors.primary),
                       ),
+                    ),
+                  ],
+                ),
 
                 const SizedBox(height: 32),
               ],
@@ -406,11 +406,9 @@ class _EmailSignupScreenState extends State<EmailSignupScreen> {
       children: [
         Text(
           label,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(fontSize: 14, fontWeight: FontWeight.w600)
+              .apply(color: Colors.black87),
         ),
         const SizedBox(height: 8),
         TextFormField(
@@ -419,10 +417,18 @@ class _EmailSignupScreenState extends State<EmailSignupScreen> {
           textInputAction: textInputAction,
           obscureText: obscureText,
           validator: validator,
-          style: GoogleFonts.inter(fontSize: 16, color: Colors.black87),
+          style: TextStyle(
+            fontFamily: AppTypography.primaryFontFamily,
+            fontSize: 16,
+            color: Colors.black87,
+          ),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: GoogleFonts.inter(fontSize: 16, color: Colors.black38),
+            hintStyle: TextStyle(
+              fontFamily: AppTypography.primaryFontFamily,
+              fontSize: 16,
+              color: Colors.black38,
+            ),
             prefixIcon: Icon(prefixIcon, color: Colors.black54, size: 20),
             suffixIcon: suffixIcon,
             filled: true,

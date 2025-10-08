@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../models/meditation.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:just_audio/just_audio.dart';
+import '../services/meditation_player_service.dart';
+import 'dart:async';
 
 class MeditationPlayerScreen extends StatefulWidget {
   final Meditation meditation;
@@ -18,19 +18,22 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
     with TickerProviderStateMixin {
   bool isPlaying = false;
   double currentPosition = 0.0;
-  late Duration totalDuration;
+  Duration totalDuration = Duration.zero;
   late AnimationController _waveAnimationController;
   late AnimationController _playButtonController;
 
-  final AudioPlayer _player = AudioPlayer();
+  final MeditationPlayerService _service = MeditationPlayerService();
+  late StreamSubscription<bool> _playingSubscription;
+  late StreamSubscription<Duration> _positionSubscription;
+  late StreamSubscription<Duration> _durationSubscription;
 
   @override
   void initState() {
     super.initState();
-    
+
     // Parse duration from string (e.g., "10 min" -> Duration(minutes: 10))
     totalDuration = _parseDuration(widget.meditation.duration);
-    
+
     _waveAnimationController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -41,51 +44,59 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
       vsync: this,
     );
 
-    _initializeAudio();
+    _initializeService();
   }
 
-  Future<void> _initializeAudio() async {
-    try {
-      await _player.setUrl(widget.meditation.audioUrl);
-      _player.durationStream.listen((duration) {
-        if (!mounted || duration == null) return;
-        setState(() {
-          totalDuration = duration;
-        });
+  void _initializeService() {
+    // Subscribe to service streams
+    _playingSubscription = _service.isPlayingStream.listen((playing) {
+      if (!mounted) return;
+      setState(() {
+        isPlaying = playing;
       });
-      _player.positionStream.listen((pos) {
-        if (!mounted) return;
-        setState(() {
-          currentPosition = pos.inSeconds.toDouble();
-        });
-      });
-      _player.playerStateStream.listen((state) {
-        if (!mounted) return;
-        final playing =
-            state.playing && state.processingState != ProcessingState.completed;
-        setState(() {
-          isPlaying = playing;
-        });
-        if (playing) {
-          if (!_waveAnimationController.isAnimating) {
-            _waveAnimationController.repeat();
-          }
-          if (_playButtonController.status != AnimationStatus.forward &&
-              _playButtonController.value < 1.0) {
-            _playButtonController.forward();
-          }
-        } else {
-          if (_waveAnimationController.isAnimating) {
-            _waveAnimationController.stop();
-          }
-          if (_playButtonController.status != AnimationStatus.reverse &&
-              _playButtonController.value > 0.0) {
-            _playButtonController.reverse();
-          }
+      if (playing) {
+        if (!_waveAnimationController.isAnimating) {
+          _waveAnimationController.repeat();
         }
+        if (_playButtonController.status != AnimationStatus.forward &&
+            _playButtonController.value < 1.0) {
+          _playButtonController.forward();
+        }
+      } else {
+        if (_waveAnimationController.isAnimating) {
+          _waveAnimationController.stop();
+        }
+        if (_playButtonController.status != AnimationStatus.reverse &&
+            _playButtonController.value > 0.0) {
+          _playButtonController.reverse();
+        }
+      }
+    });
+
+    _positionSubscription = _service.positionStream.listen((pos) {
+      if (!mounted) return;
+      setState(() {
+        currentPosition = pos.inSeconds.toDouble();
       });
-    } catch (_) {
-      // Silently ignore for now; UI remains usable
+    });
+
+    _durationSubscription = _service.durationStream.listen((duration) {
+      if (!mounted) return;
+      setState(() {
+        totalDuration = duration;
+      });
+    });
+
+    // Start playback if not already playing this meditation
+    if (_service.currentMeditation?.audioUrl != widget.meditation.audioUrl) {
+      _service.playMeditation(widget.meditation);
+    } else {
+      // Update current state from service
+      setState(() {
+        isPlaying = _service.isPlaying;
+        currentPosition = _service.currentPosition.inSeconds.toDouble();
+        totalDuration = _service.totalDuration;
+      });
     }
   }
 
@@ -93,7 +104,10 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
   void dispose() {
     _waveAnimationController.dispose();
     _playButtonController.dispose();
-    _player.dispose();
+    _playingSubscription.cancel();
+    _positionSubscription.cancel();
+    _durationSubscription.cancel();
+    // Don't dispose the service - it should persist
     super.dispose();
   }
 
@@ -107,23 +121,18 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
     return const Duration(minutes: 10); // Default
   }
 
-  Color _getTextColor(Color backgroundColor) {
-    final luminance = backgroundColor.computeLuminance();
-    return luminance > 0.5 ? Colors.black87 : Colors.white;
-  }
-
-  Color _getSecondaryColor(Color primaryColor) {
-    final textColor = _getTextColor(primaryColor);
-    return textColor == Colors.black87 
-        ? const Color.fromARGB(130, 0, 0, 0) 
-        : const Color.fromARGB(207, 255, 255, 255);
+  ColorScheme _getColorScheme(Color seedColor) {
+    return ColorScheme.fromSeed(
+      seedColor: seedColor,
+      brightness: Theme.of(context).brightness,
+    );
   }
 
   void _togglePlayPause() async {
-    if (_player.playing) {
-      await _player.pause();
+    if (isPlaying) {
+      await _service.pause();
     } else {
-      await _player.play();
+      await _service.resume();
     }
   }
 
@@ -132,7 +141,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
       0.0,
       totalDuration.inSeconds.toDouble(),
     );
-    await _player.seek(Duration(seconds: target.toInt()));
+    await _service.seek(Duration(seconds: target.toInt()));
   }
 
   void _skipForward() async {
@@ -140,7 +149,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
       0.0,
       totalDuration.inSeconds.toDouble(),
     );
-    await _player.seek(Duration(seconds: target.toInt()));
+    await _service.seek(Duration(seconds: target.toInt()));
   }
 
   String _formatDuration(Duration duration) {
@@ -153,8 +162,10 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    final textColor = _getTextColor(widget.meditation.color);
-    final secondaryColor = _getSecondaryColor(widget.meditation.color);
+    final backgroundColor = widget.meditation.color;
+    final colorScheme = _getColorScheme(backgroundColor);
+    final onSurface = colorScheme.onSurface;
+    final onSurfaceVariant = colorScheme.onSurfaceVariant;
 
     return Scaffold(
       backgroundColor: widget.meditation.color,
@@ -173,31 +184,29 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: textColor.withValues(alpha: 0.1),
+                        color: onSurface.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
                         Icons.keyboard_arrow_down,
-                        color: textColor,
+                        color: onSurface,
                         size: 24,
                       ),
                     ),
                   ),
                   Text(
                     'Now Playing',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: textColor,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontSize: 16, fontWeight: FontWeight.w500)
+                        .apply(color: onSurface),
                   ),
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: textColor.withValues(alpha: 0.1),
+                      color: onSurface.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(Icons.more_horiz, color: textColor, size: 24),
+                    child: Icon(Icons.more_horiz, color: onSurface, size: 24),
                   ),
                 ],
               ),
@@ -210,7 +219,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                 height: screenWidth * 0.7,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: textColor.withValues(alpha: 0.1),
+                  color: onSurface.withValues(alpha: 0.1),
                 ),
                 child: Stack(
                   alignment: Alignment.center,
@@ -223,7 +232,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                           size: Size(screenWidth * 0.7, screenWidth * 0.7),
                           painter: WavePainter(
                             animation: _waveAnimationController,
-                            color: textColor.withValues(alpha: 0.2),
+                            color: onSurface.withValues(alpha: 0.2),
                           ),
                         );
                       },
@@ -234,7 +243,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                       width: 80,
                       height: 80,
                       colorFilter: ColorFilter.mode(
-                        textColor.withValues(alpha: 0.7),
+                        onSurface.withValues(alpha: 0.7),
                         BlendMode.srcIn,
                       ),
                     ),
@@ -247,11 +256,9 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
               // Title and duration
               Text(
                 widget.meditation.title,
-                style: GoogleFonts.inter(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w600,
-                  color: textColor,
-                ),
+                style: Theme.of(context).textTheme.headlineLarge
+                    ?.copyWith(fontSize: 28, fontWeight: FontWeight.w600)
+                    .apply(color: onSurface),
                 textAlign: TextAlign.center,
               ),
 
@@ -259,11 +266,9 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
 
               Text(
                 widget.meditation.duration,
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  color: secondaryColor,
-                ),
+                style: Theme.of(context).textTheme.bodyLarge
+                    ?.copyWith(fontSize: 16, fontWeight: FontWeight.w400)
+                    .apply(color: onSurfaceVariant),
               ),
 
               SizedBox(height: screenHeight * 0.06),
@@ -279,11 +284,12 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                         _formatDuration(
                           Duration(seconds: currentPosition.toInt()),
                         ),
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: textColor,
-                        ),
+                        style: Theme.of(context).textTheme.titleSmall
+                            ?.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            )
+                            .apply(color: onSurface),
                       ),
 
                       // Progress bar (expanded)
@@ -292,18 +298,14 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: SliderTheme(
                             data: SliderTheme.of(context).copyWith(
-                              activeTrackColor: textColor == Colors.white
-                                  ? Colors.white
-                                  : Colors.black,
-                              inactiveTrackColor: textColor == Colors.white
-                                  ? Colors.white.withValues(alpha: 0.3)
-                                  : Colors.black.withValues(alpha: 0.3),
-                              thumbColor: textColor == Colors.white
-                                  ? Colors.white
-                                  : Colors.black,
-                              overlayColor: textColor != Colors.white 
-                                  ? Colors.black.withValues(alpha: 0.2)
-                                  : Colors.white.withValues(alpha: 0.2),
+                              activeTrackColor: colorScheme.primary,
+                              inactiveTrackColor: onSurface.withValues(
+                                alpha: 0.3,
+                              ),
+                              thumbColor: colorScheme.primary,
+                              overlayColor: colorScheme.primary.withValues(
+                                alpha: 0.2,
+                              ),
                               trackHeight: 4,
                               thumbShape: const RoundSliderThumbShape(
                                 enabledThumbRadius: 6,
@@ -320,7 +322,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                               max: totalDuration.inSeconds.toDouble(),
                               onChanged: (value) async {
                                 setState(() => currentPosition = value);
-                                await _player.seek(
+                                await _service.seek(
                                   Duration(seconds: value.toInt()),
                                 );
                               },
@@ -328,21 +330,22 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                           ),
                         ),
                       ),
-                      
+
                       // Total duration
                       Text(
                         _formatDuration(totalDuration),
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: textColor,
-                        ),
+                        style: Theme.of(context).textTheme.titleSmall
+                            ?.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            )
+                            .apply(color: onSurface),
                       ),
                     ],
                   ),
-                  
+
                   SizedBox(height: screenHeight * 0.02),
-                  
+
                   // Playback controls
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -350,7 +353,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                       IconButton(
                         icon: Icon(
                           CupertinoIcons.gobackward_15,
-                          color: textColor,
+                          color: onSurface,
                         ),
                         iconSize: 28,
                         onPressed: _skipBackward,
@@ -361,15 +364,15 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                         child: AnimatedIcon(
                           icon: AnimatedIcons.play_pause,
                           progress: _playButtonController,
-                          color: textColor,
+                          color: onSurface,
                           size: 44,
-                      ),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       IconButton(
                         icon: Icon(
                           CupertinoIcons.goforward_15,
-                          color: textColor,
+                          color: onSurface,
                         ),
                         iconSize: 28,
                         onPressed: _skipForward,
@@ -414,4 +417,4 @@ class WavePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant WavePainter oldDelegate) => true;
-} 
+}

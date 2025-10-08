@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../../services/auth_service.dart';
 import '../main_navigation.dart';
+import '../../core/theme/typography.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -142,21 +143,20 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 // Header
                 Text(
                   'Complete Your Profile',
-                  style: GoogleFonts.inter(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                    height: 1.2,
-                  ),
+                  style: Theme.of(context).textTheme.headlineLarge
+                      ?.copyWith(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        height: 1.2,
+                      )
+                      .apply(color: Colors.black87),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Choose your avatar and username to personalize your experience',
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    color: Colors.black54,
-                    height: 1.4,
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge
+                      ?.copyWith(fontSize: 16, height: 1.4)
+                      .apply(color: Colors.black54),
                 ),
 
                 const SizedBox(height: 30),
@@ -167,11 +167,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   children: [
                     Text(
                       'Choose Your Avatar',
-                      style: GoogleFonts.inter(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
+                      style: Theme.of(context).textTheme.bodyLarge
+                          ?.copyWith(fontSize: 18, fontWeight: FontWeight.w600)
+                          .apply(color: Colors.black87),
                     ),
                     const SizedBox(height: 16),
 
@@ -284,11 +282,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   children: [
                     Text(
                       'Username',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium
+                          ?.copyWith(fontSize: 14, fontWeight: FontWeight.w600)
+                          .apply(color: Colors.black87),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -308,18 +304,17 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           }
                         });
                       },
-                      style: GoogleFonts.inter(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
+                      style: Theme.of(context).textTheme.bodyLarge
+                          ?.copyWith(fontSize: 18, fontWeight: FontWeight.w600)
+                          .apply(color: Colors.black87),
                       decoration: InputDecoration(
                         hintText: 'Enter your username',
-                        hintStyle: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black26,
-                        ),
+                        hintStyle: Theme.of(context).textTheme.bodyLarge
+                            ?.copyWith(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            )
+                            .apply(color: Colors.black26),
                         prefixIcon: const Icon(
                           Icons.alternate_email,
                           color: Colors.black54,
@@ -398,11 +393,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 'Username Guidelines',
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.blue[700],
-                                ),
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    )
+                                    .apply(color: Colors.blue[700]),
                               ),
                             ],
                           ),
@@ -452,10 +448,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           )
                         : Text(
                             'Continue',
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                   ),
                 ),
@@ -476,11 +473,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           },
                     child: Text(
                       'Skip for now',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        color: Colors.black54,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: Theme.of(context).textTheme.titleSmall
+                          ?.copyWith(fontSize: 14, fontWeight: FontWeight.w500)
+                          .apply(color: Colors.black54),
                     ),
                   ),
                 ),
@@ -501,7 +496,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           const SizedBox(width: 8),
           Text(
             text,
-            style: GoogleFonts.inter(fontSize: 12, color: Colors.blue[700]),
+            style: TextStyle(
+              fontFamily: AppTypography.primaryFontFamily,
+              fontSize: 12,
+              color: Colors.blue[700],
+            ),
           ),
         ],
       ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:mirei/components/activity_icon.dart';
 import 'package:mirei/components/mood_button.dart';
 import 'package:mirei/components/profile_pulldown_menu.dart';
@@ -15,6 +14,8 @@ import 'enhanced_mood_details.dart';
 import 'progress.dart';
 import 'journal_list.dart';
 import 'meditation_screen.dart';
+import '../core/theme/typography.dart';
+
 
 // Const widgets for static decorative elements
 class _EmphasisIcon extends StatelessWidget {
@@ -49,10 +50,10 @@ class MoodTrackerScreen extends StatefulWidget {
   const MoodTrackerScreen({super.key});
 
   @override
-  _MoodTrackerScreenState createState() => _MoodTrackerScreenState();
+  MoodTrackerScreenState createState() => MoodTrackerScreenState();
 }
 
-class _MoodTrackerScreenState extends State<MoodTrackerScreen>
+class MoodTrackerScreenState extends State<MoodTrackerScreen>
     with PerformanceOptimizedStateMixin {
   // Services
   final EnhancedMoodService _enhancedMoodService = EnhancedMoodService();
@@ -185,7 +186,6 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
   // Dynamic subtitle that shows last mood entry time
   Widget _buildDynamicSubtitle() {
     if (_latestMoodEntry != null) {
-      final timeAgo = _getTimeAgo(_latestMoodEntry!.createdAt);
       final exactTime = DateFormat(
         'h:mm a',
       ).format(_latestMoodEntry!.createdAt.toLocal());
@@ -198,7 +198,6 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
               color: Color.fromRGBO(255, 255, 255, 0.9),
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              fontFamily: '.SF Pro Text',
             ),
           ),
           const SizedBox(height: 4),
@@ -217,7 +216,6 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                   color: Color.fromRGBO(255, 255, 255, 0.7),
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
-                  fontFamily: '.SF Pro Text',
                 ),
               ),
             ],
@@ -231,26 +229,13 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
           color: Color.fromRGBO(255, 255, 255, 0.7),
           fontSize: 16,
           fontWeight: FontWeight.w400,
-          fontFamily: '.SF Pro Text',
+          
         ),
       );
     }
   }
 
-  String _getTimeAgo(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
 
-    if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
-    } else {
-      return 'Just now';
-    }
-  }
 
   // Create const activity icons for better performance
   Widget _buildActivityIcons(BuildContext context) {
@@ -400,7 +385,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
-                      fontFamily: '.SF Pro Display',
+                    
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -410,7 +395,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                       color: Colors.white.withOpacity(0.7),
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
-                      fontFamily: '.SF Pro Text',
+                     
                     ),
                   ),
                 ],
@@ -443,7 +428,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                                 fontSize: 36,
                                 fontWeight: FontWeight.w900,
                                 height: 1.2,
-                                fontFamily: GoogleFonts.inter().fontFamily,
+                                fontFamily: AppTypography.primaryFontFamily,
                               ),
                             ),
                             const Positioned(
@@ -525,8 +510,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                                         fontSize: 24,
                                         fontWeight: FontWeight.w700,
                                         height: 1.3,
-                                        fontFamily:
-                                            GoogleFonts.inter().fontFamily,
+                                        fontFamily: AppTypography.primaryFontFamily,
                                       ),
                                       children: [
                                         const TextSpan(
@@ -562,7 +546,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 22,
                                                     fontFamily:
-                                                        GoogleFonts.inter()
+                                                        TextStyle(fontFamily: AppTypography.primaryFontFamily)
                                                             .fontFamily,
                                                   ),
                                                 ),
@@ -590,8 +574,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                                             fontSize: 16,
                                             fontWeight: FontWeight.w400,
                                             height: 1.4,
-                                            fontFamily:
-                                                GoogleFonts.inter().fontFamily,
+                                            fontFamily: AppTypography.primaryFontFamily,
                                           ),
                                         ),
                                       ),
@@ -601,7 +584,6 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen>
                                           color: Color(0xFF115e5a),
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
-                                          fontFamily: '.SF Pro Text',
                                         ),
                                       ),
                                     ],

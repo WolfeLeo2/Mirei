@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../services/enhanced_mood_service.dart';
 import '../data/mood_constants.dart';
+import '../core/theme/typography.dart';
 
 class EnhancedMoodDetailsScreen extends StatefulWidget {
   final String selectedMood;
@@ -81,11 +81,9 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
               children: [
                 Text(
                   'Mood Check-In',
-                  style: GoogleFonts.inter(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+                  style: Theme.of(context).textTheme.headlineSmall
+                      ?.copyWith(fontSize: 20, fontWeight: FontWeight.w600)
+                      .apply(color: Colors.black87),
                 ),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
@@ -144,11 +142,9 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
       children: [
         Text(
           'How intense is this feeling?',
-          style: GoogleFonts.inter(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
+          style: Theme.of(context).textTheme.bodyLarge
+              ?.copyWith(fontSize: 18, fontWeight: FontWeight.w600)
+              .apply(color: Colors.black87),
         ),
         const SizedBox(height: 16),
 
@@ -172,27 +168,21 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
                 children: [
                   Text(
                     '1',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey[600],
-                    ),
+                    style: Theme.of(context).textTheme.titleSmall
+                        ?.copyWith(fontSize: 14, fontWeight: FontWeight.w500)
+                        .apply(color: Colors.grey[600]),
                   ),
                   Text(
                     '$_intensity/10',
-                    style: GoogleFonts.inter(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF115e5a),
-                    ),
+                    style: Theme.of(context).textTheme.bodyLarge
+                        ?.copyWith(fontSize: 18, fontWeight: FontWeight.w700)
+                        .apply(color: const Color(0xFF115e5a)),
                   ),
                   Text(
                     '10',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey[600],
-                    ),
+                    style: Theme.of(context).textTheme.titleSmall
+                        ?.copyWith(fontSize: 14, fontWeight: FontWeight.w500)
+                        .apply(color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -223,11 +213,9 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
               const SizedBox(height: 8),
               Text(
                 MoodConstants.getIntensityLabel(_intensity),
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontSize: 16, fontWeight: FontWeight.w500)
+                    .apply(color: Colors.black87),
               ),
             ],
           ),
@@ -242,11 +230,9 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
       children: [
         Text(
           'What\'s on your mind? (Optional)',
-          style: GoogleFonts.inter(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
+          style: Theme.of(context).textTheme.bodyLarge
+              ?.copyWith(fontSize: 18, fontWeight: FontWeight.w600)
+              .apply(color: Colors.black87),
         ),
         const SizedBox(height: 16),
         Container(
@@ -266,10 +252,9 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
             maxLines: 3,
             decoration: InputDecoration(
               hintText: 'Describe what\'s contributing to this feeling...',
-              hintStyle: GoogleFonts.inter(
-                color: Colors.grey[500],
-                fontSize: 14,
-              ),
+              hintStyle: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(fontSize: 14)
+                  .apply(color: Colors.grey[500]),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -278,7 +263,11 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
               fillColor: Colors.white,
               contentPadding: const EdgeInsets.all(16),
             ),
-            style: GoogleFonts.inter(fontSize: 16, color: Colors.black87),
+            style: TextStyle(
+              fontFamily: AppTypography.primaryFontFamily,
+              fontSize: 16,
+              color: Colors.black87,
+            ),
             onChanged: (value) {
               setState(() {
                 _context = value;
@@ -296,11 +285,9 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
       children: [
         Text(
           'What triggered this feeling?',
-          style: GoogleFonts.inter(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
+          style: Theme.of(context).textTheme.bodyLarge
+              ?.copyWith(fontSize: 18, fontWeight: FontWeight.w600)
+              .apply(color: Colors.black87),
         ),
         const SizedBox(height: 16),
         Wrap(
@@ -349,11 +336,9 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
                 ),
                 child: Text(
                   trigger,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: isSelected ? Colors.white : Colors.black87,
-                  ),
+                  style: Theme.of(context).textTheme.titleSmall
+                      ?.copyWith(fontSize: 14, fontWeight: FontWeight.w500)
+                      .apply(color: isSelected ? Colors.white : Colors.black87),
                 ),
               ),
             );
@@ -379,10 +364,9 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
               controller: _customTriggerController,
               decoration: InputDecoration(
                 hintText: 'Type your custom trigger...',
-                hintStyle: GoogleFonts.inter(
-                  color: Colors.grey[500],
-                  fontSize: 14,
-                ),
+                hintStyle: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(fontSize: 14)
+                    .apply(color: Colors.grey[500]),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -405,7 +389,11 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
                   },
                 ),
               ),
-              style: GoogleFonts.inter(fontSize: 16, color: Colors.black87),
+              style: TextStyle(
+                fontFamily: AppTypography.primaryFontFamily,
+                fontSize: 16,
+                color: Colors.black87,
+              ),
               onSubmitted: (value) {
                 final customTrigger = value.trim();
                 if (customTrigger.isNotEmpty &&
@@ -430,11 +418,9 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
       children: [
         Text(
           'What activities helped or might help?',
-          style: GoogleFonts.inter(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
+          style: Theme.of(context).textTheme.bodyLarge
+              ?.copyWith(fontSize: 18, fontWeight: FontWeight.w600)
+              .apply(color: Colors.black87),
         ),
         const SizedBox(height: 16),
         Wrap(
@@ -483,11 +469,9 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
                 ),
                 child: Text(
                   activity,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: isSelected ? Colors.white : Colors.black87,
-                  ),
+                  style: Theme.of(context).textTheme.titleSmall
+                      ?.copyWith(fontSize: 14, fontWeight: FontWeight.w500)
+                      .apply(color: isSelected ? Colors.white : Colors.black87),
                 ),
               ),
             );
@@ -513,10 +497,9 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
               controller: _customActivityController,
               decoration: InputDecoration(
                 hintText: 'Type your custom activity...',
-                hintStyle: GoogleFonts.inter(
-                  color: Colors.grey[500],
-                  fontSize: 14,
-                ),
+                hintStyle: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(fontSize: 14)
+                    .apply(color: Colors.grey[500]),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -540,7 +523,11 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
                   },
                 ),
               ),
-              style: GoogleFonts.inter(fontSize: 16, color: Colors.black87),
+              style: TextStyle(
+                fontFamily: AppTypography.primaryFontFamily,
+                fontSize: 16,
+                color: Colors.black87,
+              ),
               onSubmitted: (value) {
                 final customActivity = value.trim();
                 if (customActivity.isNotEmpty &&
@@ -565,11 +552,9 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
       children: [
         Text(
           'Where are you?',
-          style: GoogleFonts.inter(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
+          style: Theme.of(context).textTheme.bodyLarge
+              ?.copyWith(fontSize: 18, fontWeight: FontWeight.w600)
+              .apply(color: Colors.black87),
         ),
         const SizedBox(height: 16),
         Container(
@@ -588,10 +573,9 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
             controller: _locationController,
             decoration: InputDecoration(
               hintText: 'Type your location or select from suggestions...',
-              hintStyle: GoogleFonts.inter(
-                color: Colors.grey[500],
-                fontSize: 14,
-              ),
+              hintStyle: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(fontSize: 14)
+                  .apply(color: Colors.grey[500]),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -617,17 +601,20 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
                         value: location,
                         child: Text(
                           location,
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            color: Colors.black87,
-                          ),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontSize: 16)
+                              .apply(color: Colors.black87),
                         ),
                       ),
                     )
                     .toList(),
               ),
             ),
-            style: GoogleFonts.inter(fontSize: 16, color: Colors.black87),
+            style: TextStyle(
+              fontFamily: AppTypography.primaryFontFamily,
+              fontSize: 16,
+              color: Colors.black87,
+            ),
             onChanged: (value) {
               setState(() {
                 _location = value;
@@ -664,7 +651,7 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
               )
             : Text(
                 'Save Mood Check-In',
-                style: GoogleFonts.inter(
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
@@ -691,7 +678,10 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
           SnackBar(
             content: Text(
               'Mood check-in saved successfully!',
-              style: GoogleFonts.inter(color: Colors.white),
+              style: TextStyle(
+                fontFamily: AppTypography.primaryFontFamily,
+                color: Colors.white,
+              ),
             ),
             backgroundColor: const Color(0xFF115e5a),
             behavior: SnackBarBehavior.floating,
@@ -711,7 +701,10 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
           SnackBar(
             content: Text(
               'Error saving mood details: $e',
-              style: GoogleFonts.inter(color: Colors.white),
+              style: TextStyle(
+                fontFamily: AppTypography.primaryFontFamily,
+                color: Colors.white,
+              ),
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
@@ -765,18 +758,15 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
               children: [
                 Text(
                   'You\'re feeling',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium
+                      ?.copyWith(fontSize: 14)
+                      .apply(color: Colors.grey[600]),
                 ),
                 Text(
                   widget.selectedMood,
-                  style: GoogleFonts.inter(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF115e5a),
-                  ),
+                  style: Theme.of(context).textTheme.headlineSmall
+                      ?.copyWith(fontSize: 20, fontWeight: FontWeight.bold)
+                      .apply(color: const Color(0xFF115e5a)),
                 ),
               ],
             ),
@@ -813,5 +803,3 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
     super.dispose();
   }
 }
-
- 
