@@ -4,9 +4,7 @@ import '../../core/constants/app_colors.dart';
 import 'welcome_screen.dart';
 import 'features_screen.dart';
 import 'mood_tracking_screen.dart';
-import 'meditation_screen.dart';
 import '../auth/login_screen.dart';
-import 'package:mirei/core/theme/typography.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -23,7 +21,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     const WelcomeOnboardingScreen(),
     const FeaturesOnboardingScreen(),
     const MoodTrackingOnboardingScreen(),
-    const MeditationOnboardingScreen(),
   ];
 
   void _nextPage() {

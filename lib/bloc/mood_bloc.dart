@@ -13,15 +13,9 @@ class MoodBloc extends Bloc<MoodEvent, MoodState> {
   // In a more dynamic app, this could also come from the repository.
   static const List<String> _moods = [
     'Happy',
-    'Cutesy',
-    'Shocked',
     'Neutral',
-    'Awkward',
-    'Disappointed',
     'Sad',
     'Angry',
-    'Worried',
-    'Tired',
   ];
 
   MoodBloc({required MoodRepository moodRepository})

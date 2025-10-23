@@ -365,6 +365,7 @@ class JournalEntryRealm extends _JournalEntryRealm
     DateTime createdAt, {
     String? imagePathsString,
     String? audioRecordingsString,
+    String? coverImagePath,
     String? entryMood,
     int? entryMoodIntensity,
     String? entryMoodContext,
@@ -375,6 +376,7 @@ class JournalEntryRealm extends _JournalEntryRealm
     RealmObjectBase.set(this, 'createdAt', createdAt);
     RealmObjectBase.set(this, 'imagePathsString', imagePathsString);
     RealmObjectBase.set(this, 'audioRecordingsString', audioRecordingsString);
+    RealmObjectBase.set(this, 'coverImagePath', coverImagePath);
     RealmObjectBase.set(this, 'entryMood', entryMood);
     RealmObjectBase.set(this, 'entryMoodIntensity', entryMoodIntensity);
     RealmObjectBase.set(this, 'entryMoodContext', entryMoodContext);
@@ -419,6 +421,13 @@ class JournalEntryRealm extends _JournalEntryRealm
       RealmObjectBase.set(this, 'audioRecordingsString', value);
 
   @override
+  String? get coverImagePath =>
+      RealmObjectBase.get<String>(this, 'coverImagePath') as String?;
+  @override
+  set coverImagePath(String? value) =>
+      RealmObjectBase.set(this, 'coverImagePath', value);
+
+  @override
   String? get entryMood =>
       RealmObjectBase.get<String>(this, 'entryMood') as String?;
   @override
@@ -459,6 +468,7 @@ class JournalEntryRealm extends _JournalEntryRealm
       'createdAt': createdAt.toEJson(),
       'imagePathsString': imagePathsString.toEJson(),
       'audioRecordingsString': audioRecordingsString.toEJson(),
+      'coverImagePath': coverImagePath.toEJson(),
       'entryMood': entryMood.toEJson(),
       'entryMoodIntensity': entryMoodIntensity.toEJson(),
       'entryMoodContext': entryMoodContext.toEJson(),
@@ -482,6 +492,7 @@ class JournalEntryRealm extends _JournalEntryRealm
           fromEJson(createdAt),
           imagePathsString: fromEJson(ejson['imagePathsString']),
           audioRecordingsString: fromEJson(ejson['audioRecordingsString']),
+          coverImagePath: fromEJson(ejson['coverImagePath']),
           entryMood: fromEJson(ejson['entryMood']),
           entryMoodIntensity: fromEJson(ejson['entryMoodIntensity']),
           entryMoodContext: fromEJson(ejson['entryMoodContext']),
@@ -516,6 +527,11 @@ class JournalEntryRealm extends _JournalEntryRealm
           RealmPropertyType.string,
           optional: true,
         ),
+        SchemaProperty(
+          'coverImagePath',
+          RealmPropertyType.string,
+          optional: true,
+        ),
         SchemaProperty('entryMood', RealmPropertyType.string, optional: true),
         SchemaProperty(
           'entryMoodIntensity',
@@ -524,6 +540,112 @@ class JournalEntryRealm extends _JournalEntryRealm
         ),
         SchemaProperty(
           'entryMoodContext',
+          RealmPropertyType.string,
+          optional: true,
+        ),
+      ],
+    );
+  }();
+
+  @override
+  SchemaObject get objectSchema => RealmObjectBase.getSchema(this) ?? schema;
+}
+
+class MemoryEntryRealm extends _MemoryEntryRealm
+    with RealmEntity, RealmObjectBase, RealmObject {
+  MemoryEntryRealm(
+    ObjectId id,
+    DateTime createdAt, {
+    String? caption,
+    String? imagePathsString,
+  }) {
+    RealmObjectBase.set(this, 'id', id);
+    RealmObjectBase.set(this, 'createdAt', createdAt);
+    RealmObjectBase.set(this, 'caption', caption);
+    RealmObjectBase.set(this, 'imagePathsString', imagePathsString);
+  }
+
+  MemoryEntryRealm._();
+
+  @override
+  ObjectId get id => RealmObjectBase.get<ObjectId>(this, 'id') as ObjectId;
+  @override
+  set id(ObjectId value) => RealmObjectBase.set(this, 'id', value);
+
+  @override
+  DateTime get createdAt =>
+      RealmObjectBase.get<DateTime>(this, 'createdAt') as DateTime;
+  @override
+  set createdAt(DateTime value) =>
+      RealmObjectBase.set(this, 'createdAt', value);
+
+  @override
+  String? get caption =>
+      RealmObjectBase.get<String>(this, 'caption') as String?;
+  @override
+  set caption(String? value) => RealmObjectBase.set(this, 'caption', value);
+
+  @override
+  String? get imagePathsString =>
+      RealmObjectBase.get<String>(this, 'imagePathsString') as String?;
+  @override
+  set imagePathsString(String? value) =>
+      RealmObjectBase.set(this, 'imagePathsString', value);
+
+  @override
+  Stream<RealmObjectChanges<MemoryEntryRealm>> get changes =>
+      RealmObjectBase.getChanges<MemoryEntryRealm>(this);
+
+  @override
+  Stream<RealmObjectChanges<MemoryEntryRealm>> changesFor([
+    List<String>? keyPaths,
+  ]) => RealmObjectBase.getChangesFor<MemoryEntryRealm>(this, keyPaths);
+
+  @override
+  MemoryEntryRealm freeze() =>
+      RealmObjectBase.freezeObject<MemoryEntryRealm>(this);
+
+  EJsonValue toEJson() {
+    return <String, dynamic>{
+      'id': id.toEJson(),
+      'createdAt': createdAt.toEJson(),
+      'caption': caption.toEJson(),
+      'imagePathsString': imagePathsString.toEJson(),
+    };
+  }
+
+  static EJsonValue _toEJson(MemoryEntryRealm value) => value.toEJson();
+  static MemoryEntryRealm _fromEJson(EJsonValue ejson) {
+    if (ejson is! Map<String, dynamic>) return raiseInvalidEJson(ejson);
+    return switch (ejson) {
+      {'id': EJsonValue id, 'createdAt': EJsonValue createdAt} =>
+        MemoryEntryRealm(
+          fromEJson(id),
+          fromEJson(createdAt),
+          caption: fromEJson(ejson['caption']),
+          imagePathsString: fromEJson(ejson['imagePathsString']),
+        ),
+      _ => raiseInvalidEJson(ejson),
+    };
+  }
+
+  static final schema = () {
+    RealmObjectBase.registerFactory(MemoryEntryRealm._);
+    register(_toEJson, _fromEJson);
+    return const SchemaObject(
+      ObjectType.realmObject,
+      MemoryEntryRealm,
+      'MemoryEntryRealm',
+      [
+        SchemaProperty('id', RealmPropertyType.objectid, primaryKey: true),
+        SchemaProperty(
+          'createdAt',
+          RealmPropertyType.timestamp,
+          indexType: RealmIndexType.regular,
+        ),
+        SchemaProperty('caption', RealmPropertyType.string, optional: true),
+        SchemaProperty(
+          'imagePathsString',
           RealmPropertyType.string,
           optional: true,
         ),

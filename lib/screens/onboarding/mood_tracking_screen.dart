@@ -53,7 +53,6 @@ class MoodTrackingOnboardingScreen extends StatelessWidget {
 
                   final emotions = [
                     'happy',
-                    'cutesy',
                     'neutral',
                     'sad',
                     'angry',

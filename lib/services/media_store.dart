@@ -125,6 +125,57 @@ class MediaStore {
     return relativePaths;
   }
 
+  /// Copies provided image files into app storage under memory-specific folder.
+  /// Returns relative paths like 'memories/<memoryId>/<uuid>.jpg'
+  Future<List<String>> copyImagesForMemory(
+    ObjectId memoryId,
+    List<String> sourcePaths,
+  ) async {
+    if (sourcePaths.isEmpty) return <String>[];
+
+    final docs = await _getAppDocsDir();
+    final memoryDir = Directory(
+      p.join(docs.path, 'memories', memoryId.hexString),
+    );
+    if (!memoryDir.existsSync()) {
+      memoryDir.createSync(recursive: true);
+    }
+
+    final List<String> relativePaths = [];
+
+    for (final srcPath in sourcePaths) {
+      try {
+        final srcFile = File(srcPath);
+        if (!srcFile.existsSync()) {
+          continue;
+        }
+
+        final newName = _uuid.v4();
+        final destPath = p.join(memoryDir.path, '$newName.jpg');
+
+        final compressed = await FlutterImageCompress.compressAndGetFile(
+          srcFile.absolute.path,
+          destPath,
+          quality: 80,
+          format: CompressFormat.jpeg,
+          keepExif: true,
+        );
+
+        final savedPath = compressed?.path ?? destPath;
+        if (!File(savedPath).existsSync() && srcFile.existsSync()) {
+          await srcFile.copy(destPath);
+        }
+
+        final rel = p.join('memories', memoryId.hexString, '$newName.jpg');
+        relativePaths.add(rel);
+      } catch (_) {
+        // Skip problematic files silently
+      }
+    }
+
+    return relativePaths;
+  }
+
   /// Resolves a stored media path (relative or absolute) to an absolute file path
   Future<String> resolvePath(String storedPath) async {
     if (storedPath.isEmpty) return storedPath;
@@ -166,6 +217,16 @@ class MediaStore {
           // Ignore delete errors
         }
       }
+    }
+  }
+
+  Future<void> deleteMemoryMedia(ObjectId memoryId) async {
+    final docs = await _getAppDocsDir();
+    final dir = Directory(p.join(docs.path, 'memories', memoryId.hexString));
+    if (await dir.exists()) {
+      try {
+        await dir.delete(recursive: true);
+      } catch (_) {}
     }
   }
 }

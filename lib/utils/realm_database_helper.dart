@@ -30,6 +30,7 @@ class RealmDatabaseHelper {
       MoodEntryRealm.schema,
       JournalEntryRealm.schema,
       UserProfileRealm.schema,
+      MemoryEntryRealm.schema,
     ];
 
     try {
@@ -37,10 +38,10 @@ class RealmDatabaseHelper {
       final config = Configuration.local(
         schemas,
         path: realmPath,
-        schemaVersion: 7, // Pruned media cache models
+        schemaVersion: 8, // Add memory entries schema
         migrationCallback: (migration, oldSchemaVersion) {
-          if (oldSchemaVersion < 7) {
-            print('Migrating to schema v7: removing media cache models');
+          if (oldSchemaVersion < 8) {
+            print('Migrating to schema v8: adding memory entries');
           }
         },
       );
@@ -60,7 +61,7 @@ class RealmDatabaseHelper {
         final config = Configuration.local(
           schemas,
           path: realmPath,
-          schemaVersion: 7,
+          schemaVersion: 8,
         );
         return Realm(config);
       } catch (recreateError) {
@@ -355,5 +356,72 @@ class RealmDatabaseHelper {
       [start, end],
     );
     return results.toList();
+  }
+
+  // MEMORY ENTRY METHODS
+  Future<ObjectId> insertMemoryEntry(MemoryEntryRealm entry) async {
+    final realmDb = await realm;
+    late ObjectId id;
+
+    realmDb.write(() {
+      final saved = realmDb.add(entry);
+      id = saved.id;
+    });
+
+    return id;
+  }
+
+  Future<void> updateMemoryEntry(
+    ObjectId id, {
+    List<String>? imagePaths,
+    String? caption,
+  }) async {
+    final realmDb = await realm;
+    final entry = realmDb.find<MemoryEntryRealm>(id);
+    if (entry == null) return;
+
+    final existingImages = List<String>.from(entry.imagePaths);
+
+    realmDb.write(() {
+      if (caption != null) {
+        entry.caption = caption;
+      }
+      if (imagePaths != null) {
+        entry.imagePaths = imagePaths;
+      }
+    });
+
+    if (imagePaths != null) {
+      final removed = existingImages
+          .where((oldPath) => !imagePaths.contains(oldPath))
+          .toList();
+      if (removed.isNotEmpty) {
+        try {
+          await MediaStore.instance.deleteRelativeFiles(removed);
+        } catch (_) {}
+      }
+    }
+  }
+
+  Future<List<MemoryEntryRealm>> getAllMemoryEntries() async {
+    final realmDb = await realm;
+    final results = realmDb.all<MemoryEntryRealm>().query(
+      'TRUEPREDICATE SORT(createdAt DESC)',
+    );
+    return results.toList();
+  }
+
+  Future<void> deleteMemoryEntry(ObjectId id) async {
+    final realmDb = await realm;
+    final entry = realmDb.find<MemoryEntryRealm>(id);
+    if (entry == null) return;
+
+    try {
+      await MediaStore.instance.deleteMemoryMedia(id);
+    } catch (_) {}
+
+    realmDb.write(() {
+      realmDb.delete(entry);
+    });
   }
 }

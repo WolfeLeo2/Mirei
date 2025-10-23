@@ -3,15 +3,9 @@ class MoodConstants {
   // Existing mood types (keep consistent with current system)
   static const List<String> moodTypes = [
     'Happy',
-    'Cutesy',
-    'Shocked',
     'Neutral',
-    'Awkward',
-    'Disappointed',
     'Sad',
     'Angry',
-    'Worried',
-    'Tired',
   ];
 
   // Essential triggers for quick selection (reduced and capitalized)
@@ -90,15 +84,9 @@ class MoodConstants {
   // Mood categorization for analytics
   static const Map<String, MoodCategory> moodCategories = {
     'Happy': MoodCategory.positive,
-    'Cutesy': MoodCategory.positive,
-    'Shocked': MoodCategory.neutral, // Can be positive or negative
     'Neutral': MoodCategory.neutral,
-    'Awkward': MoodCategory.neutral,
-    'Disappointed': MoodCategory.negative,
     'Sad': MoodCategory.negative,
     'Angry': MoodCategory.negative,
-    'Worried': MoodCategory.negative,
-    'Tired': MoodCategory.negative,
   };
 
   // Helper methods

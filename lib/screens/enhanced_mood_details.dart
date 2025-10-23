@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../services/enhanced_mood_service.dart';
 import '../data/mood_constants.dart';
 import '../core/theme/typography.dart';
+import '../core/theme/mood_colors.dart';
 
 class EnhancedMoodDetailsScreen extends StatefulWidget {
   final String selectedMood;
@@ -45,8 +45,12 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
   bool _showCustomActivityInput = false;
 
   @override
-  void initState() {
-    super.initState();
+  void dispose() {
+    _contextController.dispose();
+    _customTriggerController.dispose();
+    _customActivityController.dispose();
+    _locationController.dispose();
+    super.dispose();
   }
 
   @override
@@ -55,10 +59,7 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: const BoxDecoration(
         color: Color(0xFFfaf6f1),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
+        borderRadius: BorderRadius.all(Radius.circular(24)),
       ),
       child: Column(
         children: [
@@ -73,21 +74,58 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
             ),
           ),
 
-          // Header
+          // Header with Cancel | Mood Pill | Save
           Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Mood Check-In',
-                  style: Theme.of(context).textTheme.headlineSmall
-                      ?.copyWith(fontSize: 20, fontWeight: FontWeight.w600)
-                      .apply(color: Colors.black87),
+                // Cancel button
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                  ),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
                 ),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Icon(Icons.close, color: Colors.grey[600], size: 24),
+
+                // Mood pill in center
+                Expanded(child: Center(child: _buildMoodPill())),
+
+                // Save button
+                FilledButton(
+                  onPressed: _isLoading ? null : _saveMoodDetails,
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    backgroundColor: _getMoodColor(),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Text(
+                          'Save',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
               ],
             ),
@@ -100,10 +138,6 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Selected mood display
-                  _buildSelectedMoodSection(),
-                  const SizedBox(height: 24),
-
                   // Intensity scale
                   _buildIntensitySection(),
                   const SizedBox(height: 32),
@@ -118,14 +152,11 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
 
                   // Activities selection
                   _buildActivitiesSection(),
-                  const SizedBox(height: 32),
-
-                  // Location input
-                  _buildLocationSection(),
                   const SizedBox(height: 40),
 
-                  // Save button
-                  _buildSaveButton(),
+                  // Removed: Location section
+
+                  // Save button moved to header
                   const SizedBox(height: 24), // Extra padding at bottom
                 ],
               ),
@@ -134,6 +165,34 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
         ],
       ),
     );
+  }
+
+  // Helper method to build mood pill in header
+  Widget _buildMoodPill() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(
+        color: _getMoodColor().withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _getMoodColor(), width: 1.5),
+      ),
+      child: Text(
+        widget.selectedMood,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: _getMoodColor(),
+          fontFamily: AppTypography.primaryFontFamily,
+        ),
+      ),
+    );
+  }
+
+  // Helper method to get mood color from theme
+  Color _getMoodColor() {
+    final moodColors = Theme.of(context).extension<MoodColors>();
+    if (moodColors == null) return const Color(0xFF115e5a);
+    return moodColors.byMood(widget.selectedMood);
   }
 
   Widget _buildIntensitySection() {
@@ -155,7 +214,7 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withOpacity(0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -176,7 +235,7 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
                     '$_intensity/10',
                     style: Theme.of(context).textTheme.bodyLarge
                         ?.copyWith(fontSize: 18, fontWeight: FontWeight.w700)
-                        .apply(color: const Color(0xFF115e5a)),
+                        .apply(color: _getMoodColor()),
                   ),
                   Text(
                     '10',
@@ -187,35 +246,18 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  activeTrackColor: const Color(0xFF115e5a),
-                  inactiveTrackColor: Colors.grey[300],
-                  thumbColor: const Color(0xFF115e5a),
-                  overlayColor: const Color(0xFF115e5a).withValues(alpha: 0.2),
-                  thumbShape: const RoundSliderThumbShape(
-                    enabledThumbRadius: 12,
-                  ),
-                  trackHeight: 6,
-                ),
-                child: Slider(
-                  value: _intensity.toDouble(),
-                  min: 1,
-                  max: 10,
-                  divisions: 9,
-                  onChanged: (value) {
-                    setState(() {
-                      _intensity = value.round();
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                MoodConstants.getIntensityLabel(_intensity),
-                style: Theme.of(context).textTheme.titleMedium
-                    ?.copyWith(fontSize: 16, fontWeight: FontWeight.w500)
-                    .apply(color: Colors.black87),
+              // Material 3 Slider
+              Slider(
+                value: _intensity.toDouble(),
+                min: 1,
+                max: 10,
+                divisions: 9,
+                activeColor: _getMoodColor(),
+                onChanged: (value) {
+                  setState(() {
+                    _intensity = value.round();
+                  });
+                },
               ),
             ],
           ),
@@ -297,49 +339,29 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
             final isSelected = _selectedTriggers.contains(trigger);
             final isOther = trigger == 'Other';
 
-            return GestureDetector(
-              onTap: () {
+            return FilterChip(
+              label: Text(trigger),
+              selected: isSelected,
+              onSelected: (selected) {
                 if (isOther) {
                   setState(() {
                     _showCustomTriggerInput = !_showCustomTriggerInput;
                   });
                 } else {
                   setState(() {
-                    if (isSelected) {
-                      _selectedTriggers.remove(trigger);
-                    } else {
+                    if (selected) {
                       _selectedTriggers.add(trigger);
+                    } else {
+                      _selectedTriggers.remove(trigger);
                     }
                   });
                 }
               },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF115e5a) : Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isSelected
-                        ? const Color(0xFF115e5a)
-                        : Colors.grey[300]!,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  trigger,
-                  style: Theme.of(context).textTheme.titleSmall
-                      ?.copyWith(fontSize: 14, fontWeight: FontWeight.w500)
-                      .apply(color: isSelected ? Colors.white : Colors.black87),
-                ),
+              selectedColor: _getMoodColor().withOpacity(0.2),
+              checkmarkColor: _getMoodColor(),
+              side: BorderSide(
+                color: isSelected ? _getMoodColor() : Colors.grey[300]!,
+                width: 1,
               ),
             );
           }).toList(),
@@ -430,49 +452,29 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
             final isSelected = _selectedActivities.contains(activity);
             final isOther = activity == 'Other';
 
-            return GestureDetector(
-              onTap: () {
+            return FilterChip(
+              label: Text(activity),
+              selected: isSelected,
+              onSelected: (selected) {
                 if (isOther) {
                   setState(() {
                     _showCustomActivityInput = !_showCustomActivityInput;
                   });
                 } else {
                   setState(() {
-                    if (isSelected) {
-                      _selectedActivities.remove(activity);
-                    } else {
+                    if (selected) {
                       _selectedActivities.add(activity);
+                    } else {
+                      _selectedActivities.remove(activity);
                     }
                   });
                 }
               },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF115e5a) : Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isSelected
-                        ? const Color(0xFF115e5a)
-                        : Colors.grey[300]!,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  activity,
-                  style: Theme.of(context).textTheme.titleSmall
-                      ?.copyWith(fontSize: 14, fontWeight: FontWeight.w500)
-                      .apply(color: isSelected ? Colors.white : Colors.black87),
-                ),
+              selectedColor: _getMoodColor().withOpacity(0.2),
+              checkmarkColor: _getMoodColor(),
+              side: BorderSide(
+                color: isSelected ? _getMoodColor() : Colors.grey[300]!,
+                width: 1,
               ),
             );
           }).toList(),
@@ -546,120 +548,6 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
     );
   }
 
-  Widget _buildLocationSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Where are you?',
-          style: Theme.of(context).textTheme.bodyLarge
-              ?.copyWith(fontSize: 18, fontWeight: FontWeight.w600)
-              .apply(color: Colors.black87),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: TextField(
-            controller: _locationController,
-            decoration: InputDecoration(
-              hintText: 'Type your location or select from suggestions...',
-              hintStyle: Theme.of(context).textTheme.bodyMedium
-                  ?.copyWith(fontSize: 14)
-                  .apply(color: Colors.grey[500]),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.all(16),
-              suffixIcon: PopupMenuButton<String>(
-                icon: Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                onSelected: (value) {
-                  setState(() {
-                    _locationController.text = value;
-                    _location = value;
-                  });
-                },
-                itemBuilder: (context) => MoodConstants.commonLocations
-                    .where((loc) => loc != 'Other')
-                    .map(
-                      (location) => PopupMenuItem<String>(
-                        value: location,
-                        child: Text(
-                          location,
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(fontSize: 16)
-                              .apply(color: Colors.black87),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-            style: TextStyle(
-              fontFamily: AppTypography.primaryFontFamily,
-              fontSize: 16,
-              color: Colors.black87,
-            ),
-            onChanged: (value) {
-              setState(() {
-                _location = value;
-              });
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSaveButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _saveMoodDetails,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF115e5a),
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        child: _isLoading
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : Text(
-                'Save Mood Check-In',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-      ),
-    );
-  }
-
   Future<void> _saveMoodDetails() async {
     setState(() => _isLoading = true);
 
@@ -716,90 +604,5 @@ class _EnhancedMoodDetailsScreenState extends State<EnhancedMoodDetailsScreen> {
         setState(() => _isLoading = false);
       }
     }
-  }
-
-  Widget _buildSelectedMoodSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Mood icon
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF115e5a).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: SvgPicture.asset(
-              _getMoodSvgPath(widget.selectedMood),
-              width: 32,
-              height: 32,
-              colorFilter: const ColorFilter.mode(
-                Color(0xFF115e5a),
-                BlendMode.srcIn,
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'You\'re feeling',
-                  style: Theme.of(context).textTheme.bodyMedium
-                      ?.copyWith(fontSize: 14)
-                      .apply(color: Colors.grey[600]),
-                ),
-                Text(
-                  widget.selectedMood,
-                  style: Theme.of(context).textTheme.headlineSmall
-                      ?.copyWith(fontSize: 20, fontWeight: FontWeight.bold)
-                      .apply(color: const Color(0xFF115e5a)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _getMoodSvgPath(String mood) {
-    // Map to the correct SVG paths from your mood system
-    const moodPaths = {
-      'Happy': 'assets/emotion-icons/happy.svg',
-      'Cutesy': 'assets/emotion-icons/cutesy.svg',
-      'Shocked': 'assets/emotion-icons/shocked.svg',
-      'Neutral': 'assets/emotion-icons/neutral.svg',
-      'Awkward': 'assets/emotion-icons/awkward.svg',
-      'Disappointed': 'assets/emotion-icons/dissapointed.svg',
-      'Sad': 'assets/emotion-icons/sad.svg',
-      'Angry': 'assets/emotion-icons/angry.svg',
-      'Worried': 'assets/emotion-icons/worried.svg',
-      'Tired': 'assets/emotion-icons/tired.svg',
-    };
-
-    return moodPaths[mood] ?? 'assets/emotion-icons/neutral.svg';
-  }
-
-  @override
-  void dispose() {
-    _contextController.dispose();
-    _customTriggerController.dispose();
-    _customActivityController.dispose();
-    _locationController.dispose();
-    super.dispose();
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:motor/motor.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/realm_models.dart';
 import 'folder_image_widget.dart';
@@ -29,18 +30,17 @@ class MonthFolderCard extends StatefulWidget {
 
 class _MonthFolderCardState extends State<MonthFolderCard>
     with SingleTickerProviderStateMixin {
-  late AnimationController _scaleController;
+  late SingleMotionController _scaleController;
   late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
-    _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 120), // Faster animation
+    _scaleController = SingleMotionController(
+      motion: CupertinoMotion.snappy(), // Snappy press animation
       vsync: this,
     );
     _scaleAnimation = Tween<double>(begin: 1.0, end: 1.03).animate(
-      // Reduced scale
       CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
     );
   }
@@ -54,14 +54,13 @@ class _MonthFolderCardState extends State<MonthFolderCard>
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
-      // Optimize repaints
       child: GestureDetector(
-        onTapDown: (_) => _scaleController.forward(),
+        onTapDown: (_) => _scaleController.animateTo(1.0),
         onTapUp: (_) {
-          _scaleController.reverse();
+          _scaleController.animateTo(0.0);
           widget.onTap();
         },
-        onTapCancel: () => _scaleController.reverse(),
+        onTapCancel: () => _scaleController.animateTo(0.0),
         child: AnimatedBuilder(
           animation: _scaleAnimation,
           builder: (context, child) {

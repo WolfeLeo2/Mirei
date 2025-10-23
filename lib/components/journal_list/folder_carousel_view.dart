@@ -51,12 +51,16 @@ class _FolderCarouselViewState extends State<FolderCarouselView> {
     }
 
     final screenWidth = MediaQuery.of(context).size.width;
-    
-    // Responsive card sizing based on screen width
-    final cardWidth = (screenWidth * 0.7).clamp(250.0, 300.0); // Slightly smaller for better centering
-    final cardHeight = cardWidth * (4/3); // Maintain aspect ratio
 
-    return Center( // Center the entire carousel
+    // Responsive card sizing based on screen width
+    final cardWidth = (screenWidth * 0.7).clamp(
+      250.0,
+      300.0,
+    ); // Slightly smaller for better centering
+    final cardHeight = cardWidth * (4 / 3); // Maintain aspect ratio
+
+    return Center(
+      // Center the entire carousel
       child: SizedBox(
         height: cardHeight + 60, // Extra space for padding and indicators
         child: Column(
@@ -75,10 +79,14 @@ class _FolderCarouselViewState extends State<FolderCarouselView> {
                 itemBuilder: (context, index) {
                   final monthKey = sortedMonthKeys[index];
                   final entries = widget.journalsByMonth[monthKey]!;
-                  
-                  return Center( // Center each card
+
+                  return Center(
+                    // Center each card
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 20.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12.0,
+                        vertical: 20.0,
+                      ),
                       child: SizedBox(
                         width: cardWidth,
                         height: cardHeight,
@@ -96,7 +104,7 @@ class _FolderCarouselViewState extends State<FolderCarouselView> {
                 },
               ),
             ),
-            
+
             // Page indicators
             if (sortedMonthKeys.length > 1)
               _buildPageIndicators(sortedMonthKeys.length),
@@ -113,16 +121,21 @@ class _FolderCarouselViewState extends State<FolderCarouselView> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: List.generate(count, (index) {
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            margin: const EdgeInsets.symmetric(horizontal: 4.0),
-            height: 8.0,
-            width: _currentPage == index ? 24.0 : 8.0,
-            decoration: BoxDecoration(
-              color: _currentPage == index 
-                  ? const Color(0xFF115e5a) 
-                  : const Color(0xFF115e5a).withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(4.0),
+          final isActive = _currentPage == index;
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutBack, // Smooth elastic transition
+              height: 8.0,
+              width: isActive ? 24.0 : 8.0,
+              decoration: BoxDecoration(
+                color: isActive
+                    ? const Color(0xFF115e5a)
+                    : const Color(0xFF115e5a).withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(4.0),
+              ),
             ),
           );
         }),
@@ -144,7 +157,10 @@ class _FolderCarouselViewState extends State<FolderCarouselView> {
   void _handleFolderTap(String monthKey) {
     // For carousel view, we can use a simple center position since cards are centered
     final screenSize = MediaQuery.of(context).size;
-    final centerPosition = Offset(screenSize.width / 2, screenSize.height * 0.4);
+    final centerPosition = Offset(
+      screenSize.width / 2,
+      screenSize.height * 0.4,
+    );
     widget.onFolderTap(monthKey, centerPosition);
   }
-} 
+}

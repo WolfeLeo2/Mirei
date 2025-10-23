@@ -1,0 +1,620 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
+import '../services/auth_service.dart';
+import '../services/enhanced_mood_service.dart';
+import '../services/ai_mood_service.dart';
+import '../models/realm_models.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import '../core/theme/typography.dart';
+import 'mood_entry_flow/mood_entry_flow.dart';
+import 'history.dart';
+import '../widgets/wave_clipper.dart';
+import '../widgets/week_mood_calendar.dart';
+import '../widgets/daily_mood_modal.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+// Const widgets for static decorative elements
+class _EmphasisIcon extends StatelessWidget {
+  const _EmphasisIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.asset(
+      'assets/icons/emphasis.svg',
+      width: 20,
+      height: 20,
+      color: Colors.white,
+    );
+  }
+}
+
+class _UnderlineIcon extends StatelessWidget {
+  const _UnderlineIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.asset(
+      'assets/icons/underline.svg',
+      width: 17,
+      height: 17,
+      color: Colors.white,
+    );
+  }
+}
+
+class MoodTrackerScreen extends StatefulWidget {
+  const MoodTrackerScreen({super.key});
+
+  @override
+  MoodTrackerScreenState createState() => MoodTrackerScreenState();
+}
+
+class MoodTrackerScreenState extends State<MoodTrackerScreen>
+    with PerformanceOptimizedStateMixin {
+  // Services
+  final EnhancedMoodService _enhancedMoodService = EnhancedMoodService();
+
+  int selectedMoodIndex = 1;
+
+  // Lottie overlay state
+
+  // Make Moods list const for better performance
+  static const List<String> Moods = [
+    'Happy',
+    'Neutral',
+    'Sad',
+    'Angry',
+  ];
+
+  // Make Moods config const for lazy loading
+  static const List<Map<String, String>> MoodConfigs = [
+    {'Mood': 'Happy', 'svgPath': 'assets/emotion-icons/happy.svg'},
+    {'Mood': 'Neutral', 'svgPath': 'assets/emotion-icons/neutral.svg'},
+    {'Mood': 'Sad', 'svgPath': 'assets/emotion-icons/sad.svg'},
+    {'Mood': 'Angry', 'svgPath': 'assets/emotion-icons/angry.svg'},
+  ];
+
+  firebase_auth.User? _currentUser;
+  MoodEntryRealm? _latestMoodEntry;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTodaysMood();
+    _loadUserProfile();
+  }
+
+  void _loadUserProfile() {
+    _currentUser = AuthService().currentUser;
+    AuthService().authStateChanges.listen((user) {
+      if (mounted) {
+        setState(() {
+          _currentUser = user;
+        });
+      }
+    });
+  }
+
+  Future<void> _loadTodaysMood() async {
+    try {
+      // Load all mood entries for today (supports multiple entries)
+      final todaysMoodEntries = await _enhancedMoodService
+          .getTodaysMoodEntries();
+
+      // Set selected mood to the latest entry for UI consistency
+      if (todaysMoodEntries.isNotEmpty) {
+        final latestMood = todaysMoodEntries.last;
+        final moodIndex = Moods.indexOf(latestMood.mood);
+        if (moodIndex != -1) {
+          safeSetState(() {
+            selectedMoodIndex = moodIndex;
+            _latestMoodEntry = latestMood;
+          });
+        }
+      } else {
+        safeSetState(() {
+          _latestMoodEntry = null;
+        });
+      }
+    } catch (e) {
+      // Handle error silently, use default selection
+      print('Error loading today\'s mood: $e');
+    }
+  }
+
+  void _navigateToMoodEntryFlow() async {
+    // Get username
+    final username = _currentUser?.displayName ?? 'User';
+    
+    // Navigate to mood entry flow
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MoodEntryFlow(
+          username: username,
+          onComplete: () {
+            // Reload today's mood after completion
+            _loadTodaysMood();
+          },
+        ),
+      ),
+    );
+  }
+
+  void _navigateToDetailedMoodCheckIn(String mood) async {
+    // Add 200ms delay to let user see the mood button physics animation
+    await Future.delayed(const Duration(milliseconds: 200));
+    
+    if (!mounted) return;
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      isDismissible: true,
+      enableDrag: true,
+      builder: (context) => EnhancedMoodDetailsScreen(
+        selectedMood: mood,
+        onMoodSaved: () {
+          // Mood was saved successfully, refresh to show new timestamp
+          _loadTodaysMood();
+        },
+      ),
+      // Custom smooth animation using motor's smooth curve timing
+      transitionAnimationController: AnimationController(
+        vsync: Navigator.of(context),
+        duration: const Duration(milliseconds: 500), // Slightly faster, smoother
+      )..drive(CurveTween(curve: const Cubic(0.4, 0.0, 0.2, 1.0))), // Custom smooth easing (similar to CupertinoMotion.smooth)
+    );
+  }
+
+  void _onMoodSelected(int index, String mood) {
+    // Material 3 Expressive haptic feedback for selection
+    HapticFeedback.selectionClick();
+    safeSetState(() {
+      selectedMoodIndex = index;
+    });
+
+    // Navigate to new mood entry flow
+    _navigateToMoodEntryFlow();
+  }
+
+  // Lazy builder for Mood buttons with const optimization
+  Widget _buildMoodButton(int index) {
+    final config = MoodConfigs[index];
+    return MoodButton(
+      key: ValueKey(index), // Use ValueKey instead - stable across rebuilds
+      Mood: config['Mood']!,
+      svgPath: config['svgPath']!,
+      isSelected: selectedMoodIndex == index,
+      onTap: () => _onMoodSelected(index, config['Mood']!),
+    );
+  }
+
+  // Dynamic subtitle that shows last mood entry time
+  Widget _buildDynamicSubtitle() {
+    if (_latestMoodEntry != null) {
+      final exactTime = DateFormat(
+        'h:mm a',
+      ).format(_latestMoodEntry!.createdAt.toLocal());
+
+      return Column(
+        children: [
+          Text(
+            'Last mood: ${_latestMoodEntry!.mood}',
+            style: const TextStyle(
+              color: Color.fromRGBO(255, 255, 255, 0.9),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.access_time,
+                size: 14,
+                color: Colors.white.withValues(alpha: 0.7),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                exactTime,
+                style: const TextStyle(
+                  color: Color.fromRGBO(255, 255, 255, 0.7),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    } else {
+      return const Text(
+        'Select your current mood',
+        style: TextStyle(
+          color: Color.fromRGBO(255, 255, 255, 0.7),
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+        ),
+      );
+    }
+  }
+
+  // Create const activity icons for better performance
+  Widget _buildActivityIcons(BuildContext context) {
+    return RepaintBoundary(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          RepaintBoundary(
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const JournalListScreen(),
+                  ),
+                );
+              },
+              child: const ActivityIcon(
+                label: 'My Journal',
+                backgroundColor: Color(0XFFc6e99f),
+                svgIcon: 'assets/icons/message.svg',
+                svgShape: 'assets/icons/octagon.svg',
+                shapeSize: 120,
+              ),
+            ),
+          ),
+          RepaintBoundary(
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProgressScreen(),
+                  ),
+                );
+              },
+              child: const ActivityIcon(
+                label: 'My Progress',
+                backgroundColor: Color(0xFFECE9A5),
+                svgIcon: 'assets/icons/pie-chart.svg',
+                svgShape: 'assets/icons/b-circle.svg',
+              ),
+            ),
+          ),
+          RepaintBoundary(
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MeditationScreen(),
+                  ),
+                );
+              },
+              child: const ActivityIcon(
+                label: 'Meditation',
+                backgroundColor: Color(0xFFC1DFDF),
+                svgIcon: 'assets/icons/meditation.svg',
+                svgShape: 'assets/icons/heptagon.svg',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.primary,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        toolbarHeight: 92,
+        systemOverlayStyle: ThemeData().appBarTheme.systemOverlayStyle,
+        titleSpacing: 10,
+        leadingWidth: 72,
+        leading: _currentUser != null
+            ? Padding(
+                padding: const EdgeInsets.only(left: 20),
+                child: RepaintBoundary(
+                  child: ProfilePulldownMenu(
+                    child: CircleAvatar(
+                      radius: 28,
+                      child: ClipOval(
+                        child: SizedBox(
+                          width: 52,
+                          height: 52,
+                          child: Image.network(
+                            _currentUser!.photoURL ??
+                                'https://api.dicebear.com/7.x/avataaars/png?seed=${_currentUser!.uid}&size=512',
+                            fit: BoxFit.contain,
+                            filterQuality: FilterQuality.high,
+                            gaplessPlayback: false,
+                            errorBuilder: (context, error, stackTrace) {
+                              final String name =
+                                  (_currentUser!.displayName ?? '').trim();
+                              final String initial = name.isNotEmpty
+                                  ? name[0].toUpperCase()
+                                  : 'U';
+                              return Container(
+                                color: const Color(0xFF0E504D),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  initial,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              );
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                color: const Color(0xFF0E504D),
+                                alignment: Alignment.center,
+                                child: const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white70,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            : null,
+        title: _currentUser != null
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _currentUser!.displayName ?? '',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _currentUser!.email ?? '',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              )
+            : null,
+        actions: [],
+      ),
+      body: Stack(
+        children: [
+          Column(
+            children: [
+              // Header moved into AppBar above. Maintain spacing below the AppBar.
+              Container(
+                color: Theme.of(context).colorScheme.primary,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 8),
+                      RepaintBoundary(
+                        child: Stack(
+                          alignment: Alignment.center,
+                          clipBehavior: Clip.none,
+                          children: [
+                            Text(
+                              'Hi, How do you\nfeel today?',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 36,
+                                fontWeight: FontWeight.w600,
+                                height: 1.2,
+                                fontFamily: AppTypography.primaryFontFamily,
+                              ),
+                            ),
+                            const Positioned(
+                              top: -10,
+                              left: -20,
+                              child: _EmphasisIcon(),
+                            ),
+                            const Positioned(
+                              bottom: -10,
+                              right: 50,
+                              child: _UnderlineIcon(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildDynamicSubtitle(),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                color: Theme.of(context).colorScheme.primary,
+                child: RepaintBoundary(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                      children: List.generate(
+                        MoodConfigs.length,
+                        (index) => _buildMoodButton(index),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+              Expanded(
+                child: RepaintBoundary(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: Color.fromARGB(255, 251, 245, 240),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(25),
+                        topRight: Radius.circular(25),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        // Hook/Handle component - make it const
+                        Container(
+                          margin: const EdgeInsets.only(top: 8, bottom: 8),
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              20,
+                              12,
+                              18,
+                              90,
+                            ), // Added bottom padding for nav bar
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                RepaintBoundary(
+                                  child: RichText(
+                                    text: TextSpan(
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w700,
+                                        height: 1.3,
+                                        fontFamily:
+                                            AppTypography.primaryFontFamily,
+                                      ),
+                                      children: [
+                                        const TextSpan(
+                                          text: 'Do You know?\n3 Days Your',
+                                        ),
+                                        WidgetSpan(
+                                          alignment:
+                                              PlaceholderAlignment.middle,
+                                          child: RepaintBoundary(
+                                            child: Stack(
+                                              alignment: Alignment.center,
+                                              children: [
+                                                SvgPicture.asset(
+                                                  'assets/icons/circle.svg',
+                                                  width: 50,
+                                                  height: 35,
+                                                  color: const Color.fromARGB(
+                                                    255,
+                                                    180,
+                                                    235,
+                                                    117,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  'Happiness',
+                                                  style: TextStyle(
+                                                    color: const Color.fromARGB(
+                                                      255,
+                                                      17,
+                                                      84,
+                                                      70,
+                                                    ),
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 22,
+                                                    fontFamily: TextStyle(
+                                                      fontFamily: AppTypography
+                                                          .primaryFontFamily,
+                                                    ).fontFamily,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                RepaintBoundary(
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Some things you might be\ninterested in doing',
+                                          style: TextStyle(
+                                            color: Colors.black54,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w400,
+                                            height: 1.4,
+                                            fontFamily:
+                                                AppTypography.primaryFontFamily,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        'View More',
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.primary,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 32),
+                                _buildActivityIcons(context),
+                                const SizedBox(height: 24),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}

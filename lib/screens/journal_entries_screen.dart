@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:animations/animations.dart';
 import '../models/realm_models.dart';
 import '../components/entry_card.dart';
 import 'journal_view.dart';
@@ -13,13 +14,6 @@ class JournalEntriesScreen extends StatelessWidget {
     required this.monthTitle,
     required this.entries,
   });
-
-  void _navigateToEntry(BuildContext context, JournalEntryRealm entry) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => JournalViewScreen(entry: entry)),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,9 +52,19 @@ class JournalEntriesScreen extends StatelessWidget {
         itemCount: entries.length,
         itemBuilder: (context, index) {
           final entry = entries[index];
-          return EntryCard(
-            entry: entry,
-            onTap: () => _navigateToEntry(context, entry),
+          return OpenContainer(
+            transitionType: ContainerTransitionType.fade,
+            transitionDuration: const Duration(milliseconds: 500),
+            openColor: const Color(0xFFf0efeb),
+            closedColor: Colors.transparent,
+            closedElevation: 0,
+            openElevation: 0,
+            closedShape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            closedBuilder: (context, action) =>
+                EntryCard(entry: entry, onTap: action),
+            openBuilder: (context, action) => JournalViewScreen(entry: entry),
           );
         },
       ),

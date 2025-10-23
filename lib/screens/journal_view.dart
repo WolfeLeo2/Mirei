@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:motor/motor.dart';
 import 'package:intl/intl.dart';
 import '../models/realm_models.dart';
 import '../utils/realm_database_helper.dart';
@@ -24,7 +25,7 @@ class JournalViewScreen extends StatefulWidget {
 
 class _JournalViewScreenState extends State<JournalViewScreen>
     with TickerProviderStateMixin {
-  late AnimationController _contentController;
+  late SingleMotionController _contentController;
   late Animation<double> _contentAnimation;
   late ScrollController _scrollController;
   late CarouselController _imagePageController;
@@ -48,9 +49,9 @@ class _JournalViewScreenState extends State<JournalViewScreen>
   @override
   void initState() {
     super.initState();
-    _contentController = AnimationController(
+    _contentController = SingleMotionController(
+      motion: CupertinoMotion.smooth(), // Elegant entrance animation
       vsync: this,
-      duration: const Duration(milliseconds: 600),
     );
     _contentAnimation = CurvedAnimation(
       parent: _contentController,
@@ -59,7 +60,7 @@ class _JournalViewScreenState extends State<JournalViewScreen>
     _scrollController = ScrollController()..addListener(_onScroll);
     _imagePageController = CarouselController(initialItem: 1);
 
-    _contentController.forward();
+    _contentController.animateTo(1.0);
 
     _playerService.initialize();
     _playerSubscription = _playerService.currentlyPlayingStream.listen((path) {
@@ -232,13 +233,21 @@ class _JournalViewScreenState extends State<JournalViewScreen>
         children: [
           Text(
             DateFormat('MMMM d, yyyy').format(createdAt.toLocal()),
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 16, fontWeight: FontWeight.w500).apply(color: _moodColor),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontSize: 16, fontWeight: FontWeight.w500)
+                .apply(color: _moodColor),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             title.isNotEmpty ? title : 'Untitled Entry',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 24, fontWeight: FontWeight.w700, height: 1.5).apply(color: AppColors.textPrimary),
+            style: Theme.of(context).textTheme.headlineMedium
+                ?.copyWith(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  height: 1.5,
+                )
+                .apply(color: AppColors.textPrimary),
             textAlign: TextAlign.center,
           ),
         ],
@@ -274,7 +283,9 @@ class _JournalViewScreenState extends State<JournalViewScreen>
             const SizedBox(width: 8),
             Text(
               _associatedMood!.mood,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w600).apply(color: _moodColor),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(fontSize: 14, fontWeight: FontWeight.w600)
+                  .apply(color: _moodColor),
             ),
           ],
         ),
@@ -325,12 +336,16 @@ class _JournalViewScreenState extends State<JournalViewScreen>
                                 const SizedBox(height: 12),
                                 Text(
                                   'Image not found (missing or moved)',
-                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16).apply(color: AppColors.textSecondary),
+                                  style: Theme.of(context).textTheme.bodyLarge
+                                      ?.copyWith(fontSize: 16)
+                                      .apply(color: AppColors.textSecondary),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'This file path no longer exists on device.',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12).apply(color: AppColors.textSecondary),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(fontSize: 12)
+                                      .apply(color: AppColors.textSecondary),
                                   textAlign: TextAlign.center,
                                 ),
                               ],
@@ -428,7 +443,9 @@ class _JournalViewScreenState extends State<JournalViewScreen>
                     const SizedBox(width: 6),
                     Text(
                       _formatDuration(audio.duration),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 13).apply(color: AppColors.textSecondary),
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(fontSize: 13)
+                          .apply(color: AppColors.textSecondary),
                     ),
                     const SizedBox(width: 12),
                     FutureBuilder<String>(
@@ -438,7 +455,9 @@ class _JournalViewScreenState extends State<JournalViewScreen>
                         return Expanded(
                           child: Text(
                             p.basename(show),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12).apply(color: AppColors.textSecondary),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(fontSize: 12)
+                                .apply(color: AppColors.textSecondary),
                             overflow: TextOverflow.ellipsis,
                           ),
                         );
@@ -549,7 +568,9 @@ class _JournalViewScreenState extends State<JournalViewScreen>
         ),
         title: Text(
           'Journal Entry',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 20, fontWeight: FontWeight.w600).apply(color: AppColors.primary),
+          style: Theme.of(context).textTheme.headlineSmall
+              ?.copyWith(fontSize: 20, fontWeight: FontWeight.w600)
+              .apply(color: AppColors.primary),
         ),
         centerTitle: true,
       ),
@@ -561,12 +582,16 @@ class _JournalViewScreenState extends State<JournalViewScreen>
             const SizedBox(height: 16),
             Text(
               'Entry Not Found',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 24, fontWeight: FontWeight.w600).apply(color: AppColors.textPrimary),
+              style: Theme.of(context).textTheme.headlineMedium
+                  ?.copyWith(fontSize: 24, fontWeight: FontWeight.w600)
+                  .apply(color: AppColors.textPrimary),
             ),
             const SizedBox(height: 8),
             Text(
               'This journal entry has been deleted or is no longer available.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16).apply(color: AppColors.textSecondary),
+              style: Theme.of(context).textTheme.bodyLarge
+                  ?.copyWith(fontSize: 16)
+                  .apply(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -578,7 +603,10 @@ class _JournalViewScreenState extends State<JournalViewScreen>
               ),
               child: Text(
                 'Go Back',
-                style: TextStyle(fontFamily: AppTypography.primaryFontFamily, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontFamily: AppTypography.primaryFontFamily,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -624,7 +652,10 @@ class _JournalViewScreenState extends State<JournalViewScreen>
       SnackBar(
         content: Text(
           'Edit functionality coming soon!',
-          style: TextStyle(fontFamily: AppTypography.primaryFontFamily, color: AppColors.surface),
+          style: TextStyle(
+            fontFamily: AppTypography.primaryFontFamily,
+            color: AppColors.surface,
+          ),
         ),
         backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
@@ -640,7 +671,10 @@ class _JournalViewScreenState extends State<JournalViewScreen>
       SnackBar(
         content: Text(
           'Share functionality coming soon!',
-          style: TextStyle(fontFamily: AppTypography.primaryFontFamily, color: AppColors.surface),
+          style: TextStyle(
+            fontFamily: AppTypography.primaryFontFamily,
+            color: AppColors.surface,
+          ),
         ),
         backgroundColor: AppColors.secondary,
         behavior: SnackBarBehavior.floating,
@@ -657,18 +691,24 @@ class _JournalViewScreenState extends State<JournalViewScreen>
       builder: (context) => AlertDialog(
         title: Text(
           'Delete Entry',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 20, fontWeight: FontWeight.w600).apply(color: AppColors.textPrimary),
+          style: Theme.of(context).textTheme.headlineSmall
+              ?.copyWith(fontSize: 20, fontWeight: FontWeight.w600)
+              .apply(color: AppColors.textPrimary),
         ),
         content: Text(
           'Are you sure you want to delete this journal entry? This action cannot be undone.',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16).apply(color: AppColors.textSecondary),
+          style: Theme.of(context).textTheme.bodyLarge
+              ?.copyWith(fontSize: 16)
+              .apply(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
               'Cancel',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16, fontWeight: FontWeight.w600).apply(color: AppColors.textSecondary),
+              style: Theme.of(context).textTheme.bodyLarge
+                  ?.copyWith(fontSize: 16, fontWeight: FontWeight.w600)
+                  .apply(color: AppColors.textSecondary),
             ),
           ),
           TextButton(
@@ -678,7 +718,9 @@ class _JournalViewScreenState extends State<JournalViewScreen>
             },
             child: Text(
               'Delete',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16, fontWeight: FontWeight.w600).apply(color: AppColors.error),
+              style: Theme.of(context).textTheme.bodyLarge
+                  ?.copyWith(fontSize: 16, fontWeight: FontWeight.w600)
+                  .apply(color: AppColors.error),
             ),
           ),
         ],
@@ -695,7 +737,10 @@ class _JournalViewScreenState extends State<JournalViewScreen>
           SnackBar(
             content: Text(
               'Journal entry deleted',
-              style: TextStyle(fontFamily: AppTypography.primaryFontFamily, color: AppColors.surface),
+              style: TextStyle(
+                fontFamily: AppTypography.primaryFontFamily,
+                color: AppColors.surface,
+              ),
             ),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
@@ -711,7 +756,10 @@ class _JournalViewScreenState extends State<JournalViewScreen>
           SnackBar(
             content: Text(
               'Failed to delete entry: $e',
-              style: TextStyle(fontFamily: AppTypography.primaryFontFamily, color: AppColors.surface),
+              style: TextStyle(
+                fontFamily: AppTypography.primaryFontFamily,
+                color: AppColors.surface,
+              ),
             ),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
@@ -775,7 +823,10 @@ class _JournalViewScreenState extends State<JournalViewScreen>
         SnackBar(
           content: Text(
             'Unable to play audio: $e',
-            style: TextStyle(fontFamily: AppTypography.primaryFontFamily, color: AppColors.surface),
+            style: TextStyle(
+              fontFamily: AppTypography.primaryFontFamily,
+              color: AppColors.surface,
+            ),
           ),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
