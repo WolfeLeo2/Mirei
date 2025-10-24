@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../components/folder_card.dart';
 import '../../core/theme/typography.dart';
@@ -114,26 +115,18 @@ class DiaryJournalsTabState extends State<DiaryJournalsTab>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Image.asset(
-                'assets/images/tabby_journal.png',
-                width: 200,
-                fit: BoxFit.contain,
+              SvgPicture.asset(
+                'assets/images/empty_journals.svg',
+                width: 250,
+                height: 250,
               ),
               const SizedBox(height: 16),
               Text(
                 'No journal entries yet',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontFamily: AppTypography.primaryFontFamily,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Tap the + button to start your first entry.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.black54,
-                ),
-                textAlign: TextAlign.center,
               ),
             ],
           ),

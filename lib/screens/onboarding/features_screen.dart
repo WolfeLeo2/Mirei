@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/theme/typography.dart';
-import 'package:mirei/core/theme/typography.dart';
 
 class FeaturesOnboardingScreen extends StatelessWidget {
   const FeaturesOnboardingScreen({super.key});

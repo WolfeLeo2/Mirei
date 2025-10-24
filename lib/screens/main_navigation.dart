@@ -121,7 +121,7 @@ class _ProfileIcon extends StatelessWidget {
     final initials = _initialsFor(user!);
     final borderColor = selected
         ? theme.colorScheme.primary
-        : theme.colorScheme.outline.withOpacity(0.3);
+        : theme.colorScheme.outline.withAlpha(77);
 
     if (photoUrl != null && photoUrl.isNotEmpty) {
       return Container(

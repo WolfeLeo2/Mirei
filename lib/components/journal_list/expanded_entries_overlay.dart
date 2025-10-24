@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -8,7 +7,6 @@ import '../../models/realm_models.dart';
 import '../../utils/realm_database_helper.dart';
 import 'scattered_entry_card.dart';
 import 'package:realm/realm.dart';
-import 'package:mirei/core/theme/typography.dart';
 
 /// Full-screen overlay that handles the expanded folder state with performance optimizations
 class ExpandedEntriesOverlay extends StatefulWidget {

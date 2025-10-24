@@ -63,9 +63,7 @@ class AppColors {
 
   // Theme-specific color variations
   static Color primaryWithOpacity(double opacity) =>
-      primary.withOpacity(opacity);
-  static Color primaryWithAlpha(double alpha) =>
-      primary.withValues(alpha: alpha);
+      primary.withAlpha((opacity * 255).round());
 
   // Helper method to get emotion color by mood name
   static Color getEmotionColor(String mood) {
@@ -97,7 +95,7 @@ class AppColors {
 
   /// Harmonize a color towards a target color to match the active theme.
   static Color harmonizeTo(Color color, Color target) {
-    return Color(mcu.Blend.harmonize(color.value, target.value));
+    return Color(mcu.Blend.harmonize(color.toARGB32(), target.toARGB32()));
   }
 
   /// Harmonize any color to the theme's primary color hue.

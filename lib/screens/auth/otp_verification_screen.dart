@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../../services/auth_service.dart';
 import 'profile_setup_screen.dart';
@@ -168,7 +167,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withAlpha(25),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Icon(

@@ -1,4 +1,4 @@
-import 'package:bloc/bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../repositories/mood_repository.dart';
 
@@ -11,12 +11,7 @@ class MoodBloc extends Bloc<MoodEvent, MoodState> {
 
   // This static list defines the available Moods.
   // In a more dynamic app, this could also come from the repository.
-  static const List<String> _moods = [
-    'Happy',
-    'Neutral',
-    'Sad',
-    'Angry',
-  ];
+  static const List<String> _moods = ['Happy', 'Neutral', 'Sad', 'Angry'];
 
   MoodBloc({required MoodRepository moodRepository})
     : _moodRepository = moodRepository,

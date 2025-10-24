@@ -72,7 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.3),
+          color: theme.colorScheme.primary.withAlpha(77),
           width: 3,
         ),
       ),
@@ -162,7 +162,7 @@ Widget build(BuildContext context) {
                   user.email!,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.textTheme.bodyMedium?.color
-                        ?.withOpacity(0.7),
+                        ?.withAlpha(179),
                   ),
                 ),
               ),

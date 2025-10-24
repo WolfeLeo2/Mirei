@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'folder_shape.dart';
-import 'package:mirei/core/theme/typography.dart';
-
 
 class FolderCard extends StatelessWidget {
   final String title; // e.g., "September 2025"
@@ -71,7 +68,12 @@ class FolderCard extends StatelessWidget {
                             title,
                             overflow: TextOverflow.ellipsis,
                             maxLines: 2,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: titleSize, fontWeight: FontWeight.w600).apply(color: Colors.black),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  fontSize: titleSize,
+                                  fontWeight: FontWeight.w600,
+                                )
+                                .apply(color: Colors.black),
                           ),
                         ],
                       ),
@@ -84,7 +86,12 @@ class FolderCard extends StatelessWidget {
                   left: countLeft,
                   child: Text(
                     count.toString(),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: (w * 0.11).clamp(12.0, 18.0), fontWeight: FontWeight.w600).apply(color: Colors.black.withValues(alpha: 0.6)),
+                    style: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(
+                          fontSize: (w * 0.11).clamp(12.0, 18.0),
+                          fontWeight: FontWeight.w600,
+                        )
+                        .apply(color: Colors.black.withValues(alpha: 0.6)),
                   ),
                 ),
               ],

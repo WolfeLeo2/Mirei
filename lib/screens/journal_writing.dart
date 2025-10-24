@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../data/mood_constants.dart';
@@ -15,13 +13,13 @@ import '../features/journal/bloc/journal_writing_bloc.dart';
 import '../features/journal/bloc/journal_writing_event.dart';
 import '../features/journal/bloc/journal_writing_state.dart';
 import '../services/player_service.dart';
-import 'package:audio_waveforms/audio_waveforms.dart';
 import '../services/recorder_service.dart';
 import '../services/journal_mood_integration.dart';
-import '../core/theme/typography.dart';
 
 class JournalWritingScreen extends StatelessWidget {
-  const JournalWritingScreen({super.key});
+  final dynamic existingEntry; // For edit mode
+
+  const JournalWritingScreen({super.key, this.existingEntry});
 
   @override
   Widget build(BuildContext context) {
@@ -31,13 +29,15 @@ class JournalWritingScreen extends StatelessWidget {
         recorderService: RecorderService(),
         moodIntegration: JournalMoodIntegration(),
       )..add(JournalWritingInitialized()),
-      child: const _JournalWritingView(),
+      child: _JournalWritingView(existingEntry: existingEntry),
     );
   }
 }
 
 class _JournalWritingView extends StatefulWidget {
-  const _JournalWritingView();
+  final dynamic existingEntry;
+
+  const _JournalWritingView({this.existingEntry});
 
   @override
   _JournalWritingViewState createState() => _JournalWritingViewState();
@@ -58,7 +58,16 @@ class _JournalWritingViewState extends State<_JournalWritingView>
   @override
   void initState() {
     super.initState();
-    // Live waveform removed; no animation initialization.
+
+    // Prefill data if editing existing entry
+    if (widget.existingEntry != null) {
+      try {
+        _titleController.text = widget.existingEntry.title ?? '';
+        _contentController.text = widget.existingEntry.content ?? '';
+      } catch (e) {
+        // Ignore if fields don't exist
+      }
+    }
 
     // Listen for text changes and dispatch events to BLoC
     _titleListener = () => context.read<JournalWritingBloc>().add(
@@ -100,64 +109,64 @@ class _JournalWritingViewState extends State<_JournalWritingView>
           );
         }
 
-        // Navigate back only when explicit success state reached
         if (state.saveStatus == JournalSaveStatus.success) {
           Future.microtask(() {
             if (mounted) Navigator.pop(context, true);
           });
         }
-
-        // Live waveform removed: no animation handling.
       },
       child: BlocBuilder<JournalWritingBloc, JournalWritingState>(
         builder: (context, state) {
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Scaffold(
-              extendBodyBehindAppBar: true,
-              resizeToAvoidBottomInset: true,
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          return Scaffold(
+            resizeToAvoidBottomInset: true,
+            body: SafeArea(
+              child: Column(
+                children: [
+                  // Top toolbar
+                  _buildToolbar(context, state),
 
-              body: SafeArea(
-                child: Column(
-                  children: [
-                    _buildHeader(context, state),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildEditorCard(context, state),
+                  // Main scrollable area
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Images grid (edge to edge, only when images exist)
+                          if (state.selectedImages.isNotEmpty) ...[
+                            _buildImagesGrid(context, state),
                             const SizedBox(height: 20),
-                            _buildMoodSection(context, state),
-                            _buildAttachmentsSection(context, state),
-                            const SizedBox(height: 16),
-                            // Live recording waveform removed.
-                            if (state.selectedImages.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                child: _buildImagesGrid(context, state),
-                              ),
-                            if (state.audioRecordings.isNotEmpty) ...[
-                              const SizedBox(height: 16),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                child: _buildAudioList(context, state),
-                              ),
-                            ],
-                            const SizedBox(height: 100),
                           ],
-                        ),
+
+                          // Content area with padding
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Title field
+                                _buildTitleField(context, state),
+                                const SizedBox(height: 16),
+
+                                // Date with icon
+                                _buildDateRow(context),
+                                const SizedBox(height: 24),
+
+                                // Content field
+                                _buildContentField(context, state),
+                                const SizedBox(height: 32),
+
+                                // Mood section at bottom
+                                _buildMoodSection(context, state),
+                                const SizedBox(height: 100),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           );
@@ -166,36 +175,54 @@ class _JournalWritingViewState extends State<_JournalWritingView>
     );
   }
 
-  Widget _buildHeader(BuildContext context, JournalWritingState state) {
-    final String date = DateFormat('MMM d, yyyy').format(DateTime.now());
-
-    return Padding(
+  /// Top toolbar: X and + on left, Save on right
+  Widget _buildToolbar(BuildContext context, JournalWritingState state) {
+    return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          _buildPillButton(
-            label: 'Cancel',
-            onTap: () {
-              HapticFeedback.lightImpact();
-              Navigator.pop(context);
-            },
-          ),
-          Expanded(
-            child: Center(
-              child: Text(
-                date,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF115e5a),
-                  fontFamily: AppTypography.primaryFontFamily,
-                ),
+          // X button (close) in circular container
+          Material(
+            color: Colors.black12,
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                Navigator.pop(context);
+              },
+              customBorder: const CircleBorder(),
+              child: Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                child: const Icon(Icons.close, color: Colors.black87, size: 24),
               ),
             ),
           ),
-          _buildPillButton(
-            label: 'Save',
-            onTap: state.canSave
+
+          const SizedBox(width: 8),
+
+          // + button (add media) in circular container
+          Material(
+            color: Colors.black12,
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: () => _showMediaPicker(context, state),
+              customBorder: const CircleBorder(),
+              child: Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                child: const Icon(Icons.add, color: Colors.black87, size: 24),
+              ),
+            ),
+          ),
+
+          const Spacer(),
+
+          // Save/Update button
+          TextButton(
+            onPressed: state.canSave
                 ? () {
                     HapticFeedback.lightImpact();
                     context.read<JournalWritingBloc>().add(
@@ -203,417 +230,316 @@ class _JournalWritingViewState extends State<_JournalWritingView>
                     );
                   }
                 : null,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEditorCard(BuildContext context, JournalWritingState state) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Title input (Notion-like)
-            TextField(
-              controller: _titleController,
-              focusNode: _titleFocusNode,
-              textInputAction: TextInputAction.next,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
-                height: 1.25,
-                fontFamily: AppTypography.primaryFontFamily,
-              ),
-              decoration: InputDecoration(
-                isCollapsed: true,
-                hintText: 'Title',
-                hintStyle: TextStyle(
-                  color: Colors.black26,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: AppTypography.primaryFontFamily,
-                ),
-                border: InputBorder.none,
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Context/body input
-            TextField(
-              controller: _contentController,
-              focusNode: _contentFocusNode,
-              keyboardType: TextInputType.multiline,
-              textInputAction: TextInputAction.newline,
-              minLines: 10,
-              maxLines: null,
-              style: TextStyle(
-                fontSize: 16,
-                height: 1.5,
-                fontFamily: AppTypography.primaryFontFamily,
-              ),
-              decoration: InputDecoration(
-                isCollapsed: true,
-                hintText: "What do you wish you'd said today?",
-                hintStyle: TextStyle(
-                  color: Colors.black26,
-                  fontSize: 16,
-                  fontFamily: AppTypography.primaryFontFamily,
-                ),
-                border: InputBorder.none,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAttachmentsSection(
-    BuildContext context,
-    JournalWritingState state,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 24, left: 16, right: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'Attachments',
-            style: TextStyle(
-              color: Colors.black87,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              fontFamily: AppTypography.primaryFontFamily,
-            ),
-          ),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => context.read<JournalWritingBloc>().add(
-                  ImagePickerRequested(),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF115e5a),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.image, color: Colors.white, size: 16),
-                      SizedBox(width: 6),
-                      Text(
-                        'Photo',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () => state.isRecording
-                    ? context.read<JournalWritingBloc>().add(
-                        RecordingStopRequested(),
-                      )
-                    : context.read<JournalWritingBloc>().add(
-                        RecordingStartRequested(),
-                      ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: state.isRecording
-                        ? Colors.red
-                        : const Color(0xFF115e5a),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        state.isRecording ? Icons.stop : Icons.mic,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        state.isRecording ? 'Stop' : 'Voice',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPillButton({required String label, VoidCallback? onTap}) {
-    final bool enabled = onTap != null;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(enabled ? 1 : 0.6),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
-              ),
-            ],
-            border: Border.all(color: const Color(0xFFE7ECEA)),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: enabled
+            style: TextButton.styleFrom(
+              backgroundColor: state.canSave
                   ? const Color(0xFF115e5a)
-                  : const Color(0xFF115e5a).withOpacity(0.4),
-              fontFamily: AppTypography.primaryFontFamily,
+                  : Colors.grey.shade300,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
             ),
+            child: Text(
+              widget.existingEntry != null ? 'Update' : 'Save',
+              style: TextStyle(
+                color: state.canSave ? Colors.white : Colors.grey.shade500,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Title field with "Add title" placeholder
+  Widget _buildTitleField(BuildContext context, JournalWritingState state) {
+    return TextField(
+      controller: _titleController,
+      focusNode: _titleFocusNode,
+      style: const TextStyle(
+        color: Colors.black87,
+        fontSize: 28,
+        fontWeight: FontWeight.w600,
+        height: 1.2,
+      ),
+      decoration: const InputDecoration(
+        hintText: 'Add title',
+        hintStyle: TextStyle(
+          color: Colors.black26,
+          fontSize: 28,
+          fontWeight: FontWeight.w600,
+        ),
+        border: InputBorder.none,
+        contentPadding: EdgeInsets.zero,
+      ),
+      maxLines: null,
+      textCapitalization: TextCapitalization.sentences,
+    );
+  }
+
+  /// Date row with calendar icon
+  Widget _buildDateRow(BuildContext context) {
+    final String date = DateFormat('EEE, d MMM yyyy').format(DateTime.now());
+
+    return Row(
+      children: [
+        const Icon(
+          Icons.calendar_today_outlined,
+          size: 16,
+          color: Colors.black54,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          date,
+          style: const TextStyle(
+            color: Colors.black54,
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Content field with "What's on your mind?" placeholder
+  Widget _buildContentField(BuildContext context, JournalWritingState state) {
+    return TextField(
+      controller: _contentController,
+      focusNode: _contentFocusNode,
+      style: const TextStyle(
+        color: Colors.black87,
+        fontSize: 17,
+        fontWeight: FontWeight.w400,
+        height: 1.5,
+      ),
+      decoration: const InputDecoration(
+        hintText: "What's on your mind?",
+        hintStyle: TextStyle(
+          color: Colors.black26,
+          fontSize: 17,
+          fontWeight: FontWeight.w400,
+        ),
+        border: InputBorder.none,
+        contentPadding: EdgeInsets.zero,
+      ),
+      maxLines: null,
+      minLines: 5,
+      textCapitalization: TextCapitalization.sentences,
+    );
+  }
+
+  /// Show media picker bottom sheet (Camera / Gallery)
+  void _showMediaPicker(BuildContext context, JournalWritingState state) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Camera option
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Colors.black87),
+                title: const Text(
+                  'Camera',
+                  style: TextStyle(color: Colors.black87, fontSize: 17),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickFromCamera();
+                },
+              ),
+
+              // Gallery option
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Colors.black87),
+                title: const Text(
+                  'Gallery',
+                  style: TextStyle(color: Colors.black87, fontSize: 17),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickFromGallery();
+                },
+              ),
+            ],
           ),
         ),
       ),
     );
+  }
+
+  /// Pick image from camera
+  void _pickFromCamera() {
+    context.read<JournalWritingBloc>().add(CameraRequested());
+  }
+
+  /// Pick images from gallery
+  void _pickFromGallery() {
+    context.read<JournalWritingBloc>().add(ImagePickerRequested());
   }
 
   // New: only images grid
+  /// Google Journal-inspired image grid - EDGE TO EDGE
+  /// Layout: 1 large image on left, 2 smaller on right (groups of 3)
+  /// Horizontally scrollable when multiple groups exist
   Widget _buildImagesGrid(BuildContext context, JournalWritingState state) {
-    return MasonryGridView.count(
-      crossAxisCount: 3,
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      itemCount: state.selectedImages.length,
-      itemBuilder: (context, index) {
-        final imageFile = state.selectedImages[index];
-        return Stack(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.file(File(imageFile.path), fit: BoxFit.cover),
-            ),
-            Positioned(
-              top: 6,
-              right: 6,
-              child: _buildRemoveChip(
-                onTap: () {
-                  context.read<JournalWritingBloc>().add(ImageRemoved(index));
-                },
+    final images = state.selectedImages;
+    if (images.isEmpty) return const SizedBox.shrink();
+
+    // Calculate number of complete groups and remaining images
+    final groups = (images.length / 3).ceil();
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return SizedBox(
+      height: 250, // Fixed height for consistent layout
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.all(4), // Edge to edge
+        itemCount: groups,
+        itemBuilder: (context, groupIndex) {
+          final startIndex = groupIndex * 3;
+          final endIndex = (startIndex + 3).clamp(0, images.length);
+          final groupImages = images.sublist(startIndex, endIndex);
+
+          return SizedBox(
+            width: screenWidth, // Full screen width per group
+            child: Padding(
+              padding: EdgeInsets.only(
+                right: groupIndex < groups - 1 ? 8 : 0,
+                left: groupIndex == 0 ? 0 : 8,
               ),
+              child: _buildImageGroup(context, groupImages, startIndex),
             ),
-          ],
-        );
-      },
-    );
-  }
-
-  // New: audio list, edge-to-edge
-  Widget _buildAudioList(BuildContext context, JournalWritingState state) {
-    return ListView.separated(
-      padding: EdgeInsets.zero,
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      itemCount: state.audioRecordings.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, i) {
-        final audio = state.audioRecordings[i];
-        // Stored as milliseconds (int) when added in the BLoC; convert to Duration safely.
-        final rawDuration = audio['duration'];
-        Duration duration;
-        if (rawDuration is Duration) {
-          duration = rawDuration;
-        } else if (rawDuration is int) {
-          duration = Duration(milliseconds: rawDuration);
-        } else {
-          duration = Duration.zero;
-        }
-        return _buildAudioChip(
-          context,
-          state,
-          audio['path'] as String,
-          duration,
-          i,
-        );
-      },
-    );
-  }
-
-  Widget _buildRemoveChip({required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: const Icon(Icons.close, size: 14),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildAudioChip(
+  /// Builds a single group of images (1 large + up to 2 small)
+  Widget _buildImageGroup(
     BuildContext context,
-    JournalWritingState state,
-    String path,
-    Duration duration,
-    int index,
+    List<dynamic> groupImages,
+    int startIndex,
   ) {
-    final isPlaying = state.currentlyPlayingAudio == path;
-    // Obtain (or create) a PlayerController via the bloc's injected PlayerService (consistent instance).
-    final bloc = context.read<JournalWritingBloc>();
-    final controller = bloc.getWaveformController(path);
+    final hasMultiple = groupImages.length > 1;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Play button
-          GestureDetector(
-            onTap: () => context.read<JournalWritingBloc>().add(
-              AudioPlaybackToggled(path),
-            ),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: const BoxDecoration(
-                color: Color(0xFF115e5a),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isPlaying ? Icons.pause : Icons.play_arrow,
-                color: Colors.white,
-                size: 22,
-              ),
-            ),
+    return Row(
+      children: [
+        // Large image on the left
+        Expanded(
+          flex: hasMultiple ? 3 : 1,
+          child: _buildImageItem(
+            context,
+            groupImages[0],
+            startIndex,
+            isLarge: true,
           ),
-          const SizedBox(width: 12),
-
-          // Waveform placeholder and Duration
+        ),
+        // Smaller images on the right (if any)
+        if (hasMultiple) ...[
+          const SizedBox(width: 4),
           Expanded(
+            flex: 2,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  height: 40,
-                  child: AudioFileWaveforms(
-                    size: const Size(double.infinity, 40),
-                    playerController: controller,
-                    waveformType: WaveformType.fitWidth,
-                    playerWaveStyle: PlayerWaveStyle(
-                      fixedWaveColor: Colors.grey.shade300,
-                      liveWaveColor: const Color(0xFF115e5a),
-                      spacing: 2.5,
-                      waveThickness: 2,
-                      scaleFactor: 140,
-                      showSeekLine: true,
-                      waveCap: StrokeCap.round,
+                // Second image (top right)
+                Expanded(
+                  child: _buildImageItem(
+                    context,
+                    groupImages[1],
+                    startIndex + 1,
+                    isLarge: false,
+                  ),
+                ),
+                // Third image (bottom right) if exists
+                if (groupImages.length > 2) ...[
+                  const SizedBox(height: 4),
+                  Expanded(
+                    child: _buildImageItem(
+                      context,
+                      groupImages[2],
+                      startIndex + 2,
+                      isLarge: false,
                     ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _formatDuration(duration),
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.black54,
-                    fontWeight: FontWeight.w500,
-                    fontFamily: AppTypography.primaryFontFamily,
-                  ),
-                ),
+                ],
               ],
             ),
           ),
-          const SizedBox(width: 12),
+        ],
+      ],
+    );
+  }
 
-          // Delete button
-          GestureDetector(
-            onTap: () => context.read<JournalWritingBloc>().add(
-              AudioRecordingRemoved(index),
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.close, color: Colors.grey, size: 16),
-            ),
+  /// Builds individual image with long-press context menu
+  Widget _buildImageItem(
+    BuildContext context,
+    dynamic imageFile,
+    int index, {
+    required bool isLarge,
+  }) {
+    return GestureDetector(
+      onLongPressStart: (details) {
+        HapticFeedback.mediumImpact();
+        _showImageContextMenu(context, details.globalPosition, index);
+      },
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(File(imageFile.path), fit: BoxFit.cover),
           ),
         ],
       ),
     );
   }
 
-  // Removed _buildMiniWaveform (replaced with AudioFileWaveforms widget)
+  /// Show context menu for image deletion
+  void _showImageContextMenu(BuildContext context, Offset position, int index) {
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
 
-  String _formatDuration(Duration d) {
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$m:$s';
+    showMenu(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(position.dx, position.dy, 0, 0),
+        Rect.fromLTWH(0, 0, overlay.size.width, overlay.size.height),
+      ),
+
+      items: [
+        PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: const [
+              Icon(Icons.delete, color: Colors.red, size: 20),
+              SizedBox(width: 12),
+              Text('Delete', style: TextStyle(color: Colors.red, fontSize: 16)),
+            ],
+          ),
+        ),
+      ],
+      elevation: 8,
+    ).then((value) {
+      if (value == 'delete') {
+        HapticFeedback.lightImpact();
+        context.read<JournalWritingBloc>().add(ImageRemoved(index));
+      }
+    });
   }
 
-  // _buildWaveVisualization removed.
-
-  // Mood section (edge-to-edge)
+  // Mood section
   Widget _buildMoodSection(BuildContext context, JournalWritingState state) {
     final moodExt = Theme.of(context).extension<MoodColors>();
     final selectedMoodColorRaw = state.selectedMood != null
@@ -625,70 +551,64 @@ class _JournalWritingViewState extends State<_JournalWritingView>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'How are you feeling?',
-                style: TextStyle(
-                  color: Colors.black87,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: AppTypography.primaryFontFamily,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'How are you feeling?',
+              style: TextStyle(
+                color: Colors.black87,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (state.selectedMood != null)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: selectedMoodColor!.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: selectedMoodColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      state.selectedMood!,
+                      style: TextStyle(
+                        color: selectedMoodColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              if (state.selectedMood != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: selectedMoodColor!.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: selectedMoodColor,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        state.selectedMood!,
-                        style: TextStyle(
-                          color: selectedMoodColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: AppTypography.primaryFontFamily,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
+          ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         // Mood Buttons Horizontal Scroll
         RepaintBoundary(
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: List.generate(MoodConstants.moodTypes.length, (index) {
                 final mood = MoodConstants.moodTypes[index];
                 return MoodButton(
                   Mood: mood,
-                  svgPath: kMoodSvg[mood] ?? 'assets/emotion-icons/neutral.svg',
+                  svgPath: kMoodSvg[mood]!,
                   isSelected: mood == state.selectedMood,
                   onTap: () {
                     HapticFeedback.lightImpact();

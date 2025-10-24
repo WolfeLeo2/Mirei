@@ -42,13 +42,12 @@ class _MoodEntryFlowState extends State<MoodEntryFlow> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        if (_currentPage > 0) {
+    return PopScope(
+      canPop: _currentPage == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _currentPage > 0) {
           _goToPage(_currentPage - 1);
-          return false;
         }
-        return true;
       },
       child: PageView(
         controller: _pageController,

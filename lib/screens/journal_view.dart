@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:motor/motor.dart';
@@ -13,6 +14,7 @@ import '../services/media_store.dart';
 import '../services/player_service.dart';
 import '../core/theme/typography.dart';
 import 'package:path/path.dart' as p;
+import 'journal_writing.dart';
 
 class JournalViewScreen extends StatefulWidget {
   final JournalEntryRealm entry;
@@ -28,7 +30,6 @@ class _JournalViewScreenState extends State<JournalViewScreen>
   late SingleMotionController _contentController;
   late Animation<double> _contentAnimation;
   late ScrollController _scrollController;
-  late CarouselController _imagePageController;
 
   MoodEntryRealm? _associatedMood;
   Color _moodColor = AppColors.primary;
@@ -58,7 +59,6 @@ class _JournalViewScreenState extends State<JournalViewScreen>
       curve: Curves.easeOut,
     );
     _scrollController = ScrollController()..addListener(_onScroll);
-    _imagePageController = CarouselController(initialItem: 1);
 
     _contentController.animateTo(1.0);
 
@@ -153,114 +153,429 @@ class _JournalViewScreenState extends State<JournalViewScreen>
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).pop(),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Toolbar
+            _buildToolbar(context),
+
+            // Main content
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _handleRefresh,
+                color: AppColors.primary,
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: AnimatedBuilder(
+                    animation: _contentAnimation,
+                    builder: (context, child) {
+                      return Transform.translate(
+                        offset: Offset(0, 30 * (1 - _contentAnimation.value)),
+                        child: Opacity(
+                          opacity: _contentAnimation.value,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Images grid (edge to edge, only when images exist)
+                              if (imagePaths.isNotEmpty) ...[
+                                _buildImagesGrid(imagePaths),
+                                const SizedBox(height: 20),
+                              ],
+
+                              // Content area with padding
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Title
+                                    _buildTitle(title),
+                                    const SizedBox(height: 16),
+
+                                    // Date with icon
+                                    _buildDateRow(createdAt),
+                                    const SizedBox(height: 24),
+
+                                    // Audio Section
+                                    if (audioRecordings.isNotEmpty) ...[
+                                      _buildAudioSection(audioRecordings),
+                                      const SizedBox(height: 24),
+                                    ],
+
+                                    // Content
+                                    _buildContent(content),
+                                    const SizedBox(height: 32),
+
+                                    // Mood section at bottom
+                                    if (_associatedMood != null) ...[
+                                      _buildMoodPill(),
+                                    ],
+
+                                    const SizedBox(height: 100),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
-      body: Stack(
-        clipBehavior: Clip.none,
+    );
+  }
+
+  /// Toolbar with X and Menu buttons (matching journal_writing layout)
+  Widget _buildToolbar(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
         children: [
-          RefreshIndicator(
-            onRefresh: _handleRefresh,
-            color: AppColors.primary,
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(20),
-              child: AnimatedBuilder(
-                animation: _contentAnimation,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(0, 30 * (1 - _contentAnimation.value)),
-                    child: Opacity(
-                      opacity: _contentAnimation.value,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Date Section
-                          _buildDateSection(createdAt, title),
-                          const SizedBox(height: 16),
-
-                          // Mood Section
-                          if (_associatedMood != null) ...[
-                            _buildMoodSection(),
-                            const SizedBox(height: 24),
-                          ],
-
-                          // Images Carousel Section
-                          if (imagePaths.isNotEmpty) ...[
-                            _buildImageCarousel(imagePaths),
-                            const SizedBox(height: 24),
-                          ],
-
-                          // Audio Section
-                          if (audioRecordings.isNotEmpty) ...[
-                            _buildAudioSection(audioRecordings),
-                            const SizedBox(height: 24),
-                          ],
-
-                          // Content Section
-                          _buildContentSection(content),
-
-                          const SizedBox(
-                            height: 100,
-                          ), // Space for floating buttons
-                        ],
-                      ),
-                    ),
-                  );
-                },
+          // X button (close)
+          Material(
+            color: Colors.black12,
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                Navigator.pop(context);
+              },
+              customBorder: const CircleBorder(),
+              child: Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                child: const Icon(Icons.close, color: Colors.black87, size: 24),
               ),
             ),
           ),
 
-          // Floating Action Buttons
-          _buildFloatingActionButtons(),
+          const Spacer(),
+
+          // Menu button
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'edit') {
+                _handleEdit(context);
+              } else if (value == 'delete') {
+                _handleDelete(context);
+              }
+            },
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: const [
+                    Icon(Icons.edit_outlined, color: Colors.black87, size: 20),
+                    SizedBox(width: 12),
+                    Text(
+                      'Edit',
+                      style: TextStyle(fontSize: 16, color: Colors.black87),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: const [
+                    Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                    SizedBox(width: 12),
+                    Text(
+                      'Delete',
+                      style: TextStyle(fontSize: 16, color: Colors.red),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF115e5a),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Text(
+                    'Menu',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDateSection(DateTime createdAt, String title) {
+  void _handleEdit(BuildContext context) async {
+    HapticFeedback.lightImpact();
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => JournalWritingScreen(existingEntry: _entryOrWidget),
+      ),
+    );
+    if (result == true && mounted) {
+      // Refresh the view after editing
+      _handleRefresh();
+    }
+  }
+
+  void _handleDelete(BuildContext context) {
+    HapticFeedback.lightImpact();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'Delete Entry',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        content: const Text(
+          'Are you sure you want to delete this journal entry? This action cannot be undone.',
+          style: TextStyle(fontSize: 16, color: Colors.black54),
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black54,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _performDelete();
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.red,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performDelete() async {
+    try {
+      await _dbHelper.deleteJournalEntry(widget.entry.id);
+      if (mounted) {
+        Navigator.of(context).pop(true); // Return true to indicate deletion
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Journal entry deleted'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete entry: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Images grid (similar to journal_writing layout)
+  Widget _buildImagesGrid(List<String> imagePaths) {
+    final itemCount = imagePaths.length;
+    int groups;
+    if (itemCount == 1) {
+      groups = 1;
+    } else if (itemCount == 2) {
+      groups = 2;
+    } else {
+      groups = (itemCount / 3).ceil();
+    }
+
+    return SizedBox(
+      height: 250,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(4),
+        itemCount: groups,
+        itemBuilder: (context, groupIndex) {
+          final startIndex = groupIndex * 3;
+          final endIndex = (startIndex + 3).clamp(0, itemCount);
+          final groupItems = imagePaths.sublist(startIndex, endIndex);
+
+          if (groupItems.length == 1) {
+            return _buildSingleImageItem(groupItems[0]);
+          } else if (groupItems.length == 2) {
+            return _buildTwoImagesLayout(groupItems);
+          } else {
+            return _buildThreeImagesLayout(groupItems);
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildSingleImageItem(String imagePath) {
+    return FutureBuilder<String>(
+      future: MediaStore.instance.resolvePath(imagePath),
+      builder: (context, snapshot) {
+        final resolvedPath = snapshot.data ?? imagePath;
+        return Container(
+          width: MediaQuery.of(context).size.width - 8,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          child: GestureDetector(
+            onTap: () => _showImagePreview(context, resolvedPath),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(File(resolvedPath), fit: BoxFit.cover),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTwoImagesLayout(List<String> images) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Column(
+      width: MediaQuery.of(context).size.width - 8,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
         children: [
-          Text(
-            DateFormat('MMMM d, yyyy').format(createdAt.toLocal()),
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontSize: 16, fontWeight: FontWeight.w500)
-                .apply(color: _moodColor),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title.isNotEmpty ? title : 'Untitled Entry',
-            style: Theme.of(context).textTheme.headlineMedium
-                ?.copyWith(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  height: 1.5,
-                )
-                .apply(color: AppColors.textPrimary),
-            textAlign: TextAlign.center,
+          Expanded(child: _buildGridImageItem(images[0])),
+          const SizedBox(width: 8),
+          Expanded(child: _buildGridImageItem(images[1])),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThreeImagesLayout(List<String> images) {
+    return Container(
+      width: MediaQuery.of(context).size.width - 8,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          Expanded(child: _buildGridImageItem(images[0])),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              children: [
+                Expanded(child: _buildGridImageItem(images[1])),
+                const SizedBox(height: 8),
+                Expanded(child: _buildGridImageItem(images[2])),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMoodSection() {
+  Widget _buildGridImageItem(String imagePath) {
+    return FutureBuilder<String>(
+      future: MediaStore.instance.resolvePath(imagePath),
+      builder: (context, snapshot) {
+        final resolvedPath = snapshot.data ?? imagePath;
+        return GestureDetector(
+          onTap: () => _showImagePreview(context, resolvedPath),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(File(resolvedPath), fit: BoxFit.cover),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Title display
+  Widget _buildTitle(String title) {
+    return Text(
+      title.isNotEmpty ? title : 'Untitled Entry',
+      style: const TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w600,
+        color: Colors.black87,
+        height: 1.3,
+      ),
+    );
+  }
+
+  /// Date row with icon (like journal_writing)
+  Widget _buildDateRow(DateTime createdAt) {
+    return Row(
+      children: [
+        const Icon(Icons.calendar_today, size: 16, color: Colors.black54),
+        const SizedBox(width: 8),
+        Text(
+          DateFormat('MMMM d, yyyy').format(createdAt.toLocal()),
+          style: const TextStyle(fontSize: 14, color: Colors.black54),
+        ),
+      ],
+    );
+  }
+
+  /// Content display
+  Widget _buildContent(String content) {
+    return Text(
+      content.isNotEmpty ? content : 'No content',
+      style: const TextStyle(fontSize: 16, color: Colors.black87, height: 1.6),
+    );
+  }
+
+  /// Mood pill at bottom
+  Widget _buildMoodPill() {
     if (_associatedMood == null) return const SizedBox();
 
     return Center(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: _moodColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
@@ -283,82 +598,14 @@ class _JournalViewScreenState extends State<JournalViewScreen>
             const SizedBox(width: 8),
             Text(
               _associatedMood!.mood,
-              style: Theme.of(context).textTheme.bodyMedium
-                  ?.copyWith(fontSize: 14, fontWeight: FontWeight.w600)
-                  .apply(color: _moodColor),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: _moodColor,
+              ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildImageCarousel(List<String> imagePaths) {
-    final double height = MediaQuery.sizeOf(context).height;
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: height / 3),
-      child: CarouselView.weighted(
-        controller: _imagePageController,
-        itemSnapping: true,
-        flexWeights: const <int>[1, 8, 1],
-        children: [
-          for (final storedPath in imagePaths)
-            FutureBuilder<String>(
-              future: MediaStore.instance.resolvePath(storedPath),
-              builder: (context, snapshot) {
-                final resolvedPath = snapshot.data ?? storedPath;
-                return Hero(
-                  tag: 'image_$storedPath',
-                  child: GestureDetector(
-                    onTap: () => _showImagePreview(context, resolvedPath),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.file(
-                        File(resolvedPath),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.backgroundLight,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.divider),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.broken_image_outlined,
-                                  color: AppColors.textSecondary,
-                                  size: 48,
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'Image not found (missing or moved)',
-                                  style: Theme.of(context).textTheme.bodyLarge
-                                      ?.copyWith(fontSize: 16)
-                                      .apply(color: AppColors.textSecondary),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'This file path no longer exists on device.',
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(fontSize: 12)
-                                      .apply(color: AppColors.textSecondary),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-        ],
       ),
     );
   }
@@ -477,85 +724,6 @@ class _JournalViewScreenState extends State<JournalViewScreen>
     );
   }
 
-  Widget _buildContentSection(String content) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          content,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            fontSize: 16,
-            height: 1.6,
-            color: Colors.black,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFloatingActionButtons() {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 24),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildSolidActionButton(
-              icon: Icons.edit,
-              onTap: () => _navigateToEdit(context),
-              iconColor: AppColors.primary,
-              tooltip: 'Edit',
-            ),
-            const SizedBox(width: 24),
-            _buildSolidActionButton(
-              icon: Icons.share_rounded,
-              onTap: () => _shareEntry(context),
-              iconColor: AppColors.secondary,
-              tooltip: 'Share',
-            ),
-            const SizedBox(width: 24),
-            _buildSolidActionButton(
-              icon: Icons.delete_outline_rounded,
-              onTap: () => _deleteEntry(context),
-              iconColor: AppColors.error,
-              tooltip: 'Delete',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSolidActionButton({
-    required IconData icon,
-    required VoidCallback onTap,
-    required Color iconColor,
-    String? tooltip,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: Tooltip(
-        message: tooltip ?? '',
-        child: InkWell(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            onTap();
-          },
-          child: Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: iconColor, size: 22),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildErrorScreen() {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
@@ -647,142 +815,22 @@ class _JournalViewScreenState extends State<JournalViewScreen>
     );
   }
 
-  void _navigateToEdit(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Edit functionality coming soon!',
-          style: TextStyle(
-            fontFamily: AppTypography.primaryFontFamily,
-            color: AppColors.surface,
-          ),
-        ),
-        backgroundColor: AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-        shape: const RoundedSuperellipseBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-        ),
-      ),
-    );
-  }
-
-  void _shareEntry(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Share functionality coming soon!',
-          style: TextStyle(
-            fontFamily: AppTypography.primaryFontFamily,
-            color: AppColors.surface,
-          ),
-        ),
-        backgroundColor: AppColors.secondary,
-        behavior: SnackBarBehavior.floating,
-        shape: const RoundedSuperellipseBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-        ),
-      ),
-    );
-  }
-
-  void _deleteEntry(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Delete Entry',
-          style: Theme.of(context).textTheme.headlineSmall
-              ?.copyWith(fontSize: 20, fontWeight: FontWeight.w600)
-              .apply(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'Are you sure you want to delete this journal entry? This action cannot be undone.',
-          style: Theme.of(context).textTheme.bodyLarge
-              ?.copyWith(fontSize: 16)
-              .apply(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cancel',
-              style: Theme.of(context).textTheme.bodyLarge
-                  ?.copyWith(fontSize: 16, fontWeight: FontWeight.w600)
-                  .apply(color: AppColors.textSecondary),
-            ),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              await _performDelete();
-            },
-            child: Text(
-              'Delete',
-              style: Theme.of(context).textTheme.bodyLarge
-                  ?.copyWith(fontSize: 16, fontWeight: FontWeight.w600)
-                  .apply(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _performDelete() async {
-    try {
-      await _dbHelper.deleteJournalEntry(widget.entry.id);
-      if (mounted) {
-        Navigator.of(context).pop(true); // Return true to indicate deletion
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Journal entry deleted',
-              style: TextStyle(
-                fontFamily: AppTypography.primaryFontFamily,
-                color: AppColors.surface,
-              ),
-            ),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: const RoundedSuperellipseBorder(
-              borderRadius: BorderRadius.all(Radius.circular(12)),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Failed to delete entry: $e',
-              style: TextStyle(
-                fontFamily: AppTypography.primaryFontFamily,
-                color: AppColors.surface,
-              ),
-            ),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: const RoundedSuperellipseBorder(
-              borderRadius: BorderRadius.all(Radius.circular(12)),
-            ),
-          ),
-        );
-      }
-    }
-  }
-
   void _onScroll() {}
 
   Future<void> _loadAssociatedMood() async {
     try {
-      final entryMood = _entryOrWidget.entryMood;
+      final entryMood = _safeAccess(() => _entryOrWidget.entryMood);
+      final createdAt = _safeAccess(() => _entryOrWidget.createdAt);
+      
+      if (createdAt == null) return; // Entry is invalid
+      
       if (entryMood != null) {
+        if (!mounted) return;
         setState(() {
           _associatedMood = MoodEntryRealm(
             ObjectId(),
             entryMood,
-            _entryOrWidget.createdAt.toUtc(),
+            createdAt.toUtc(),
             intensity: null,
           );
           _moodColor = AppColors.harmonizeToPrimary(
@@ -792,9 +840,9 @@ class _JournalViewScreenState extends State<JournalViewScreen>
         });
         return;
       }
-      final createdAt = _entryOrWidget.createdAt;
+      
       final dailyMoods = await _dbHelper.getAllMoodsForDate(createdAt);
-      if (dailyMoods.isNotEmpty) {
+      if (dailyMoods.isNotEmpty && mounted) {
         setState(() {
           _associatedMood = dailyMoods.first;
           _moodColor = AppColors.harmonizeToPrimary(
@@ -803,8 +851,10 @@ class _JournalViewScreenState extends State<JournalViewScreen>
           );
         });
       }
-    } catch (_) {
-      // silent
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('JournalViewScreen: Error loading mood: $e');
+      }
     }
   }
 
@@ -848,7 +898,6 @@ class _JournalViewScreenState extends State<JournalViewScreen>
   void dispose() {
     _contentController.dispose();
     _scrollController.dispose();
-    _imagePageController.dispose();
     _entrySub?.cancel();
     _playerSubscription?.cancel();
     _playerService.stop();

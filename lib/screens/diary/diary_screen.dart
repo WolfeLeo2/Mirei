@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:floating_bottom_navigation_bar/floating_bottom_navigation_bar.dart';
+import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
 
 import '../journal_writing.dart';
 import 'diary_journals_tab.dart';
@@ -28,57 +28,52 @@ class _DiaryScreenState extends State<DiaryScreen> {
     final isJournalTab = _currentTab == _DiaryTab.journals;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F6F6),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Diary'),
         centerTitle: true,
         elevation: 0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 80),
-          child: IndexedStack(
-            index: _currentTab.index,
-            children: [
-              DiaryJournalsTab(key: _journalsKey),
-              DiaryMemoriesTab(key: _memoriesKey),
-            ],
-          ),
-        ),
+      body: IndexedStack(
+        index: _currentTab.index,
+        children: [
+          DiaryJournalsTab(key: _journalsKey),
+          DiaryMemoriesTab(key: _memoriesKey),
+        ],
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
         onPressed: _handleCreate,
         backgroundColor: const Color(0xFF115e5a),
+        elevation: 4,
+        shape: const CircleBorder(),
         child: Icon(
           isJournalTab
               ? Icons.edit_note_outlined
               : Icons.add_photo_alternate_outlined,
+          color: Colors.white,
         ),
       ),
-      bottomNavigationBar: FloatingNavbar(
-        currentIndex: _currentTab.index,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: AnimatedBottomNavigationBar(
+        icons: const [Icons.book_outlined, Icons.photo_library_outlined],
+        activeIndex: _currentTab.index,
         onTap: (index) {
           setState(() {
             _currentTab = _DiaryTab.values[index];
           });
         },
-        items: [
-          FloatingNavbarItem(title: 'Journals', icon: Icons.book_outlined),
-          FloatingNavbarItem(
-            title: 'Memories',
-            icon: Icons.photo_library_outlined,
-          ),
-        ],
+        gapLocation: GapLocation.center,
+        notchSmoothness: NotchSmoothness.verySmoothEdge,
+        leftCornerRadius: 16,
+        rightCornerRadius: 16,
         backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF115e5a),
-        unselectedItemColor: const Color(0xFF6A7F81),
-        selectedBackgroundColor: const Color(0xFFE6F4F3),
-        borderRadius: 16,
-        itemBorderRadius: 12,
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        activeColor: const Color(0xFF115e5a),
+        inactiveColor: const Color(0xFF6A7F81),
+        splashColor: const Color(0xFFE6F4F3),
+        splashSpeedInMilliseconds: 300,
         elevation: 8,
+        height: 65,
       ),
     );
   }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'dart:io';
 import '../../core/constants/app_colors.dart';
 import '../main_navigation.dart';
@@ -79,7 +78,7 @@ class WelcomeDisclaimerScreen extends StatelessWidget {
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withAlpha(25),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Icon(Icons.favorite, size: 30, color: AppColors.primary),
@@ -311,6 +310,6 @@ class WelcomeDisclaimerScreen extends StatelessWidget {
           ),
         ],
       ),
-    ); 
+    );
   }
 }

@@ -87,13 +87,13 @@ class _ContextPageState extends State<ContextPage>
               onSelected: (bool selected) {
                 onToggle(option);
               },
-              selectedColor: _getMoodColor().withOpacity(0.2),
+              selectedColor: _getMoodColor().withAlpha(51),
               checkmarkColor: _getMoodColor(),
               backgroundColor: Colors.white,
               side: BorderSide(
                 color: isSelected
                     ? _getMoodColor()
-                    : Colors.black.withOpacity(0.2),
+                    : Colors.black.withAlpha(51),
                 width: isSelected ? 2 : 1,
               ),
               labelStyle: TextStyle(
@@ -239,7 +239,7 @@ class _ContextPageState extends State<ContextPage>
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withAlpha(13),
                               blurRadius: 10,
                               offset: const Offset(0, 2),
                             ),

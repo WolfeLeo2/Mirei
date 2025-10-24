@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:realm/realm.dart';
 
@@ -156,26 +157,18 @@ class DiaryMemoriesTabState extends State<DiaryMemoriesTab>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.auto_awesome,
-                size: 64,
-                color: Color(0xFF115e5a),
+              SvgPicture.asset(
+                'assets/images/empty_memories.svg',
+                width: 250,
+                height: 250,
               ),
               const SizedBox(height: 16),
               Text(
                 'No memories yet',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontFamily: AppTypography.primaryFontFamily,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Capture special moments with the + button.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.black54,
-                ),
-                textAlign: TextAlign.center,
               ),
             ],
           ),

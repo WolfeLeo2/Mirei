@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../models/realm_models.dart';
 import '../utils/realm_database_helper.dart';
 import '../utils/journal_grouping_service.dart';
@@ -144,10 +144,10 @@ class _JournalListScreenState extends State<JournalListScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Image.asset(
-                      'assets/images/tabby_journal.png',
+                    SvgPicture.asset(
+                      'assets/images/empty_journals.svg',
                       width: 200,
-                      fit: BoxFit.contain,
+                      height: 200,
                     ),
                     const SizedBox(height: 16),
                     Text(

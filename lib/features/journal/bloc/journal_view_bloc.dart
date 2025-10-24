@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:realm/realm.dart';
 
@@ -56,7 +55,7 @@ class JournalViewBloc extends Bloc<JournalViewEvent, JournalViewState> {
       });
 
       // Initialize Realm watcher
-      await _initEntryWatcher(event.entry);
+      await _initEntryWatcher(event.entry, emit);
 
       // Prepare audio controllers for all audio recordings
       _setupAudioControllers();
@@ -67,12 +66,10 @@ class JournalViewBloc extends Bloc<JournalViewEvent, JournalViewState> {
       emit(state.copyWith(isLoading: false));
 
       if (kDebugMode) {
-        print('JournalViewBloc: Initialized successfully');
+        debugPrint('JournalViewBloc: Initialized successfully');
       }
     } catch (e) {
-      emit(
-        state.copyWith(isLoading: false, error: 'Failed to initialize: $e'),
-      );
+      emit(state.copyWith(isLoading: false, error: 'Failed to initialize: $e'));
     }
   }
 
@@ -189,7 +186,10 @@ class JournalViewBloc extends Bloc<JournalViewEvent, JournalViewState> {
   }
 
   /// Initialize Realm entry watcher
-  Future<void> _initEntryWatcher(JournalEntryRealm entry) async {
+  Future<void> _initEntryWatcher(
+    JournalEntryRealm entry,
+    Emitter<JournalViewState> emit,
+  ) async {
     try {
       _realm ??= await _dbHelper.realm;
       final found = _realm!.find<JournalEntryRealm>(entry.id);
@@ -213,7 +213,7 @@ class JournalViewBloc extends Bloc<JournalViewEvent, JournalViewState> {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('JournalViewBloc: Error initializing entry watcher: $e');
+        debugPrint('JournalViewBloc: Error initializing entry watcher: $e');
       }
       // Fallback to using the passed entry
       emit(state.copyWith(entry: entry));

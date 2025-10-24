@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:motor/motor.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../models/realm_models.dart';
 import 'folder_image_widget.dart';
-import 'package:mirei/core/theme/typography.dart';
 
 /// Stateful widget representing each month folder with performance optimizations
 class MonthFolderCard extends StatefulWidget {

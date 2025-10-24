@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../services/image_upload_service.dart';
@@ -240,11 +239,11 @@ class _AvatarUploadScreenState extends State<AvatarUploadScreen> {
                         height: 150,
                         decoration: BoxDecoration(
                           color: _selectedImage == null
-                              ? AppColors.primary.withOpacity(0.1)
+                              ? AppColors.primary.withAlpha(25)
                               : null,
                           borderRadius: BorderRadius.circular(75),
                           border: Border.all(
-                            color: AppColors.primary.withOpacity(0.3),
+                            color: AppColors.primary.withAlpha(77),
                             width: 3,
                           ),
                         ),

@@ -265,7 +265,8 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
     if (_currentUser == null) return const SizedBox.shrink();
 
     return CachedNetworkImage(
-      imageUrl: _currentUser!.photoURL ??
+      imageUrl:
+          _currentUser!.photoURL ??
           'https://api.dicebear.com/7.x/avataaars/png?seed=${_currentUser!.uid}&size=512',
       fit: BoxFit.contain,
       filterQuality: FilterQuality.high,
@@ -595,11 +596,15 @@ class _MeditationCard extends StatelessWidget {
                       color: Colors.white70,
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      description,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
+                    Flexible(
+                      child: Text(
+                        description,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
                   ],
