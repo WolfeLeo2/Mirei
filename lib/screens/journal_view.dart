@@ -821,9 +821,9 @@ class _JournalViewScreenState extends State<JournalViewScreen>
     try {
       final entryMood = _safeAccess(() => _entryOrWidget.entryMood);
       final createdAt = _safeAccess(() => _entryOrWidget.createdAt);
-      
+
       if (createdAt == null) return; // Entry is invalid
-      
+
       if (entryMood != null) {
         if (!mounted) return;
         setState(() {
@@ -840,7 +840,7 @@ class _JournalViewScreenState extends State<JournalViewScreen>
         });
         return;
       }
-      
+
       final dailyMoods = await _dbHelper.getAllMoodsForDate(createdAt);
       if (dailyMoods.isNotEmpty && mounted) {
         setState(() {
