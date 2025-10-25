@@ -64,6 +64,25 @@ class _JournalWritingViewState extends State<_JournalWritingView>
       try {
         _titleController.text = widget.existingEntry.title ?? '';
         _contentController.text = widget.existingEntry.content ?? '';
+
+        // Load existing images
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final bloc = context.read<JournalWritingBloc>();
+
+          // Load images
+          final imagePaths = widget.existingEntry.imagePaths as List<dynamic>?;
+          if (imagePaths != null && imagePaths.isNotEmpty) {
+            for (final path in imagePaths) {
+              bloc.add(ExistingImageLoaded(path.toString()));
+            }
+          }
+
+          // Load mood
+          final mood = widget.existingEntry.entryMood;
+          if (mood != null) {
+            bloc.add(MoodSelected(mood));
+          }
+        });
       } catch (e) {
         // Ignore if fields don't exist
       }
@@ -109,9 +128,10 @@ class _JournalWritingViewState extends State<_JournalWritingView>
           );
         }
 
-        if (state.saveStatus == JournalSaveStatus.success) {
+        if (state.saveStatus == JournalSaveStatus.success && mounted) {
+          final nav = Navigator.of(context);
           Future.microtask(() {
-            if (mounted) Navigator.pop(context, true);
+            if (mounted) nav.pop(true);
           });
         }
       },
@@ -509,6 +529,7 @@ class _JournalWritingViewState extends State<_JournalWritingView>
   void _showImageContextMenu(BuildContext context, Offset position, int index) {
     final RenderBox overlay =
         Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final bloc = context.read<JournalWritingBloc>();
 
     showMenu(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -532,9 +553,9 @@ class _JournalWritingViewState extends State<_JournalWritingView>
       ],
       elevation: 8,
     ).then((value) {
-      if (value == 'delete') {
+      if (value == 'delete' && mounted) {
         HapticFeedback.lightImpact();
-        context.read<JournalWritingBloc>().add(ImageRemoved(index));
+        bloc.add(ImageRemoved(index));
       }
     });
   }

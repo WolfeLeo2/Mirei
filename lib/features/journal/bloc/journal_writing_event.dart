@@ -64,6 +64,15 @@ class ImageRemoved extends JournalWritingEvent {
   List<Object> get props => [index];
 }
 
+class ExistingImageLoaded extends JournalWritingEvent {
+  final String imagePath;
+
+  const ExistingImageLoaded(this.imagePath);
+
+  @override
+  List<Object> get props => [imagePath];
+}
+
 class RecordingStartRequested extends JournalWritingEvent {
   const RecordingStartRequested();
 }

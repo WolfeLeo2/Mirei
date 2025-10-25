@@ -37,12 +37,31 @@ class _EntryCardState extends State<EntryCard>
     super.dispose();
   }
 
+  /// Safely access entry property
+  T? _safeAccess<T>(T Function() accessor, [T? defaultValue]) {
+    try {
+      return accessor();
+    } catch (e) {
+      return defaultValue;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Safely access entry properties
+    final createdAt = _safeAccess(() => widget.entry.createdAt);
+    final content = _safeAccess(() => widget.entry.content, '');
+    final title = _safeAccess(() => widget.entry.title, '');
+
+    // If entry is invalidated, show placeholder
+    if (createdAt == null) {
+      return const SizedBox.shrink();
+    }
+
     // Format date as proper date (e.g., "Dec 15, 2024")
     final String formattedDate = DateFormat(
       'MMM d, yyyy',
-    ).format(widget.entry.createdAt.toLocal());
+    ).format(createdAt.toLocal());
 
     return GestureDetector(
       onTapDown: (_) => _scaleController.animateTo(1.0),
@@ -77,8 +96,8 @@ class _EntryCardState extends State<EntryCard>
                     ),
                     padding: const EdgeInsets.all(16),
                     child: Text(
-                      widget.entry.content.isNotEmpty
-                          ? widget.entry.content
+                      content?.isNotEmpty == true
+                          ? content!
                           : 'No content available',
                       style: Theme.of(context).textTheme.labelSmall
                           ?.copyWith(
@@ -99,9 +118,7 @@ class _EntryCardState extends State<EntryCard>
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Text(
-                    widget.entry.title.isNotEmpty
-                        ? widget.entry.title
-                        : 'Untitled Entry',
+                    title?.isNotEmpty == true ? title! : 'Untitled Entry',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyLarge
                         ?.copyWith(fontSize: 14, fontWeight: FontWeight.w600)

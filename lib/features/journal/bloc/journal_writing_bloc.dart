@@ -9,6 +9,7 @@ import 'package:audio_waveforms/audio_waveforms.dart';
 import '../../../services/player_service.dart';
 import '../../../services/recorder_service.dart';
 import '../../../services/journal_mood_integration.dart';
+import '../../../services/media_store.dart';
 import 'journal_writing_event.dart';
 import 'journal_writing_state.dart';
 
@@ -40,6 +41,7 @@ class JournalWritingBloc
     on<ImagePickerRequested>(_onImagePickerRequested);
     on<CameraRequested>(_onCameraRequested);
     on<ImageRemoved>(_onImageRemoved);
+    on<ExistingImageLoaded>(_onExistingImageLoaded);
     on<RecordingStartRequested>(_onRecordingStartRequested);
     on<RecordingStopRequested>(_onRecordingStopRequested);
     on<RecordingCancelRequested>(_onRecordingCancelRequested);
@@ -224,6 +226,39 @@ class JournalWritingBloc
           selectedImages: updatedImages,
           hasUnsavedChanges: true,
           failure: null,
+        ),
+      );
+    }
+  }
+
+  void _onExistingImageLoaded(
+    ExistingImageLoaded event,
+    Emitter<JournalWritingState> emit,
+  ) async {
+    try {
+      // Resolve the image path (convert relative to absolute if needed)
+      final resolvedPath = await MediaStore.instance.resolvePath(
+        event.imagePath,
+      );
+
+      // Convert resolved path to XFile
+      final xFile = XFile(resolvedPath);
+      final updatedImages = List<XFile>.from(state.selectedImages)..add(xFile);
+      emit(
+        state.copyWith(
+          selectedImages: updatedImages,
+          hasUnsavedChanges:
+              false, // Don't mark as unsaved when loading existing
+          failure: null,
+        ),
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('JournalWritingBloc: Failed to load image: $e');
+      }
+      emit(
+        state.copyWith(
+          failure: JournalFailure.unknown('Failed to load image: $e'),
         ),
       );
     }

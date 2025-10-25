@@ -62,41 +62,77 @@ class _JournalViewScreenState extends State<JournalViewScreen>
 
     _contentController.animateTo(1.0);
 
-    _playerService.initialize();
-    _playerSubscription = _playerService.currentlyPlayingStream.listen((path) {
-      if (!mounted) return;
-      setState(() {
-        _currentlyPlayingPath = path;
-      });
-    });
+    // Initialize services and data asynchronously
+    _initializeScreen();
+  }
 
-    _setupInitialControllers();
-    _initEntryWatcher();
+  Future<void> _initializeScreen() async {
+    try {
+      // TODO: Temporarily disabled audio services for testing
+      // Initialize PlayerService first
+      // await _playerService.initialize();
+
+      // Subscribe to player streams after initialization
+      // _playerSubscription = _playerService.currentlyPlayingStream.listen((
+      //   path,
+      // ) {
+      //   if (!mounted) return;
+      //   setState(() {
+      //     _currentlyPlayingPath = path;
+      //   });
+      // });
+
+      // Initialize entry watcher
+      await _initEntryWatcher();
+
+      // TODO: Temporarily disabled audio setup for testing
+      // Setup audio controllers after PlayerService is ready
+      // _setupInitialControllers();
+
+      // Load associated mood
+      await _loadAssociatedMood();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('JournalViewScreen: Error initializing screen: $e');
+      }
+    }
   }
 
   void _setupInitialControllers() {
-    final audioList = _entryOrWidget.audioRecordings;
-    for (final audio in audioList) {
-      if (audio.path.isEmpty) continue;
-      final originalKey = audio.path;
+    try {
+      final audioList =
+          _safeAccess(
+            () => _entryOrWidget.audioRecordings,
+            <AudioRecordingData>[],
+          ) ??
+          <AudioRecordingData>[];
 
-      // Prepare resolved absolute path
-      MediaStore.instance.resolvePath(originalKey).then((resolvedPath) {
-        if (!mounted) return;
-        final key = resolvedPath;
-        if (_playerControllers.containsKey(originalKey) ||
-            _playerControllers.containsKey(key)) {
+      for (final audio in audioList) {
+        if (audio.path.isEmpty) continue;
+        final originalKey = audio.path;
+
+        // Prepare resolved absolute path
+        MediaStore.instance.resolvePath(originalKey).then((resolvedPath) {
+          if (!mounted) return;
+          final key = resolvedPath;
+          if (_playerControllers.containsKey(originalKey) ||
+              _playerControllers.containsKey(key)) {
+            _resolvedAudioPaths[originalKey] = key;
+            return;
+          }
+
+          final controller = _playerService.getWaveformController(key);
           _resolvedAudioPaths[originalKey] = key;
-          return;
-        }
-
-        final controller = _playerService.getWaveformController(key);
-        _resolvedAudioPaths[originalKey] = key;
-        setState(() {
-          _playerControllers[key] = controller;
-          _playerControllers[originalKey] = controller;
+          setState(() {
+            _playerControllers[key] = controller;
+            _playerControllers[originalKey] = controller;
+          });
         });
-      });
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('JournalViewScreen: Error setting up audio controllers: $e');
+      }
     }
   }
 
@@ -115,8 +151,11 @@ class _JournalViewScreenState extends State<JournalViewScreen>
           setState(() {});
         });
       }
-      await _loadAssociatedMood();
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('JournalViewScreen: Error initializing entry watcher: $e');
+      }
+    }
   }
 
   /// Safely access a Realm object property with error handling
@@ -261,65 +300,61 @@ class _JournalViewScreenState extends State<JournalViewScreen>
           const Spacer(),
 
           // Menu button
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'edit') {
-                _handleEdit(context);
-              } else if (value == 'delete') {
-                _handleDelete(context);
-              }
-            },
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'edit',
-                child: Row(
-                  children: const [
-                    Icon(Icons.edit_outlined, color: Colors.black87, size: 20),
-                    SizedBox(width: 12),
-                    Text(
-                      'Edit',
-                      style: TextStyle(fontSize: 16, color: Colors.black87),
-                    ),
-                  ],
-                ),
+          Material(
+            color: Colors.black12,
+            shape: const CircleBorder(),
+            child: PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'edit') {
+                  _handleEdit(context);
+                } else if (value == 'delete') {
+                  _handleDelete(context);
+                }
+              },
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: const [
-                    Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                    SizedBox(width: 12),
-                    Text(
-                      'Delete',
-                      style: TextStyle(fontSize: 16, color: Colors.red),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF115e5a),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Text(
-                    'Menu',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: const [
+                      Icon(
+                        Icons.edit_outlined,
+                        color: Colors.black87,
+                        size: 20,
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        'Edit',
+                        style: TextStyle(fontSize: 16, color: Colors.black87),
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 4),
-                  Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
-                ],
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: const [
+                      Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                      SizedBox(width: 12),
+                      Text(
+                        'Delete',
+                        style: TextStyle(fontSize: 16, color: Colors.red),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              child: Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.more_vert,
+                  color: Colors.black87,
+                  size: 24,
+                ),
               ),
             ),
           ),
@@ -393,21 +428,27 @@ class _JournalViewScreenState extends State<JournalViewScreen>
   Future<void> _performDelete() async {
     try {
       await _dbHelper.deleteJournalEntry(widget.entry.id);
-      if (mounted) {
-        Navigator.of(context).pop(true); // Return true to indicate deletion
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Journal entry deleted'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      if (!mounted) return;
+
+      // Close the view screen first
+      Navigator.of(context).pop();
+
+      // Then show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Journal entry deleted'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('JournalViewScreen: Error deleting entry: $e');
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to delete entry: $e'),
+            content: Text('Failed to delete entry: ${e.toString()}'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
