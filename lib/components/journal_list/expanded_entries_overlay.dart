@@ -391,10 +391,13 @@ class _OptimizedGridView extends StatelessWidget {
 
     if (entryMood != null) {
       // Create a temporary mood entry for display purposes
+      final timestamp = (_safeAccess(() => entry.createdAt) ?? DateTime.now())
+          .toUtc();
       return MoodEntryRealm(
         ObjectId(),
         entryMood,
-        (_safeAccess(() => entry.createdAt) ?? DateTime.now()).toUtc(),
+        timestamp,
+        timestamp, // lastModified = createdAt for temp display entry
         intensity: null, // Don't show intensity for journal entries
       );
     }

@@ -872,6 +872,7 @@ class _JournalViewScreenState extends State<JournalViewScreen>
             ObjectId(),
             entryMood,
             createdAt.toUtc(),
+            createdAt.toUtc(),
             intensity: null,
           );
           _moodColor = AppColors.harmonizeToPrimary(

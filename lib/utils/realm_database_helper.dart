@@ -2,13 +2,14 @@ import 'package:realm/realm.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'dart:io';
-import 'dart:convert';
 import '../models/realm_models.dart';
 import '../services/media_store.dart';
+import '../services/auth_service.dart';
 
 class RealmDatabaseHelper {
   static final RealmDatabaseHelper _instance = RealmDatabaseHelper._internal();
   static Realm? _realm;
+  static String? _currentUserId;
 
   RealmDatabaseHelper._internal();
 
@@ -16,15 +17,41 @@ class RealmDatabaseHelper {
     return _instance;
   }
 
+  /// Get the current user's Realm instance
   Future<Realm> get realm async {
-    if (_realm != null) return _realm!;
-    _realm = await _initRealm();
+    final userId = await _getCurrentUserId();
+
+    // If user changed or no realm exists, reinitialize
+    if (_realm == null || _currentUserId != userId) {
+      // Close existing realm if user changed
+      if (_realm != null && _currentUserId != userId) {
+        _realm!.close();
+        _realm = null;
+      }
+      _currentUserId = userId;
+      _realm = await _initRealm(userId);
+    }
+
     return _realm!;
   }
 
-  Future<Realm> _initRealm() async {
+  /// Get current user ID from Supabase Auth
+  Future<String> _getCurrentUserId() async {
+    // Import at the top of file if not already present
+    final authService = AuthService();
+    final userId = authService.currentUserId;
+
+    if (userId == null) {
+      throw Exception('No authenticated user found. Please sign in first.');
+    }
+
+    return userId;
+  }
+
+  Future<Realm> _initRealm(String userId) async {
     final directory = await getApplicationDocumentsDirectory();
-    final realmPath = path.join(directory.path, 'mirei_app.realm');
+    // Create user-specific database path
+    final realmPath = path.join(directory.path, 'mirei_app_$userId.realm');
 
     final schemas = [
       MoodEntryRealm.schema,
@@ -38,10 +65,29 @@ class RealmDatabaseHelper {
       final config = Configuration.local(
         schemas,
         path: realmPath,
-        schemaVersion: 8, // Add memory entries schema
+        schemaVersion: 9, // Add sync tracking fields
         migrationCallback: (migration, oldSchemaVersion) {
           if (oldSchemaVersion < 8) {
             print('Migrating to schema v8: adding memory entries');
+          }
+          if (oldSchemaVersion < 9) {
+            print('Migrating to schema v9: adding sync tracking fields');
+            // Initialize new sync fields for existing entries
+            migration.newRealm.all<MoodEntryRealm>().forEach((entry) {
+              entry.lastModified = entry.createdAt;
+              entry.syncedAt = null; // Mark as not synced
+              entry.remoteId = null;
+            });
+            migration.newRealm.all<JournalEntryRealm>().forEach((entry) {
+              entry.lastModified = entry.createdAt;
+              entry.syncedAt = null;
+              entry.remoteId = null;
+            });
+            migration.newRealm.all<MemoryEntryRealm>().forEach((entry) {
+              entry.lastModified = entry.createdAt;
+              entry.syncedAt = null;
+              entry.remoteId = null;
+            });
           }
         },
       );
@@ -61,7 +107,7 @@ class RealmDatabaseHelper {
         final config = Configuration.local(
           schemas,
           path: realmPath,
-          schemaVersion: 8,
+          schemaVersion: 9,
         );
         return Realm(config);
       } catch (recreateError) {
@@ -73,20 +119,52 @@ class RealmDatabaseHelper {
 
   // DATABASE MAINTENANCE METHODS
 
-  /// Reset database completely (deletes file and recreates)
-  Future<void> resetDatabase() async {
+  /// Close the current realm connection (call this on logout)
+  Future<void> closeRealm() async {
     if (_realm != null) {
       _realm!.close();
       _realm = null;
+      _currentUserId = null;
+      print('Realm database closed');
+    }
+  }
+
+  /// Reset database completely for current user (deletes file and recreates)
+  Future<void> resetDatabase() async {
+    final userId = await _getCurrentUserId();
+
+    if (_realm != null) {
+      _realm!.close();
+      _realm = null;
+      _currentUserId = null;
     }
 
     final directory = await getApplicationDocumentsDirectory();
-    final realmPath = path.join(directory.path, 'mirei_app.realm');
+    final realmPath = path.join(directory.path, 'mirei_app_$userId.realm');
 
     final file = File(realmPath);
     if (await file.exists()) {
       await file.delete();
       print('Database file deleted and will be recreated on next access');
+    }
+  }
+
+  /// Delete all user databases (admin/cleanup function)
+  Future<void> deleteAllUserDatabases() async {
+    if (_realm != null) {
+      _realm!.close();
+      _realm = null;
+      _currentUserId = null;
+    }
+
+    final directory = await getApplicationDocumentsDirectory();
+    final files = directory.listSync();
+
+    for (var file in files) {
+      if (file.path.contains('mirei_app_') && file.path.endsWith('.realm')) {
+        await File(file.path).delete();
+        print('Deleted database: ${file.path}');
+      }
     }
   }
 
@@ -222,10 +300,12 @@ class RealmDatabaseHelper {
     final todaysMoods = await getAllMoodsForDate(DateTime.now());
     final sequenceNumber = todaysMoods.length + 1;
 
+    final now = DateTime.now().toUtc();
     final moodEntry = MoodEntryRealm(
       ObjectId(),
       mood,
-      DateTime.now().toUtc(),
+      now,
+      now, // lastModified = createdAt for new entries
       note: context,
       intensity: intensity,
       context: context,

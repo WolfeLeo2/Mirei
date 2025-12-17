@@ -32,6 +32,7 @@ class MemoryService {
     final entry = MemoryEntryRealm(
       memoryId,
       DateTime.now().toUtc(),
+      DateTime.now().toUtc(),
       caption: caption,
     )..imagePaths = copiedPaths;
 

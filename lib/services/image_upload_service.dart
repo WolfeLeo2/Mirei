@@ -1,60 +1,70 @@
 import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'auth_service.dart';
 
 class ImageUploadService {
   static final ImageUploadService _instance = ImageUploadService._internal();
   factory ImageUploadService() => _instance;
   ImageUploadService._internal();
 
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  SupabaseClient get _client => Supabase.instance.client;
 
-  /// Upload user avatar image to Firebase Storage
+  /// Upload user avatar image to Supabase Storage
   Future<String> uploadAvatarImage(File imageFile) async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
+      final userId = AuthService().currentUserId;
+      if (userId == null) {
         throw Exception('User not authenticated');
       }
 
       // Create a unique file name
       final fileName =
-          'avatar_${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          'avatar_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-      // Create reference to Firebase Storage
-      final Reference ref = _storage
-          .ref()
-          .child('user_avatars')
-          .child(fileName);
-
-      // Upload the file
+      // Upload to Supabase Storage
       debugPrint('🔄 Uploading avatar image...');
-      final UploadTask uploadTask = ref.putFile(imageFile);
+      await _client.storage
+          .from('avatars')
+          .upload(
+            fileName,
+            imageFile,
+            fileOptions: const FileOptions(
+              upsert: true,
+              contentType: 'image/jpeg',
+            ),
+          );
 
-      // Wait for upload to complete
-      final TaskSnapshot snapshot = await uploadTask;
+      // Get public URL
+      final String publicUrl = _client.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
 
-      // Get download URL
-      final String downloadUrl = await snapshot.ref.getDownloadURL();
-
-      debugPrint('✅ Avatar uploaded successfully: $downloadUrl');
-      return downloadUrl;
+      debugPrint('✅ Avatar uploaded successfully: $publicUrl');
+      return publicUrl;
     } catch (e) {
       debugPrint('❌ Error uploading avatar: $e');
       rethrow;
     }
   }
 
-  /// Delete old avatar image from Firebase Storage (optional cleanup)
+  /// Delete old avatar image from Supabase Storage (optional cleanup)
   Future<void> deleteAvatarImage(String imageUrl) async {
     try {
-      if (imageUrl.isEmpty || !imageUrl.contains('firebase')) {
-        return; // Not a Firebase Storage URL
+      if (imageUrl.isEmpty || !imageUrl.contains('supabase')) {
+        return; // Not a Supabase Storage URL
       }
 
-      final Reference ref = _storage.refFromURL(imageUrl);
-      await ref.delete();
+      // Extract file path from URL
+      final uri = Uri.parse(imageUrl);
+      final pathSegments = uri.pathSegments;
+
+      if (pathSegments.length < 2) return;
+
+      // Get filename from URL (last segment)
+      final fileName = pathSegments.last;
+
+      await _client.storage.from('avatars').remove([fileName]);
       debugPrint('✅ Old avatar deleted successfully');
     } catch (e) {
       debugPrint('⚠️ Error deleting old avatar: $e');

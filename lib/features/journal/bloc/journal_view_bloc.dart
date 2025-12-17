@@ -252,6 +252,7 @@ class JournalViewBloc extends Bloc<JournalViewEvent, JournalViewState> {
           ObjectId(),
           entryMood,
           entry.createdAt.toUtc(),
+          entry.createdAt.toUtc(),
           intensity: null,
         );
 

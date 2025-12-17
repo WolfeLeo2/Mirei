@@ -1,35 +1,22 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'auth_service.dart';
 
 class OTPService {
   static final OTPService _instance = OTPService._internal();
   factory OTPService() => _instance;
   OTPService._internal();
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  /// Send email verification (current method)
-  Future<void> sendEmailVerification() async {
-    try {
-      final user = _auth.currentUser;
-      if (user != null && !user.emailVerified) {
-        await user.sendEmailVerification();
-        debugPrint('✅ Email verification sent to: ${user.email}');
-      }
-    } catch (e) {
-      debugPrint('❌ Error sending email verification: $e');
-      rethrow;
-    }
-  }
+  SupabaseClient get _client => Supabase.instance.client;
 
   /// Check if email is verified
+  /// Note: Supabase handles email verification via magic links sent automatically
   Future<bool> checkEmailVerification() async {
     try {
-      final user = _auth.currentUser;
+      final user = AuthService().currentUser;
       if (user != null) {
-        await user.reload();
-        final updatedUser = _auth.currentUser;
-        return updatedUser?.emailVerified ?? false;
+        // In Supabase, email is confirmed when emailConfirmedAt is not null
+        return user.emailConfirmedAt != null;
       }
       return false;
     } catch (e) {
@@ -38,59 +25,47 @@ class OTPService {
     }
   }
 
-  // SMS OTP Methods (Alternative approach)
+  /// Resend verification email
+  /// Note: Supabase sends verification email automatically on signup
+  /// This method can be used to resend if needed
+  Future<void> resendVerificationEmail(String email) async {
+    try {
+      // Supabase OTP resend API
+      await _client.auth.resend(type: OtpType.signup, email: email);
+      debugPrint('✅ Verification email resent to: $email');
+    } catch (e) {
+      debugPrint('❌ Error resending verification email: $e');
+      rethrow;
+    }
+  }
 
-  String? _verificationId;
+  // SMS OTP Methods for future implementation
+  // Supabase supports phone OTP via the auth.signInWithOtp method
 
-  /// Send SMS OTP to phone number
+  /// Send SMS OTP to phone number (Future implementation with Supabase)
   Future<void> sendSMSOTP(String phoneNumber) async {
     try {
-      await _auth.verifyPhoneNumber(
-        phoneNumber: phoneNumber,
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          // Auto-verification (Android only)
-          debugPrint('✅ Phone auto-verified');
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          debugPrint('❌ Phone verification failed: ${e.message}');
-          throw e;
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          _verificationId = verificationId;
-          debugPrint('✅ SMS OTP sent to: $phoneNumber');
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          _verificationId = verificationId;
-          debugPrint('⏱️ SMS OTP timeout');
-        },
-        timeout: const Duration(seconds: 60),
-      );
+      await _client.auth.signInWithOtp(phone: phoneNumber);
+      debugPrint('✅ SMS OTP sent to: $phoneNumber');
     } catch (e) {
       debugPrint('❌ Error sending SMS OTP: $e');
       rethrow;
     }
   }
 
-  /// Verify SMS OTP code
-  Future<bool> verifySMSOTP(String otpCode) async {
+  /// Verify SMS OTP code (Future implementation with Supabase)
+  Future<bool> verifySMSOTP(String phoneNumber, String otpCode) async {
     try {
-      if (_verificationId == null) {
-        throw Exception('No verification ID found. Please request OTP again.');
-      }
-
-      final PhoneAuthCredential credential = PhoneAuthProvider.credential(
-        verificationId: _verificationId!,
-        smsCode: otpCode,
+      final response = await _client.auth.verifyOTP(
+        phone: phoneNumber,
+        token: otpCode,
+        type: OtpType.sms,
       );
 
-      // Link phone credential to current user
-      final user = _auth.currentUser;
-      if (user != null) {
-        await user.linkWithCredential(credential);
-        debugPrint('✅ Phone number verified and linked');
+      if (response.user != null) {
+        debugPrint('✅ Phone number verified');
         return true;
       }
-
       return false;
     } catch (e) {
       debugPrint('❌ Error verifying SMS OTP: $e');

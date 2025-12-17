@@ -168,7 +168,8 @@ class EnhancedMoodService {
       final updatedMoodEntry = MoodEntryRealm(
         existingMood.id,
         mood,
-        DateTime.now(),
+        DateTime.now().toUtc(),
+        DateTime.now().toUtc(),
         note: existingMood.note,
         intensity: existingMood.intensity,
         context: existingMood.context,

@@ -45,10 +45,12 @@ class RealmMoodRepository implements MoodRepository {
         });
       } else {
         // Otherwise, create a new entry with UTC timestamp for consistency.
+        final now = DateTime.now().toUtc();
         final newMood = MoodEntryRealm(
           ObjectId(),
           mood,
-          DateTime.now().toUtc(),
+          now,
+          now, // lastModified = createdAt for new entries
         );
         await _dbHelper.insertMoodEntry(newMood);
       }

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/auth_service.dart';
 import 'diary/diary_screen.dart';
@@ -16,8 +16,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  firebase_auth.User? _currentUser;
-  StreamSubscription<firebase_auth.User?>? _authSubscription;
+  User? _currentUser;
+  StreamSubscription<User?>? _authSubscription;
 
   @override
   void initState() {
@@ -36,8 +36,10 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  String _firstName(firebase_auth.User? user) {
-    final displayName = user?.displayName?.trim();
+  String _firstName(User? user) {
+    final displayName =
+        (user?.userMetadata?['display_name'] as String?)?.trim() ??
+        (user?.userMetadata?['full_name'] as String?)?.trim();
     if (displayName != null && displayName.isNotEmpty) {
       final parts = displayName.split(' ');
       if (parts.isNotEmpty) {
@@ -64,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _startMoodCheckIn() async {
-    final username = _currentUser?.displayName ?? _firstName(_currentUser);
+    final username = _firstName(_currentUser);
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) =>
@@ -88,7 +90,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildAvatar(BuildContext context) {
     final theme = Theme.of(context);
     final size = 36.0;
-    final photoUrl = _currentUser?.photoURL;
+    final photoUrl =
+        _currentUser?.userMetadata?['avatar_url'] as String? ??
+        _currentUser?.userMetadata?['picture'] as String?;
     final initials = _deriveInitials(_currentUser);
 
     return Container(
@@ -119,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  String _deriveInitials(firebase_auth.User? user) {
+  String _deriveInitials(User? user) {
     final first = _firstName(user);
     if (first.isNotEmpty) {
       return first[0].toUpperCase();

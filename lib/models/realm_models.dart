@@ -101,6 +101,13 @@ class _MoodEntryRealm {
   String? location; // "home,work,outdoors"
   String? checkInType; // "morning,afternoon,evening,manual"
   int? sequenceNumber; // 1st, 2nd, 3rd entry of the day
+
+  // Sync tracking fields
+  @Indexed()
+  late DateTime lastModified; // When this entry was last modified locally
+  DateTime?
+  syncedAt; // When this entry was last synced to Supabase (null = never synced)
+  String? remoteId; // Supabase UUID (null = not synced yet)
 }
 
 @RealmModel()
@@ -123,6 +130,13 @@ class _JournalEntryRealm {
   String? entryMood; // Mood while writing this specific entry
   int? entryMoodIntensity; // Intensity (1-10) while writing
   String? entryMoodContext; // Why you felt this way while writing
+
+  // Sync tracking fields
+  @Indexed()
+  late DateTime lastModified; // When this entry was last modified locally
+  DateTime?
+  syncedAt; // When this entry was last synced to Supabase (null = never synced)
+  String? remoteId; // Supabase UUID (null = not synced yet)
 
   // Helper getters/setters
   List<String> get imagePaths {
@@ -189,6 +203,13 @@ class _MemoryEntryRealm {
 
   String? caption;
   String? imagePathsString;
+
+  // Sync tracking fields
+  @Indexed()
+  late DateTime lastModified; // When this entry was last modified locally
+  DateTime?
+  syncedAt; // When this entry was last synced to Supabase (null = never synced)
+  String? remoteId; // Supabase UUID (null = not synced yet)
 
   List<String> get imagePaths {
     if (imagePathsString == null || imagePathsString!.isEmpty) {

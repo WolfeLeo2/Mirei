@@ -6,6 +6,7 @@ import 'package:icons_plus/icons_plus.dart';
 import 'email_signup_screen.dart';
 import '../../core/theme/typography.dart';
 
+
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
@@ -222,11 +223,9 @@ class LoginScreen extends StatelessWidget {
     try {
       switch (provider) {
         case 'google':
-          final userCredential = await AuthService().signInWithGoogle();
-          if (userCredential != null) {
-            if (context.mounted) {
-              _navigateToMainApp(context);
-            }
+          await AuthService().signInWithGoogle();
+          if (context.mounted) {
+            _navigateToMainApp(context);
           }
           break;
         case 'facebook':

@@ -25,12 +25,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   @override
   void initState() {
     super.initState();
-    // Generate avatar options based on user UID
-    final userUid = AuthService().currentUser?.uid ?? 'default';
+    // Generate avatar options based on user ID
+    final userId = AuthService().currentUser?.id ?? 'default';
     _avatarOptions = List.generate(
       16,
       (index) =>
-          'https://api.dicebear.com/7.x/avataaars/png?seed=${userUid}_$index&size=150',
+          'https://api.dicebear.com/7.x/avataaars/png?seed=${userId}_$index&size=150',
     );
     _selectedAvatarUrl = _avatarOptions.first; // Default selection
   }

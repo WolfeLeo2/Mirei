@@ -62,12 +62,23 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>spotify-auth</string>
+			<string>supabase-auth</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.kanso.mirei.mirei</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>google-sign-in</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- Replace with your iOS Client ID from Google Cloud Console -->
+				<string>com.googleusercontent.apps.50437670825-492a0khhmvtl043en92kc224pdp2pkg7</string>
+			</array>
+		</dict>
 	</array>
+	<key>GIDClientID</key>
+	<string>50437670825-hlhi6qesougc52clkk90pbccika7a177.apps.googleusercontent.com</string>
 </dict>
 </plist>

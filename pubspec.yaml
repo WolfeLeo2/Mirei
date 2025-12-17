@@ -70,13 +70,10 @@ dependencies:
   flutter_dotenv: ^5.1.0 # For environment variables (.env file)
   google_generative_ai: ^0.4.6 # Official Google Gemini SDK
 
-  # Firebase Authentication
-  firebase_core: ^3.15.2
-  firebase_auth: ^5.3.3
-  firebase_storage: ^12.3.6
+  # Supabase Authentication & Backend
+  supabase_flutter: ^2.8.0
   google_sign_in: ^6.2.1
   shared_preferences: ^2.5.3
-  firebase_ai: ^2.3.0
 
   # Local audio for playback/recording
   audio_waveforms: ^1.3.0

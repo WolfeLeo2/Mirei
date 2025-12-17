@@ -79,17 +79,14 @@ class _EmailSignupScreenState extends State<EmailSignupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Create account with Firebase
+      // Create account with Supabase
       await AuthService().createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      // Send email verification
-      final user = AuthService().currentUser;
-      if (user != null && !user.emailVerified) {
-        await user.sendEmailVerification();
-      }
+      // Supabase automatically sends verification email
+      // No need to manually trigger it
 
       if (mounted) {
         // Navigate to OTP verification screen

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
@@ -18,8 +18,8 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
-  firebase_auth.User? _currentUser;
-  StreamSubscription<firebase_auth.User?>? _authSubscription;
+  User? _currentUser;
+  StreamSubscription<User?>? _authSubscription;
 
   final List<Widget> _screens = const [
     HomeScreen(),
@@ -44,8 +44,10 @@ class _MainNavigationState extends State<MainNavigation> {
     super.dispose();
   }
 
-    String _firstName(firebase_auth.User? user) {
-    final displayName = user?.displayName?.trim();
+  String _firstName(User? user) {
+    final displayName =
+        (user?.userMetadata?['display_name'] as String?)?.trim() ??
+        (user?.userMetadata?['full_name'] as String?)?.trim();
     if (displayName != null && displayName.isNotEmpty) {
       final parts = displayName.split(' ');
       if (parts.isNotEmpty) {
@@ -100,7 +102,7 @@ class _MainNavigationState extends State<MainNavigation> {
 }
 
 class _ProfileIcon extends StatelessWidget {
-  final firebase_auth.User? user;
+  final User? user;
   final bool selected;
 
   const _ProfileIcon({required this.user, required this.selected});
@@ -117,7 +119,9 @@ class _ProfileIcon extends StatelessWidget {
       );
     }
 
-    final photoUrl = user!.photoURL;
+    final photoUrl =
+        user!.userMetadata?['avatar_url'] as String? ??
+        user!.userMetadata?['picture'] as String?;
     final initials = _initialsFor(user!);
     final borderColor = selected
         ? theme.colorScheme.primary
@@ -146,8 +150,10 @@ class _ProfileIcon extends StatelessWidget {
     return _ProfileInitialsBadge(initials: initials, selected: selected);
   }
 
-  static String _initialsFor(firebase_auth.User user) {
-    final displayName = user.displayName?.trim();
+  static String _initialsFor(User user) {
+    final displayName =
+        (user.userMetadata?['display_name'] as String?)?.trim() ??
+        (user.userMetadata?['full_name'] as String?)?.trim();
     if (displayName != null && displayName.isNotEmpty) {
       final parts = displayName
           .split(RegExp(r'\s+'))

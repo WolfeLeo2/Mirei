@@ -180,7 +180,8 @@ class MoodEntryRealm extends _MoodEntryRealm
   MoodEntryRealm(
     ObjectId id,
     String mood,
-    DateTime createdAt, {
+    DateTime createdAt,
+    DateTime lastModified, {
     String? note,
     int? intensity,
     String? context,
@@ -189,6 +190,8 @@ class MoodEntryRealm extends _MoodEntryRealm
     String? location,
     String? checkInType,
     int? sequenceNumber,
+    DateTime? syncedAt,
+    String? remoteId,
   }) {
     RealmObjectBase.set(this, 'id', id);
     RealmObjectBase.set(this, 'mood', mood);
@@ -201,6 +204,9 @@ class MoodEntryRealm extends _MoodEntryRealm
     RealmObjectBase.set(this, 'location', location);
     RealmObjectBase.set(this, 'checkInType', checkInType);
     RealmObjectBase.set(this, 'sequenceNumber', sequenceNumber);
+    RealmObjectBase.set(this, 'lastModified', lastModified);
+    RealmObjectBase.set(this, 'syncedAt', syncedAt);
+    RealmObjectBase.set(this, 'remoteId', remoteId);
   }
 
   MoodEntryRealm._();
@@ -272,6 +278,25 @@ class MoodEntryRealm extends _MoodEntryRealm
       RealmObjectBase.set(this, 'sequenceNumber', value);
 
   @override
+  DateTime get lastModified =>
+      RealmObjectBase.get<DateTime>(this, 'lastModified') as DateTime;
+  @override
+  set lastModified(DateTime value) =>
+      RealmObjectBase.set(this, 'lastModified', value);
+
+  @override
+  DateTime? get syncedAt =>
+      RealmObjectBase.get<DateTime>(this, 'syncedAt') as DateTime?;
+  @override
+  set syncedAt(DateTime? value) => RealmObjectBase.set(this, 'syncedAt', value);
+
+  @override
+  String? get remoteId =>
+      RealmObjectBase.get<String>(this, 'remoteId') as String?;
+  @override
+  set remoteId(String? value) => RealmObjectBase.set(this, 'remoteId', value);
+
+  @override
   Stream<RealmObjectChanges<MoodEntryRealm>> get changes =>
       RealmObjectBase.getChanges<MoodEntryRealm>(this);
 
@@ -296,6 +321,9 @@ class MoodEntryRealm extends _MoodEntryRealm
       'location': location.toEJson(),
       'checkInType': checkInType.toEJson(),
       'sequenceNumber': sequenceNumber.toEJson(),
+      'lastModified': lastModified.toEJson(),
+      'syncedAt': syncedAt.toEJson(),
+      'remoteId': remoteId.toEJson(),
     };
   }
 
@@ -307,11 +335,13 @@ class MoodEntryRealm extends _MoodEntryRealm
         'id': EJsonValue id,
         'mood': EJsonValue mood,
         'createdAt': EJsonValue createdAt,
+        'lastModified': EJsonValue lastModified,
       } =>
         MoodEntryRealm(
           fromEJson(id),
           fromEJson(mood),
           fromEJson(createdAt),
+          fromEJson(lastModified),
           note: fromEJson(ejson['note']),
           intensity: fromEJson(ejson['intensity']),
           context: fromEJson(ejson['context']),
@@ -320,6 +350,8 @@ class MoodEntryRealm extends _MoodEntryRealm
           location: fromEJson(ejson['location']),
           checkInType: fromEJson(ejson['checkInType']),
           sequenceNumber: fromEJson(ejson['sequenceNumber']),
+          syncedAt: fromEJson(ejson['syncedAt']),
+          remoteId: fromEJson(ejson['remoteId']),
         ),
       _ => raiseInvalidEJson(ejson),
     };
@@ -348,6 +380,13 @@ class MoodEntryRealm extends _MoodEntryRealm
         SchemaProperty('location', RealmPropertyType.string, optional: true),
         SchemaProperty('checkInType', RealmPropertyType.string, optional: true),
         SchemaProperty('sequenceNumber', RealmPropertyType.int, optional: true),
+        SchemaProperty(
+          'lastModified',
+          RealmPropertyType.timestamp,
+          indexType: RealmIndexType.regular,
+        ),
+        SchemaProperty('syncedAt', RealmPropertyType.timestamp, optional: true),
+        SchemaProperty('remoteId', RealmPropertyType.string, optional: true),
       ],
     );
   }();
@@ -362,13 +401,15 @@ class JournalEntryRealm extends _JournalEntryRealm
     ObjectId id,
     String title,
     String content,
-    DateTime createdAt, {
+    DateTime createdAt,
+    DateTime lastModified, {
     String? imagePathsString,
     String? audioRecordingsString,
-    String? coverImagePath,
     String? entryMood,
     int? entryMoodIntensity,
     String? entryMoodContext,
+    DateTime? syncedAt,
+    String? remoteId,
   }) {
     RealmObjectBase.set(this, 'id', id);
     RealmObjectBase.set(this, 'title', title);
@@ -376,10 +417,12 @@ class JournalEntryRealm extends _JournalEntryRealm
     RealmObjectBase.set(this, 'createdAt', createdAt);
     RealmObjectBase.set(this, 'imagePathsString', imagePathsString);
     RealmObjectBase.set(this, 'audioRecordingsString', audioRecordingsString);
-    RealmObjectBase.set(this, 'coverImagePath', coverImagePath);
     RealmObjectBase.set(this, 'entryMood', entryMood);
     RealmObjectBase.set(this, 'entryMoodIntensity', entryMoodIntensity);
     RealmObjectBase.set(this, 'entryMoodContext', entryMoodContext);
+    RealmObjectBase.set(this, 'lastModified', lastModified);
+    RealmObjectBase.set(this, 'syncedAt', syncedAt);
+    RealmObjectBase.set(this, 'remoteId', remoteId);
   }
 
   JournalEntryRealm._();
@@ -421,13 +464,6 @@ class JournalEntryRealm extends _JournalEntryRealm
       RealmObjectBase.set(this, 'audioRecordingsString', value);
 
   @override
-  String? get coverImagePath =>
-      RealmObjectBase.get<String>(this, 'coverImagePath') as String?;
-  @override
-  set coverImagePath(String? value) =>
-      RealmObjectBase.set(this, 'coverImagePath', value);
-
-  @override
   String? get entryMood =>
       RealmObjectBase.get<String>(this, 'entryMood') as String?;
   @override
@@ -446,6 +482,25 @@ class JournalEntryRealm extends _JournalEntryRealm
   @override
   set entryMoodContext(String? value) =>
       RealmObjectBase.set(this, 'entryMoodContext', value);
+
+  @override
+  DateTime get lastModified =>
+      RealmObjectBase.get<DateTime>(this, 'lastModified') as DateTime;
+  @override
+  set lastModified(DateTime value) =>
+      RealmObjectBase.set(this, 'lastModified', value);
+
+  @override
+  DateTime? get syncedAt =>
+      RealmObjectBase.get<DateTime>(this, 'syncedAt') as DateTime?;
+  @override
+  set syncedAt(DateTime? value) => RealmObjectBase.set(this, 'syncedAt', value);
+
+  @override
+  String? get remoteId =>
+      RealmObjectBase.get<String>(this, 'remoteId') as String?;
+  @override
+  set remoteId(String? value) => RealmObjectBase.set(this, 'remoteId', value);
 
   @override
   Stream<RealmObjectChanges<JournalEntryRealm>> get changes =>
@@ -468,10 +523,12 @@ class JournalEntryRealm extends _JournalEntryRealm
       'createdAt': createdAt.toEJson(),
       'imagePathsString': imagePathsString.toEJson(),
       'audioRecordingsString': audioRecordingsString.toEJson(),
-      'coverImagePath': coverImagePath.toEJson(),
       'entryMood': entryMood.toEJson(),
       'entryMoodIntensity': entryMoodIntensity.toEJson(),
       'entryMoodContext': entryMoodContext.toEJson(),
+      'lastModified': lastModified.toEJson(),
+      'syncedAt': syncedAt.toEJson(),
+      'remoteId': remoteId.toEJson(),
     };
   }
 
@@ -484,18 +541,21 @@ class JournalEntryRealm extends _JournalEntryRealm
         'title': EJsonValue title,
         'content': EJsonValue content,
         'createdAt': EJsonValue createdAt,
+        'lastModified': EJsonValue lastModified,
       } =>
         JournalEntryRealm(
           fromEJson(id),
           fromEJson(title),
           fromEJson(content),
           fromEJson(createdAt),
+          fromEJson(lastModified),
           imagePathsString: fromEJson(ejson['imagePathsString']),
           audioRecordingsString: fromEJson(ejson['audioRecordingsString']),
-          coverImagePath: fromEJson(ejson['coverImagePath']),
           entryMood: fromEJson(ejson['entryMood']),
           entryMoodIntensity: fromEJson(ejson['entryMoodIntensity']),
           entryMoodContext: fromEJson(ejson['entryMoodContext']),
+          syncedAt: fromEJson(ejson['syncedAt']),
+          remoteId: fromEJson(ejson['remoteId']),
         ),
       _ => raiseInvalidEJson(ejson),
     };
@@ -527,11 +587,6 @@ class JournalEntryRealm extends _JournalEntryRealm
           RealmPropertyType.string,
           optional: true,
         ),
-        SchemaProperty(
-          'coverImagePath',
-          RealmPropertyType.string,
-          optional: true,
-        ),
         SchemaProperty('entryMood', RealmPropertyType.string, optional: true),
         SchemaProperty(
           'entryMoodIntensity',
@@ -543,6 +598,13 @@ class JournalEntryRealm extends _JournalEntryRealm
           RealmPropertyType.string,
           optional: true,
         ),
+        SchemaProperty(
+          'lastModified',
+          RealmPropertyType.timestamp,
+          indexType: RealmIndexType.regular,
+        ),
+        SchemaProperty('syncedAt', RealmPropertyType.timestamp, optional: true),
+        SchemaProperty('remoteId', RealmPropertyType.string, optional: true),
       ],
     );
   }();
@@ -555,14 +617,20 @@ class MemoryEntryRealm extends _MemoryEntryRealm
     with RealmEntity, RealmObjectBase, RealmObject {
   MemoryEntryRealm(
     ObjectId id,
-    DateTime createdAt, {
+    DateTime createdAt,
+    DateTime lastModified, {
     String? caption,
     String? imagePathsString,
+    DateTime? syncedAt,
+    String? remoteId,
   }) {
     RealmObjectBase.set(this, 'id', id);
     RealmObjectBase.set(this, 'createdAt', createdAt);
     RealmObjectBase.set(this, 'caption', caption);
     RealmObjectBase.set(this, 'imagePathsString', imagePathsString);
+    RealmObjectBase.set(this, 'lastModified', lastModified);
+    RealmObjectBase.set(this, 'syncedAt', syncedAt);
+    RealmObjectBase.set(this, 'remoteId', remoteId);
   }
 
   MemoryEntryRealm._();
@@ -593,6 +661,25 @@ class MemoryEntryRealm extends _MemoryEntryRealm
       RealmObjectBase.set(this, 'imagePathsString', value);
 
   @override
+  DateTime get lastModified =>
+      RealmObjectBase.get<DateTime>(this, 'lastModified') as DateTime;
+  @override
+  set lastModified(DateTime value) =>
+      RealmObjectBase.set(this, 'lastModified', value);
+
+  @override
+  DateTime? get syncedAt =>
+      RealmObjectBase.get<DateTime>(this, 'syncedAt') as DateTime?;
+  @override
+  set syncedAt(DateTime? value) => RealmObjectBase.set(this, 'syncedAt', value);
+
+  @override
+  String? get remoteId =>
+      RealmObjectBase.get<String>(this, 'remoteId') as String?;
+  @override
+  set remoteId(String? value) => RealmObjectBase.set(this, 'remoteId', value);
+
+  @override
   Stream<RealmObjectChanges<MemoryEntryRealm>> get changes =>
       RealmObjectBase.getChanges<MemoryEntryRealm>(this);
 
@@ -611,6 +698,9 @@ class MemoryEntryRealm extends _MemoryEntryRealm
       'createdAt': createdAt.toEJson(),
       'caption': caption.toEJson(),
       'imagePathsString': imagePathsString.toEJson(),
+      'lastModified': lastModified.toEJson(),
+      'syncedAt': syncedAt.toEJson(),
+      'remoteId': remoteId.toEJson(),
     };
   }
 
@@ -618,12 +708,19 @@ class MemoryEntryRealm extends _MemoryEntryRealm
   static MemoryEntryRealm _fromEJson(EJsonValue ejson) {
     if (ejson is! Map<String, dynamic>) return raiseInvalidEJson(ejson);
     return switch (ejson) {
-      {'id': EJsonValue id, 'createdAt': EJsonValue createdAt} =>
+      {
+        'id': EJsonValue id,
+        'createdAt': EJsonValue createdAt,
+        'lastModified': EJsonValue lastModified,
+      } =>
         MemoryEntryRealm(
           fromEJson(id),
           fromEJson(createdAt),
+          fromEJson(lastModified),
           caption: fromEJson(ejson['caption']),
           imagePathsString: fromEJson(ejson['imagePathsString']),
+          syncedAt: fromEJson(ejson['syncedAt']),
+          remoteId: fromEJson(ejson['remoteId']),
         ),
       _ => raiseInvalidEJson(ejson),
     };
@@ -649,6 +746,13 @@ class MemoryEntryRealm extends _MemoryEntryRealm
           RealmPropertyType.string,
           optional: true,
         ),
+        SchemaProperty(
+          'lastModified',
+          RealmPropertyType.timestamp,
+          indexType: RealmIndexType.regular,
+        ),
+        SchemaProperty('syncedAt', RealmPropertyType.timestamp, optional: true),
+        SchemaProperty('remoteId', RealmPropertyType.string, optional: true),
       ],
     );
   }();

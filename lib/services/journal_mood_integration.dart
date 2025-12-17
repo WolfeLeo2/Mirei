@@ -68,6 +68,7 @@ class JournalMoodIntegration {
       title,
       content,
       DateTime.now().toUtc(),
+      DateTime.now().toUtc(),
       imagePathsString: jsonEncode(relativeImagePaths),
       audioRecordingsString: processedAudio != null
           ? jsonEncode(processedAudio)

@@ -1,12 +1,10 @@
 import 'dart:async';
-
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../components/profile_pulldown_menu.dart';
 import '../models/realm_models.dart';
 import '../services/auth_service.dart';
@@ -25,8 +23,8 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
   final EnhancedMoodService _moodService = EnhancedMoodService();
   final RealmDatabaseHelper _dbHelper = RealmDatabaseHelper();
 
-  firebase_auth.User? _currentUser;
-  StreamSubscription<firebase_auth.User?>? _authSubscription;
+  User? _currentUser;
+  StreamSubscription<User?>? _authSubscription;
 
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
@@ -147,7 +145,9 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
   String _getFirstName() {
     if (_currentUser == null) return 'Friend';
 
-    final displayName = _currentUser!.displayName?.trim();
+    final displayName =
+        (_currentUser!.userMetadata?['display_name'] as String?)?.trim() ??
+        (_currentUser!.userMetadata?['full_name'] as String?)?.trim();
     if (displayName != null && displayName.isNotEmpty) {
       return displayName.split(' ').first;
     }
@@ -244,7 +244,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _currentUser!.displayName ?? '',
+                  _getFirstName(),
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -264,14 +264,19 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
   Widget _buildAvatar() {
     if (_currentUser == null) return const SizedBox.shrink();
 
+    final photoUrl =
+        _currentUser!.userMetadata?['avatar_url'] as String? ??
+        _currentUser!.userMetadata?['picture'] as String?;
+    final userId = _currentUser!.id;
+
     return CachedNetworkImage(
       imageUrl:
-          _currentUser!.photoURL ??
-          'https://api.dicebear.com/7.x/avataaars/png?seed=${_currentUser!.uid}&size=512',
+          photoUrl ??
+          'https://api.dicebear.com/7.x/avataaars/png?seed=$userId&size=512',
       fit: BoxFit.contain,
       filterQuality: FilterQuality.high,
       errorWidget: (context, error, stackTrace) {
-        final String name = (_currentUser!.displayName ?? '').trim();
+        final String name = _getFirstName();
         final String initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
         return Container(
           color: const Color(0xFF0E504D),
